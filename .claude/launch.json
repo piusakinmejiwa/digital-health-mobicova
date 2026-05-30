@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mobicova-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "C:/Users/Dee/Desktop/mobicova-platform/client", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}

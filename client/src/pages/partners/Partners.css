@@ -1,0 +1,20 @@
+.partner-section { margin-bottom: 2rem; }
+.partner-section-head { margin-bottom: 0.9rem; }
+.partner-section-head h2 { font-size: 1.1rem; margin-bottom: 0.2rem; }
+
+.partners-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.partner-card { padding: 1.2rem; }
+.partner-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+.partner-card-head h3 { font-size: 1rem; }
+.partner-desc { font-size: 0.85rem; color: var(--gray-600); line-height: 1.5; margin-bottom: 0.9rem; }
+.partner-meta { display: flex; flex-direction: column; gap: 0.25rem; }

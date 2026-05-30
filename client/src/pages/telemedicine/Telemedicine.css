@@ -1,0 +1,56 @@
+.book-bar { margin-bottom: 1.4rem; }
+.book-row { display: flex; gap: 0.6rem; margin-top: 0.9rem; flex-wrap: wrap; }
+.book-row select, .book-row input {
+  padding: 9px 12px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+}
+.book-row input { flex: 1; min-width: 160px; }
+.book-row select:focus, .book-row input:focus { border-color: var(--primary); }
+.card-title { font-size: 1rem; }
+.small { font-size: 0.8rem; }
+
+.drawer-overlay {
+  position: fixed; inset: 0;
+  background: rgba(13,42,42,0.4);
+  display: flex; justify-content: flex-end;
+  z-index: 50;
+}
+.drawer {
+  width: 460px;
+  max-width: 92vw;
+  height: 100%;
+  background: var(--white);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+  overflow-y: auto;
+  animation: slidein 0.18s ease;
+}
+@keyframes slidein { from { transform: translateX(30px); opacity: 0.6; } to { transform: translateX(0); opacity: 1; } }
+.drawer-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.2rem 1.4rem;
+  border-bottom: 1px solid var(--gray-200);
+  position: sticky; top: 0; background: var(--white);
+}
+.drawer-head h3 { font-size: 1.05rem; }
+.drawer-close { background: none; border: none; font-size: 1.6rem; cursor: pointer; color: var(--gray-400); line-height: 1; }
+.drawer-body { padding: 1.4rem; }
+.drawer-meta { display: flex; gap: 1.4rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+.drawer-meta > div { display: flex; flex-direction: column; gap: 0.2rem; }
+.drawer-actions { display: flex; gap: 0.6rem; margin-bottom: 1.4rem; }
+.drawer-subhead { font-size: 0.9rem; margin: 1rem 0 0.7rem; padding-top: 1rem; border-top: 1px solid var(--gray-100); color: var(--gray-600); }
+.rx-list { list-style: none; margin-bottom: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.rx-list li { font-size: 0.85rem; padding: 0.5rem 0.7rem; background: var(--gray-50); border-radius: 7px; }
+.rx-form { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.rx-form input, .rx-form select {
+  padding: 8px 11px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-family: inherit;
+  outline: none;
+}
+.rx-form input { flex: 1; min-width: 110px; }

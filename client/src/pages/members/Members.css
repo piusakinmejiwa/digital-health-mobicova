@@ -1,0 +1,54 @@
+.form-card { max-width: 760px; }
+.section-title {
+  font-size: 0.9rem;
+  margin: 1rem 0 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-100);
+  color: var(--gray-600);
+}
+.form-actions { margin-top: 1.2rem; display: flex; gap: 0.7rem; }
+
+.card-title-row { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--gray-100); }
+.card-title { font-size: 1rem; }
+.small { font-size: 0.8rem; }
+.back-link { font-size: 0.82rem; text-decoration: none; color: var(--gray-600); display: inline-block; margin-bottom: 0.4rem; }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.4rem;
+  align-items: start;
+}
+.detail-main { display: flex; flex-direction: column; gap: 1.4rem; }
+.detail-aside { position: sticky; top: 1.4rem; }
+
+.inline-action {
+  display: flex;
+  gap: 0.6rem;
+  padding: 1rem;
+  border-top: 1px solid var(--gray-100);
+  background: var(--gray-50);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.inline-action input, .inline-action select {
+  padding: 8px 12px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+}
+.inline-action input { flex: 1; }
+.inline-action input:focus, .inline-action select:focus { border-color: var(--primary); }
+
+.profile-list { margin: 1rem 0; }
+.profile-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100); font-size: 0.85rem; }
+.profile-item dt { color: var(--gray-400); }
+.profile-item dd { font-weight: 600; color: var(--gray-800); }
+.profile-tags { margin-top: 1rem; }
+.profile-tags-label { display: block; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-400); font-weight: 700; margin-bottom: 0.45rem; }
+
+@media (max-width: 1000px) {
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-aside { position: static; }
+}

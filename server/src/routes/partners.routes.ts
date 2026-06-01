@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
+import { asyncHandler } from '../middleware/asyncHandler';
 import { listPartners } from '../controllers/partners.controller';
 
 const router = Router();
 
 router.use(authenticate);
-router.get('/', listPartners);
+router.get('/', asyncHandler(listPartners));
 
 export default router;

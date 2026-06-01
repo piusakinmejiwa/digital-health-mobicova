@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
+import { asyncHandler } from '../middleware/asyncHandler';
 import {
   listMembers, getMember, createMember, updateMember, deleteMember,
 } from '../controllers/members.controller';
@@ -10,10 +11,10 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/', listMembers);
-router.get('/:id', getMember);
-router.post('/', [body('fullName').trim().notEmpty().withMessage('Full name is required')], validate, createMember);
-router.put('/:id', updateMember);
-router.delete('/:id', deleteMember);
+router.get('/', asyncHandler(listMembers));
+router.get('/:id', asyncHandler(getMember));
+router.post('/', [body('fullName').trim().notEmpty().withMessage('Full name is required')], validate, asyncHandler(createMember));
+router.put('/:id', asyncHandler(updateMember));
+router.delete('/:id', asyncHandler(deleteMember));
 
 export default router;

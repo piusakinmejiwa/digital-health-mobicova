@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import { register, login, getMe } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
 
@@ -15,16 +16,16 @@ router.post(
     body('orgName').trim().notEmpty(),
   ],
   validate,
-  register
+  asyncHandler(register)
 );
 
 router.post(
   '/login',
   [body('email').isEmail().normalizeEmail(), body('password').notEmpty()],
   validate,
-  login
+  asyncHandler(login)
 );
 
-router.get('/me', authenticate, getMe);
+router.get('/me', authenticate, asyncHandler(getMe));
 
 export default router;

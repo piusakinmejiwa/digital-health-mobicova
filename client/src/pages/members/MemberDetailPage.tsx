@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  getMember, listPlans, bookConsultation, enrolMember,
+  getMember, listPlans, bookConsultation, enrolMember, checkoutPremium,
 } from '../../api/resources';
 import { naira, formatDate, formatDateTime, age, triageLabel, badgeClass } from '../../lib/format';
 import './Members.css';
@@ -20,6 +20,7 @@ export default function MemberDetailPage() {
   const [mode, setMode] = useState('video');
   const [planId, setPlanId] = useState('');
   const [busy, setBusy] = useState('');
+  const [notice, setNotice] = useState('');
 
   if (isLoading || !member) {
     return <div className="page"><p className="muted">Loading member…</p></div>;
@@ -43,6 +44,20 @@ export default function MemberDetailPage() {
       await enrolMember({ memberId: member.id, planId });
       setPlanId('');
       refresh();
+    } finally { setBusy(''); }
+  };
+
+  const handlePay = async (enrolmentId: string) => {
+    setBusy(enrolmentId);
+    setNotice('');
+    try {
+      const res = await checkoutPremium(enrolmentId);
+      if (res.url) {
+        window.location.href = res.url;
+      } else {
+        setNotice(res.message || 'Premium marked paid (demo mode).');
+        refresh();
+      }
     } finally { setBusy(''); }
   };
 
@@ -110,7 +125,7 @@ export default function MemberDetailPage() {
               <p className="empty-state small">Not enrolled in any plan.</p>
             ) : (
               <table className="table">
-                <thead><tr><th>Plan</th><th>Underwriter</th><th>Premium</th><th>Payment</th></tr></thead>
+                <thead><tr><th>Plan</th><th>Underwriter</th><th>Premium</th><th>Payment</th><th></th></tr></thead>
                 <tbody>
                   {member.enrolments.map((e) => (
                     <tr key={e.id}>
@@ -118,11 +133,19 @@ export default function MemberDetailPage() {
                       <td className="muted small">{e.underwriter}</td>
                       <td>{naira(e.monthly_premium, e.currency)}/mo</td>
                       <td><span className={`badge ${badgeClass(e.payment_status)}`}>{e.payment_status}</span></td>
+                      <td>
+                        {e.payment_status !== 'paid' && (
+                          <button className="btn btn-secondary btn-sm" onClick={() => handlePay(e.id)} disabled={busy === e.id}>
+                            {busy === e.id ? '…' : 'Collect premium'}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
+            {notice && <p className="muted small" style={{ margin: '0.75rem 1rem 0' }}>{notice}</p>}
             <div className="inline-action">
               <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
                 <option value="">Select a plan…</option>

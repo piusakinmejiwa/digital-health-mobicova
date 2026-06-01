@@ -7,4 +7,6 @@ export const anthropic = env.anthropicApiKey
 
 export const anthropicEnabled = !!anthropic;
 
-export const TRIAGE_MODEL = 'claude-sonnet-4-6';
+// Configurable so the model can be bumped from the Render dashboard without a
+// code change. Defaults to a known-valid Sonnet model.
+export const TRIAGE_MODEL = env.anthropicModel;

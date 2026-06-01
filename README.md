@@ -54,6 +54,7 @@ npm run dev               # http://localhost:5173
 | `DATABASE_URL` | yes | Postgres / Neon connection string |
 | `JWT_SECRET` | yes | Token signing secret |
 | `ANTHROPIC_API_KEY` | no | Enables the live Claude triage assistant (falls back to rules if absent) |
+| `ANTHROPIC_MODEL` | no | Overrides the triage model, defaults to `claude-sonnet-4-5` |
 | `STRIPE_SECRET_KEY` | no | Enables Stripe premium checkout (enrolment still works without it) |
 | `CLIENT_URL` | no | CORS origin, defaults to `http://localhost:5173` |
 | `PORT` | no | API port, defaults to `4000` |

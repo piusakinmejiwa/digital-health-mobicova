@@ -52,6 +52,36 @@
 }
 .demo-hint strong { color: var(--gray-800); }
 
+/* "or" divider between password and SSO sign-in */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.1rem 0;
+  color: var(--gray-400);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gray-200);
+}
+.auth-divider span { padding: 0 0.7rem; }
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--gray-600);
+  font-size: 0.85rem;
+  margin-top: 0.8rem;
+  cursor: pointer;
+}
+.btn-link:hover { color: var(--primary); }
+
 @media (max-width: 880px) {
   .auth-wrap { grid-template-columns: 1fr; }
   .auth-hero { display: none; }

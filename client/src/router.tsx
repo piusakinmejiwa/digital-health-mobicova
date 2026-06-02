@@ -3,6 +3,8 @@ import AppShell from './components/layout/AppShell';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import SsoCallbackPage from './pages/auth/SsoCallbackPage';
+import SsoSettingsPage from './pages/settings/SsoSettingsPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import MembersListPage from './pages/members/MembersListPage';
 import MemberCreatePage from './pages/members/MemberCreatePage';
@@ -19,6 +21,7 @@ import AdminRoute from './components/layout/AdminRoute';
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/sso/callback', element: <SsoCallbackPage /> },
   {
     path: '/',
     element: (
@@ -37,6 +40,7 @@ export const router = createBrowserRouter([
       { path: 'insurance', element: <InsurancePage /> },
       { path: 'analytics', element: <AnalyticsPage /> },
       { path: 'channels', element: <ChannelsPage /> },
+      { path: 'settings/sso', element: <SsoSettingsPage /> },
       { path: 'partners', element: <PartnersPage /> },
       { path: 'admin', element: <AdminRoute><AdminPage /></AdminRoute> },
     ],

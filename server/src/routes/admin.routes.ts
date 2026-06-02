@@ -14,6 +14,7 @@ import {
   adminResetUserPassword, adminDeleteUser,
 } from '../controllers/adminUsers.controller';
 import { adminListAudit } from '../controllers/adminAudit.controller';
+import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller';
 
 const router = Router();
 
@@ -26,6 +27,9 @@ router.get('/organisations', asyncHandler(adminListOrgs));
 router.post('/organisations', asyncHandler(adminCreateOrg));
 router.patch('/organisations/:id', asyncHandler(adminUpdateOrg));
 router.delete('/organisations/:id', asyncHandler(adminDeleteOrg));
+// Per-tenant SAML SSO config (platform-admin on behalf of a partner)
+router.get('/organisations/:id/sso', asyncHandler(adminGetOrgSso));
+router.put('/organisations/:id/sso', asyncHandler(adminUpdateOrgSso));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

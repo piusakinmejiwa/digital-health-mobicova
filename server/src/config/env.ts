@@ -24,4 +24,9 @@ export const env = {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  // Public base URL of THIS API, used to derive the SAML Service Provider
+  // identifiers (entityID, ACS callback, login URL) that partners hand to their
+  // IdP. Must be the externally reachable origin in production (e.g.
+  // https://mobicova-api.onrender.com), with no trailing slash.
+  serverUrl: (process.env.SERVER_URL || 'http://localhost:4000').replace(/\/$/, ''),
 };

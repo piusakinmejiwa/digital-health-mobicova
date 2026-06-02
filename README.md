@@ -132,6 +132,44 @@ set `PLATFORM_ADMIN_EMAILS=you@example.com` and re-deploy. The seeded demo admin
 server-side (all `/admin/*` routes sit behind a platform-admin guard) — the hidden sidebar item is
 just a convenience. Migration `009_add_platform_admin.sql` adds the flag column.
 
+## Single sign-on (SAML 2.0)
+
+Partners can let their staff sign in with their corporate identity provider (Okta, Azure AD,
+Google Workspace, ADFS…). The platform is the SAML **Service Provider**; each tenant configures
+its own IdP. SSO is **per-tenant** and opt-in — password login keeps working alongside it.
+
+**Provisioning policy: pre-existing users only.** An assertion authenticates a user whose email
+already maps to an active account in that organisation. Unknown emails are rejected — there is no
+just-in-time account creation, so admins stay in control of who has access.
+
+**Configuring it (two ways, same settings):**
+- **Org admins** self-serve at **Settings → Single sign-on** (`/settings/sso`, admin role only).
+- **Platform admins** configure on a tenant's behalf from **Admin Console → Organisations → SSO**.
+
+The editor surfaces the Service Provider coordinates a partner registers with their IdP — derived
+from `SERVER_URL` + the org slug:
+
+| SP value | URL shape |
+|----------|-----------|
+| Entity ID / Issuer & Metadata | `…/api/v1/auth/saml/<slug>/metadata` |
+| ACS / Reply URL | `…/api/v1/auth/saml/<slug>/callback` |
+| SP-initiated login | `…/api/v1/auth/saml/<slug>/login` |
+
+…and captures the IdP side: sign-in URL (entry point), issuer (optional), email attribute
+(optional — blank uses the assertion NameID), and the X.509 signing certificate. Assertions must be
+signed (`wantAssertionsSigned`); the cert is verified on every login.
+
+**Sign-in flow.** On the login page, **Sign in with SSO** asks for the workspace ID (slug); the
+browser is redirected to the IdP, which posts a signed assertion back to the ACS endpoint. The
+server matches the email to an existing user, mints the usual 7-day JWT, and hands it to the SPA via
+`/sso/callback#token=…` (the token rides in the URL fragment so it never reaches server logs).
+Successful and denied SSO attempts are written to the audit log (`auth.sso_login` /
+`auth.sso_denied`).
+
+Built on [`@node-saml/node-saml`](https://github.com/node-saml/node-saml). Config lives in the
+`org_sso` table (migration `013_create_org_sso.sql`). Set `SERVER_URL` to this API's public origin
+(no trailing slash) so the generated SP URLs are reachable by partner IdPs.
+
 ## Bulk member import
 
 Beyond adding members one at a time, the **Members** page has an **Import CSV** button

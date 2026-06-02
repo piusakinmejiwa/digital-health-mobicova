@@ -212,6 +212,23 @@ export interface AnalyticsReport {
   channelBreakdown: { channel: string; count: number }[];
 }
 
+// Per-tenant SAML SSO configuration as returned by /sso/config and
+// /admin/organisations/:id/sso. `sp` holds the Service Provider coordinates a
+// partner registers with their identity provider.
+export interface SsoConfig {
+  enabled: boolean;
+  entryPoint: string;
+  idpIssuer: string;
+  idpCert: string;
+  emailAttribute: string;
+  sp: {
+    entityId: string;
+    acsUrl: string;
+    loginUrl: string;
+    metadataUrl: string;
+  };
+}
+
 export interface DashboardData {
   metrics: {
     members: number;

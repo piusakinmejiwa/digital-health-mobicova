@@ -1,0 +1,38 @@
+.sso-editor { display: flex; flex-direction: column; gap: 1.4rem; }
+
+.sso-block { border-top: 1px solid var(--gray-100); padding-top: 1.1rem; }
+.sso-block:first-child { border-top: none; padding-top: 0; }
+.sso-block-title { font-size: 0.92rem; margin-bottom: 0.3rem; color: var(--dark); }
+
+.sso-sp-grid { display: flex; flex-direction: column; gap: 0.9rem; margin-top: 0.8rem; }
+.sso-sp-field label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--gray-600); margin-bottom: 0.2rem; }
+.sso-copy {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.sso-copy code {
+  flex: 1;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.78rem;
+  word-break: break-all;
+  display: flex;
+  align-items: center;
+}
+.sso-copy .btn { white-space: nowrap; }
+
+.sso-cert {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  border: 1px solid var(--gray-200);
+  border-radius: 6px;
+  padding: 0.6rem 0.7rem;
+  resize: vertical;
+}
+
+.sso-toggle { display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.sso-toggle input { width: 16px; height: 16px; }

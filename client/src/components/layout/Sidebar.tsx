@@ -13,12 +13,18 @@ const navItems = [
   { to: '/partners', label: 'Partner Ecosystem', icon: '⌬' },
 ];
 
+// Shown only to org admins (role === 'admin') — self-service SSO setup.
+const ssoNavItem = { to: '/settings/sso', label: 'Single sign-on', icon: '⚷' };
 // Shown only to platform admins (see AuthContext user.isPlatformAdmin).
 const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
-  const items = user?.isPlatformAdmin ? [...navItems, adminNavItem] : navItems;
+  const items = [
+    ...navItems,
+    ...(user?.role === 'admin' ? [ssoNavItem] : []),
+    ...(user?.isPlatformAdmin ? [adminNavItem] : []),
+  ];
 
   return (
     <aside className="sidebar">

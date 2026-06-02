@@ -4,7 +4,10 @@ import axios from 'axios';
 import type { Organisation, AdminUser } from '../../types';
 import {
   adminListOrgs, adminCreateOrg, adminUpdateOrg, adminDeleteOrg,
+  adminGetOrgSso, adminUpdateOrgSso,
 } from '../../api/admin';
+import type { SsoConfigInput } from '../../api/sso';
+import SsoConfigEditor from '../../components/sso/SsoConfigEditor';
 import { useAuth } from '../../context/AuthContext';
 
 const PARTNER_TYPES = ['employer', 'insurer', 'telco', 'fintech', 'cooperative', 'hmo'];
@@ -26,6 +29,7 @@ export default function OrgsAdmin() {
   const { data: orgs } = useQuery({ queryKey: ['admin-orgs'], queryFn: adminListOrgs });
   const [creating, setCreating] = useState<null | typeof emptyOrg>(null);
   const [editing, setEditing] = useState<null | (Organisation)>(null);
+  const [ssoOrg, setSsoOrg] = useState<null | Organisation>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | { org: Organisation; admin?: AdminUser }>(null);
@@ -116,6 +120,7 @@ export default function OrgsAdmin() {
               <td><span className={`badge ${o.is_active ? 'badge-green' : 'badge-gray'}`}>{o.is_active ? 'active' : 'suspended'}</span></td>
               <td className="admin-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => { setError(''); setEditing(o); }}>Edit</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSsoOrg(o)}>SSO</button>
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => toggleActive(o)}
@@ -232,6 +237,9 @@ export default function OrgsAdmin() {
         </div>
       )}
 
+      {/* ---- SSO config modal ---- */}
+      {ssoOrg && <OrgSsoModal org={ssoOrg} onClose={() => setSsoOrg(null)} />}
+
       {/* ---- Provisioned confirmation ---- */}
       {provisioned && (
         <div className="drawer-overlay" onClick={() => setProvisioned(null)}>
@@ -250,6 +258,29 @@ export default function OrgsAdmin() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Platform-admin SSO editor for a single tenant. Loads the org's current config
+// lazily when opened and saves via the admin endpoint.
+function OrgSsoModal({ org, onClose }: { org: Organisation; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-org-sso', org.id],
+    queryFn: () => adminGetOrgSso(org.id),
+  });
+  const save = (input: SsoConfigInput) => adminUpdateOrgSso(org.id, input);
+
+  return (
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+        <h3>Single sign-on · {org.name}</h3>
+        <p className="muted small">Configure SAML SSO on behalf of this partner tenant.</p>
+        {isLoading ? <p className="muted">Loading…</p> : <SsoConfigEditor config={data ?? null} onSave={save} />}
+        <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={onClose}>Close</button>
+        </div>
+      </div>
     </div>
   );
 }

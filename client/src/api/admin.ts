@@ -1,5 +1,6 @@
 import api from './client';
-import type { Partner, InsurancePlan, Organisation, AdminUser, AuditEntry } from '../types';
+import type { Partner, InsurancePlan, Organisation, AdminUser, AuditEntry, SsoConfig } from '../types';
+import type { SsoConfigInput } from './sso';
 
 // Platform-admin catalog management. All endpoints require platform-admin
 // privileges (enforced server-side); the Admin page is only reachable when
@@ -45,6 +46,13 @@ export async function adminUpdateOrg(id: string, data: Record<string, unknown>):
 }
 export async function adminDeleteOrg(id: string): Promise<void> {
   await api.delete(`/admin/organisations/${id}`);
+}
+// Per-tenant SAML SSO config, managed on a partner's behalf.
+export async function adminGetOrgSso(id: string): Promise<SsoConfig> {
+  return (await api.get(`/admin/organisations/${id}/sso`)).data;
+}
+export async function adminUpdateOrgSso(id: string, data: SsoConfigInput): Promise<SsoConfig> {
+  return (await api.put(`/admin/organisations/${id}/sso`, data)).data;
 }
 
 // Dashboard users

@@ -5,6 +5,18 @@ import { query } from '../config/database';
 import { env } from '../config/env';
 import { JwtPayload } from '../middleware/auth';
 
+// Generates a short, unique numeric code a member types on WhatsApp/USSD to
+// enrol under this organisation. Retries on the rare collision.
+async function generateJoinCode(): Promise<string> {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const clash = await query('SELECT 1 FROM organisations WHERE join_code = $1', [code]);
+    if (clash.rows.length === 0) return code;
+  }
+  // Extremely unlikely fallback: widen to 8 digits.
+  return String(Math.floor(10000000 + Math.random() * 90000000));
+}
+
 export async function register(req: Request, res: Response): Promise<void> {
   const { email, password, fullName, orgName, partnerType } = req.body;
 
@@ -27,9 +39,10 @@ export async function register(req: Request, res: Response): Promise<void> {
 
   const passwordHash = await bcrypt.hash(password, 12);
 
+  const joinCode = await generateJoinCode();
   const orgResult = await query(
-    `INSERT INTO organisations (name, slug, partner_type) VALUES ($1, $2, $3) RETURNING id`,
-    [orgName, slug, partnerType || 'employer']
+    `INSERT INTO organisations (name, slug, partner_type, join_code) VALUES ($1, $2, $3, $4) RETURNING id`,
+    [orgName, slug, partnerType || 'employer', joinCode]
   );
   const orgId = orgResult.rows[0].id;
 
@@ -96,7 +109,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
 
   const result = await query(
     `SELECT u.id, u.email, u.full_name, u.role, u.org_id,
-            o.name as org_name, o.partner_type, o.plan_tier
+            o.name as org_name, o.partner_type, o.plan_tier, o.join_code
      FROM users u JOIN organisations o ON u.org_id = o.id
      WHERE u.id = $1`,
     [req.user.userId]
@@ -117,5 +130,6 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     orgName: user.org_name,
     partnerType: user.partner_type,
     planTier: user.plan_tier,
+    joinCode: user.join_code,
   });
 }

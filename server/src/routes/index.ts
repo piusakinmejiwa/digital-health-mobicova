@@ -6,6 +6,8 @@ import telemedicineRoutes from './telemedicine.routes';
 import insuranceRoutes from './insurance.routes';
 import triageRoutes from './triage.routes';
 import dashboardRoutes from './dashboard.routes';
+import billingRoutes from './billing.routes';
+import channelsRoutes from './channels.routes';
 
 const router = Router();
 
@@ -16,5 +18,7 @@ router.use('/consultations', telemedicineRoutes);
 router.use('/insurance', insuranceRoutes);
 router.use('/triage', triageRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/billing', billingRoutes);
+router.use('/channels', channelsRoutes);
 
 export default router;

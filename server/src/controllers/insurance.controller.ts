@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { stripe, stripeEnabled } from '../config/stripe';
+import { paystackEnabled, paystackInitialize } from '../config/paystack';
 import { env } from '../config/env';
 
 export async function listPlans(_req: Request, res: Response): Promise<void> {
@@ -47,14 +48,21 @@ export async function enrolMember(req: Request, res: Response): Promise<void> {
   res.status(201).json(result.rows[0]);
 }
 
-// Creates a Stripe Checkout session for a premium payment, when Stripe is configured.
+// Starts a premium payment. Prefers Paystack (NGN-native, the production choice
+// for Nigeria), falls back to Stripe, then to a demo path that simply marks the
+// premium paid when no processor is configured. The hosted-checkout URL is
+// returned for the browser to redirect to; payment is only confirmed later by
+// the provider's webhook (see billing.controller), never by the redirect itself.
 export async function createPremiumCheckout(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
   const { id } = req.params;
 
   const enrolment = await query(
-    `SELECT e.id, pl.name AS plan_name, pl.monthly_premium, pl.currency
-     FROM enrolments e JOIN insurance_plans pl ON e.plan_id = pl.id
+    `SELECT e.id, m.email AS member_email, m.full_name AS member_name,
+            pl.name AS plan_name, pl.monthly_premium, pl.currency
+     FROM enrolments e
+     JOIN insurance_plans pl ON e.plan_id = pl.id
+     JOIN members m ON e.member_id = m.id
      WHERE e.id = $1 AND e.org_id = $2`,
     [id, orgId]
   );
@@ -63,31 +71,60 @@ export async function createPremiumCheckout(req: Request, res: Response): Promis
     return;
   }
 
-  if (!stripeEnabled || !stripe) {
-    // Graceful demo path: mark as paid without a real payment.
-    await query(`UPDATE enrolments SET payment_status = 'paid' WHERE id = $1`, [id]);
-    res.json({ stripeEnabled: false, message: 'Stripe not configured — premium marked paid (demo mode).' });
+  const plan = enrolment.rows[0];
+  const amountMinor = Math.round(Number(plan.monthly_premium) * 100);
+  const currency = (plan.currency || 'NGN').toUpperCase();
+
+  // Paystack — preferred for NGN.
+  if (paystackEnabled) {
+    const email = plan.member_email && String(plan.member_email).includes('@')
+      ? plan.member_email
+      : `member-${id}@mobicova.health`;
+    const init = await paystackInitialize({
+      email,
+      amount: amountMinor,
+      currency,
+      callback_url: `${env.clientUrl}/insurance?payment=success`,
+      metadata: { enrolmentId: String(id) },
+    });
+    await query(
+      `UPDATE enrolments SET payment_provider = 'paystack', payment_reference = $2 WHERE id = $1`,
+      [id, init.data.reference]
+    );
+    res.json({ provider: 'paystack', url: init.data.authorization_url });
     return;
   }
 
-  const plan = enrolment.rows[0];
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    line_items: [
-      {
-        price_data: {
-          currency: (plan.currency || 'NGN').toLowerCase(),
-          product_data: { name: `${plan.plan_name} — monthly premium` },
-          unit_amount: Math.round(Number(plan.monthly_premium) * 100),
+  // Stripe — fallback (note: does not support NGN in all accounts).
+  if (stripeEnabled && stripe) {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: currency.toLowerCase(),
+            product_data: { name: `${plan.plan_name} — monthly premium` },
+            unit_amount: amountMinor,
+          },
+          quantity: 1,
         },
-        quantity: 1,
-      },
-    ],
-    success_url: `${env.clientUrl}/insurance?payment=success`,
-    cancel_url: `${env.clientUrl}/insurance?payment=cancelled`,
-    metadata: { enrolmentId: String(id) },
-  });
+      ],
+      success_url: `${env.clientUrl}/insurance?payment=success`,
+      cancel_url: `${env.clientUrl}/insurance?payment=cancelled`,
+      metadata: { enrolmentId: String(id) },
+    });
+    await query(
+      `UPDATE enrolments SET payment_provider = 'stripe', stripe_session_id = $2, payment_reference = $2 WHERE id = $1`,
+      [id, session.id]
+    );
+    res.json({ provider: 'stripe', url: session.url });
+    return;
+  }
 
-  await query(`UPDATE enrolments SET stripe_session_id = $2 WHERE id = $1`, [id, session.id]);
-  res.json({ stripeEnabled: true, url: session.url });
+  // Demo path: no processor configured, mark as paid without a real payment.
+  await query(
+    `UPDATE enrolments SET payment_status = 'paid', payment_provider = 'demo' WHERE id = $1`,
+    [id]
+  );
+  res.json({ provider: 'demo', message: 'No payment provider configured — premium marked paid (demo mode).' });
 }

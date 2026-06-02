@@ -8,6 +8,7 @@ const navItems = [
   { to: '/telemedicine', label: 'Telemedicine', icon: '✚' },
   { to: '/assistant', label: 'AI Health Assistant', icon: '✦' },
   { to: '/insurance', label: 'Insurance', icon: '◎' },
+  { to: '/channels', label: 'WhatsApp & USSD', icon: '☷' },
   { to: '/partners', label: 'Partner Ecosystem', icon: '⌬' },
 ];
 

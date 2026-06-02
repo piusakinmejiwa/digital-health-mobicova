@@ -7,6 +7,7 @@ export interface User {
   orgName: string;
   partnerType?: string;
   planTier?: string;
+  joinCode?: string;
 }
 
 export interface AuthResponse {

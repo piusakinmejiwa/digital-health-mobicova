@@ -1,0 +1,124 @@
+.join-code-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.join-code-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.35rem;
+  color: var(--teal, #0d9488);
+  background: rgba(13, 148, 136, 0.08);
+  padding: 0.5rem 1.25rem;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.channels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sim-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.sim-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.sim-input input {
+  flex: 1;
+}
+
+/* USSD: a stark, monospace feature-phone screen */
+.ussd-screen {
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  border-radius: 10px;
+  padding: 1rem;
+  min-height: 140px;
+  margin: 0.75rem 0;
+}
+
+.ussd-ended {
+  margin-top: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* WhatsApp: a chat transcript */
+.wa-screen {
+  background: #ece5dd;
+  border-radius: 10px;
+  padding: 0.75rem;
+  min-height: 200px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+}
+
+.wa-bubble {
+  max-width: 80%;
+  padding: 0.45rem 0.7rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.wa-user {
+  align-self: flex-end;
+  background: #d9fdd3;
+  color: #111;
+}
+
+.wa-bot {
+  align-self: flex-start;
+  background: #fff;
+  color: #111;
+}
+
+.connect-card .connect-list {
+  margin: 0.75rem 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.connect-list dt {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.connect-list dd {
+  margin: 0;
+}
+
+.connect-list code,
+.connect-card code {
+  background: rgba(15, 23, 42, 0.06);
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  word-break: break-all;
+}

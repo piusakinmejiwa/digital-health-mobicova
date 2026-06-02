@@ -58,7 +58,7 @@ export async function listEnrolments(): Promise<Enrolment[]> {
 export async function enrolMember(data: { memberId: string; planId: string }): Promise<Enrolment> {
   return (await api.post('/insurance/enrolments', data)).data;
 }
-export async function checkoutPremium(enrolmentId: string): Promise<{ stripeEnabled: boolean; url?: string; message?: string }> {
+export async function checkoutPremium(enrolmentId: string): Promise<{ provider: 'paystack' | 'stripe' | 'demo'; url?: string; message?: string }> {
   return (await api.post(`/insurance/enrolments/${enrolmentId}/checkout`)).data;
 }
 

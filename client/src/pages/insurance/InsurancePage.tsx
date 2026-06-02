@@ -43,7 +43,7 @@ export default function InsurancePage() {
     setBusy(enrolmentId);
     try {
       const res = await checkoutPremium(enrolmentId);
-      if (res.stripeEnabled && res.url) {
+      if (res.url) {
         window.location.href = res.url;
       } else {
         setNotice(res.message || 'Premium marked paid (demo mode).');

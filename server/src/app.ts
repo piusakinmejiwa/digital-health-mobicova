@@ -18,9 +18,15 @@ const authLimiter = rateLimit({
 });
 app.use('/api/v1/auth', authLimiter);
 
-// Raw body needed for Stripe webhooks
-app.use('/api/v1/billing/webhook', express.raw({ type: 'application/json' }));
+// Raw body needed so payment-provider webhook signatures can be verified.
+// Must be registered before express.json() so these paths keep the unparsed body.
+app.use(
+  ['/api/v1/billing/stripe/webhook', '/api/v1/billing/paystack/webhook'],
+  express.raw({ type: '*/*' })
+);
 app.use(express.json());
+// USSD gateways (Africa's Talking et al.) post application/x-www-form-urlencoded.
+app.use(express.urlencoded({ extended: false }));
 
 app.use('/api/v1', routes);
 

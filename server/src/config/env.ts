@@ -10,5 +10,9 @@ export const env = {
   anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5',
   stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+  paystackSecretKey: process.env.PAYSTACK_SECRET_KEY || '',
+  whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '',
+  whatsappToken: process.env.WHATSAPP_TOKEN || '',
+  whatsappPhoneId: process.env.WHATSAPP_PHONE_ID || '',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
 };

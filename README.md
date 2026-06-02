@@ -7,7 +7,12 @@ insurers, telcos) log in to manage their members and three integrated Tier 1 ser
   e-prescriptions fulfilled by pharmacy partners.
 - **AI Health Assistant** — symptom triage and health guidance (Claude API, with a
   rule-based fallback when no API key is configured).
-- **Health-linked Insurance** — plan catalog, member enrolment, and premium checkout (Stripe).
+- **Health-linked Insurance** — plan catalog, member enrolment, and premium checkout
+  (Paystack — NGN-native — or Stripe).
+
+Members don't need the dashboard or an app: partners enrol them over **WhatsApp** or **USSD**
+from a basic phone, attributed to the partner via a 6-digit organisation **join code**. Both
+channels funnel into the same member records. See [WhatsApp & USSD intake](#whatsapp--ussd-intake).
 
 MobiCova's positioning is **Health Platform + Distributor + Infrastructure Provider** — it
 connects people to clinical services, it does not provide them. This MVP reflects that:
@@ -19,7 +24,8 @@ the health-data layer, and the distribution channel.
 - **Client** — React 19 + Vite + TypeScript, React Router, TanStack Query, Axios
 - **Server** — Express + TypeScript, PostgreSQL (Neon or Supabase), JWT auth
 - **AI** — Anthropic Claude API (`@anthropic-ai/sdk`) with prompt caching
-- **Payments** — Stripe Checkout (insurance premiums)
+- **Payments** — Paystack (NGN-native) or Stripe Checkout (insurance premiums)
+- **Channels** — WhatsApp Business Cloud API (Meta) + USSD (Africa's Talking) member intake
 
 ## Getting started
 
@@ -55,7 +61,12 @@ npm run dev               # http://localhost:5173
 | `JWT_SECRET` | yes | Token signing secret |
 | `ANTHROPIC_API_KEY` | no | Enables the live Claude triage assistant (falls back to rules if absent) |
 | `ANTHROPIC_MODEL` | no | Overrides the triage model, defaults to `claude-sonnet-4-5` |
-| `STRIPE_SECRET_KEY` | no | Enables Stripe premium checkout (enrolment still works without it) |
+| `PAYSTACK_SECRET_KEY` | no | Enables Paystack premium checkout (NGN-native; preferred over Stripe when set) (`sk_…`) |
+| `STRIPE_SECRET_KEY` | no | Enables Stripe premium checkout fallback (enrolment still works without it) |
+| `STRIPE_WEBHOOK_SECRET` | no | Verifies Stripe webhook calls so paid premiums are confirmed (`whsec_…`) |
+| `WHATSAPP_VERIFY_TOKEN` | no | Token Meta echoes back when verifying the WhatsApp webhook |
+| `WHATSAPP_TOKEN` | no | Meta Cloud API access token — enables live WhatsApp replies |
+| `WHATSAPP_PHONE_ID` | no | Meta WhatsApp phone-number ID used to send replies |
 | `CLIENT_URL` | no | CORS origin, defaults to `http://localhost:5173` |
 | `PORT` | no | API port, defaults to `4000` |
 
@@ -67,6 +78,42 @@ The **client** has one env var (set it in `client/.env`, or in the host's dashbo
 
 This is an MVP: clinical providers, insurers, and pharmacies are represented as partner
 records and mock integrations. No real PHI should be entered.
+
+## WhatsApp & USSD intake
+
+Partners enrol members without the dashboard — from a feature phone (USSD) or a chat
+(WhatsApp). A short conversation collects the organisation join code, the member's name, and
+gender, then writes a member record attributed to that organisation.
+
+- **Join code** — every organisation gets a 6-digit `join_code` (shown on the *WhatsApp & USSD*
+  page and returned by `/auth/me`). Members type it as the first step so the enrolment is
+  attributed to the right partner. Migration `008_create_channel_intake.sql` adds the column,
+  backfills existing orgs, and creates the `intake_sessions` table.
+- **USSD** is stateless — the aggregator replays the full `*`-joined input on each request, so the
+  engine re-derives state every call. Replies are prefixed `CON ` (expect more input) or `END `
+  (session over).
+- **WhatsApp** is stateful — each sender's progress is persisted in `intake_sessions` between
+  messages.
+
+### Try it without any telco/Meta account
+
+The *WhatsApp & USSD* page in the dashboard ships **in-app simulators** (a feature-phone screen and
+a chat transcript) that hit the exact same endpoints a live provider would. No external account
+needed to demo the full flow end to end.
+
+### Go live
+
+Point a real provider at these endpoints — no code change needed:
+
+| Channel | Endpoint | Method |
+|---------|----------|--------|
+| USSD (e.g. Africa's Talking) | `<API>/channels/ussd` | `POST` |
+| WhatsApp (Meta Cloud API) | `<API>/channels/whatsapp/webhook` | `GET` (verify) + `POST` (messages) |
+
+USSD needs only a shortcode lease with your aggregator. Live WhatsApp replies require
+`WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_TOKEN`, and `WHATSAPP_PHONE_ID` set on the API; without them the
+webhook still accepts and processes messages (and the simulators work), it just won't push replies
+back through Meta.
 
 ## Deployment (Render)
 

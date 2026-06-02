@@ -11,6 +11,7 @@ import TelemedicinePage from './pages/telemedicine/TelemedicinePage';
 import AssistantPage from './pages/assistant/AssistantPage';
 import InsurancePage from './pages/insurance/InsurancePage';
 import PartnersPage from './pages/partners/PartnersPage';
+import ChannelsPage from './pages/channels/ChannelsPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
       { path: 'telemedicine', element: <TelemedicinePage /> },
       { path: 'assistant', element: <AssistantPage /> },
       { path: 'insurance', element: <InsurancePage /> },
+      { path: 'channels', element: <ChannelsPage /> },
       { path: 'partners', element: <PartnersPage /> },
     ],
   },

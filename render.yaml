@@ -27,6 +27,15 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      # Live WhatsApp intake (Meta Cloud API) — simulators work without these.
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_ID
+        sync: false
 
   # React (Vite) static client
   - type: web

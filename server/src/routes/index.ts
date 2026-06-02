@@ -12,6 +12,8 @@ import ssoRoutes from './sso.routes';
 import billingRoutes from './billing.routes';
 import channelsRoutes from './channels.routes';
 import adminRoutes from './admin.routes';
+import memberPortalRoutes from './memberPortal.routes';
+import developerRoutes from './developer.routes';
 
 const router = Router();
 
@@ -28,5 +30,7 @@ router.use('/sso', ssoRoutes);
 router.use('/billing', billingRoutes);
 router.use('/channels', channelsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/member', memberPortalRoutes);
+router.use('/developer', developerRoutes);
 
 export default router;

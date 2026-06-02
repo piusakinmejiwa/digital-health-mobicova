@@ -25,6 +25,11 @@ export const env = {
   supabaseUrl: process.env.SUPABASE_URL || '',
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   supabaseStorageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'claim-documents',
+  // Member portal OTP login. When true (or when no delivery channel is
+  // configured), the one-time code is returned in the API response and logged so
+  // the flow is testable without an SMS/WhatsApp gateway. Turn OFF in a real
+  // deployment that has a delivery channel wired up.
+  otpDevMode: process.env.OTP_DEV_MODE === 'true',
   // Comma-separated emails granted platform-admin access to the catalog Admin UI.
   platformAdminEmails: (process.env.PLATFORM_ADMIN_EMAILS || '')
     .split(',')

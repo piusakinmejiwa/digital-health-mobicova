@@ -3,6 +3,7 @@ import { query } from '../config/database';
 import { stripe, stripeEnabled } from '../config/stripe';
 import { paystackEnabled, paystackInitialize } from '../config/paystack';
 import { env } from '../config/env';
+import { emitEvent } from '../lib/webhooks';
 
 export async function listPlans(_req: Request, res: Response): Promise<void> {
   const result = await query(
@@ -45,7 +46,19 @@ export async function enrolMember(req: Request, res: Response): Promise<void> {
      VALUES ($1, $2, $3, 'active', 'unpaid') RETURNING *`,
     [orgId, memberId, planId]
   );
-  res.status(201).json(result.rows[0]);
+  const enrolment = result.rows[0];
+
+  // Notify any subscribed partner systems.
+  emitEvent(orgId, 'member.enrolled', {
+    enrolment_id: enrolment.id,
+    member_id: enrolment.member_id,
+    plan_id: enrolment.plan_id,
+    status: enrolment.status,
+    payment_status: enrolment.payment_status,
+    enrolled_at: enrolment.enrolled_at,
+  });
+
+  res.status(201).json(enrolment);
 }
 
 // Starts a premium payment. Prefers Paystack (NGN-native, the production choice

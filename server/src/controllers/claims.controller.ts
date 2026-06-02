@@ -5,6 +5,25 @@ import { storageEnabled, uploadClaimFile, UploadableFile } from '../config/stora
 import {
   CLAIM_STATUSES, CLAIM_TYPES, canTransition, generateClaimReference, isClaimStatus, isClaimType,
 } from '../lib/claims';
+import { emitEvent } from '../lib/webhooks';
+
+// Shared envelope for claim webhook payloads — kept consistent across create and
+// status-change events.
+function claimEventPayload(claim: Record<string, any>): Record<string, unknown> {
+  return {
+    claim_id: claim.id,
+    reference: claim.reference,
+    member_id: claim.member_id,
+    claim_type: claim.claim_type,
+    provider_name: claim.provider_name,
+    amount: claim.amount,
+    currency: claim.currency,
+    status: claim.status,
+    submitted_via: claim.submitted_via,
+    created_at: claim.created_at,
+    updated_at: claim.updated_at,
+  };
+}
 
 // Shared projection: a claim row enriched with the member, plan/underwriter it
 // is made against, who decided it, and a document count for the list view.
@@ -111,6 +130,8 @@ export async function createClaim(req: Request, res: Response): Promise<void> {
     targetLabel: reference, orgId, metadata: { memberId, amount: claim.amount },
   });
 
+  emitEvent(orgId, 'claim.created', claimEventPayload(claim));
+
   res.status(201).json(claim);
 }
 
@@ -148,6 +169,11 @@ export async function decideClaim(req: Request, res: Response): Promise<void> {
   await recordAudit(req, {
     action: `claim.${status}`, targetType: 'claim', targetId: id,
     targetLabel: current.reference, orgId, metadata: { from: current.status, to: status },
+  });
+
+  emitEvent(orgId, 'claim.status_changed', {
+    ...claimEventPayload(result.rows[0]),
+    previous_status: current.status,
   });
 
   res.json(result.rows[0]);

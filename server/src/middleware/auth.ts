@@ -31,7 +31,13 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   const token = header.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, env.jwtSecret) as JwtPayload;
+    const decoded = jwt.verify(token, env.jwtSecret) as JwtPayload & { scope?: string };
+    // Member-portal tokens (scope:'member') must never authenticate a staff
+    // session — they carry no userId/role. Reject them on the partner side.
+    if (decoded.scope === 'member' || !decoded.userId) {
+      res.status(401).json({ error: 'Invalid or expired token' });
+      return;
+    }
     req.user = decoded;
     next();
   } catch {

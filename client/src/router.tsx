@@ -6,6 +6,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import SsoCallbackPage from './pages/auth/SsoCallbackPage';
 import SsoSettingsPage from './pages/settings/SsoSettingsPage';
 import SecuritySettingsPage from './pages/settings/SecuritySettingsPage';
+import DeveloperSettingsPage from './pages/settings/DeveloperSettingsPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import MembersListPage from './pages/members/MembersListPage';
 import MemberCreatePage from './pages/members/MemberCreatePage';
@@ -19,11 +20,32 @@ import PartnersPage from './pages/partners/PartnersPage';
 import ChannelsPage from './pages/channels/ChannelsPage';
 import AdminPage from './pages/admin/AdminPage';
 import AdminRoute from './components/layout/AdminRoute';
+import MemberShell from './components/member/MemberShell';
+import MemberProtectedRoute from './components/member/MemberProtectedRoute';
+import MemberLoginPage from './pages/member/MemberLoginPage';
+import MemberHomePage from './pages/member/MemberHomePage';
+import MemberClaimsPage from './pages/member/MemberClaimsPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/sso/callback', element: <SsoCallbackPage /> },
+
+  // --- Member self-service portal (separate auth domain) ---
+  { path: '/member/login', element: <MemberLoginPage /> },
+  {
+    path: '/member',
+    element: (
+      <MemberProtectedRoute>
+        <MemberShell />
+      </MemberProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <MemberHomePage /> },
+      { path: 'claims', element: <MemberClaimsPage /> },
+    ],
+  },
+
   {
     path: '/',
     element: (
@@ -45,6 +67,7 @@ export const router = createBrowserRouter([
       { path: 'channels', element: <ChannelsPage /> },
       { path: 'settings/sso', element: <SsoSettingsPage /> },
       { path: 'settings/security', element: <SecuritySettingsPage /> },
+      { path: 'settings/developer', element: <DeveloperSettingsPage /> },
       { path: 'partners', element: <PartnersPage /> },
       { path: 'admin', element: <AdminRoute><AdminPage /></AdminRoute> },
     ],

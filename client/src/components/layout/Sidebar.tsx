@@ -18,6 +18,8 @@ const navItems = [
 const securityNavItem = { to: '/settings/security', label: 'Security', icon: '⛨' };
 // Shown only to org admins (role === 'admin') — self-service SSO setup.
 const ssoNavItem = { to: '/settings/sso', label: 'Single sign-on', icon: '⚷' };
+// Shown only to org admins — public API keys + webhooks.
+const developerNavItem = { to: '/settings/developer', label: 'API & webhooks', icon: '⧉' };
 // Shown only to platform admins (see AuthContext user.isPlatformAdmin).
 const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
 
@@ -26,7 +28,7 @@ export default function Sidebar() {
   const items = [
     ...navItems,
     securityNavItem,
-    ...(user?.role === 'admin' ? [ssoNavItem] : []),
+    ...(user?.role === 'admin' ? [ssoNavItem, developerNavItem] : []),
     ...(user?.isPlatformAdmin ? [adminNavItem] : []),
   ];
 

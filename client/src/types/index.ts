@@ -224,6 +224,92 @@ export interface ClaimsResponse {
   storageEnabled: boolean;
 }
 
+// --- Public API + webhooks (Q8) ---
+export interface ApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  last_used_at: string | null;
+  revoked: boolean;
+  created_at: string;
+}
+
+export interface NewApiKey extends ApiKey {
+  key: string; // full key, shown once
+}
+
+export interface WebhookDeliverySummary {
+  success: boolean;
+  status_code: number | null;
+  event: string;
+  created_at: string;
+}
+
+export interface WebhookEndpoint {
+  id: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  created_at: string;
+  last_delivery?: WebhookDeliverySummary | null;
+}
+
+export interface NewWebhookEndpoint extends WebhookEndpoint {
+  secret: string; // signing secret, shown once
+}
+
+export interface WebhookDelivery {
+  id: string;
+  event: string;
+  status_code: number | null;
+  success: boolean;
+  error: string | null;
+  created_at: string;
+}
+
+// --- Member self-service portal (Q10) ---
+export interface MemberSession {
+  id: string;
+  fullName: string;
+  orgId: string;
+}
+
+export interface MemberProfile {
+  id: string;
+  full_name: string;
+  phone: string;
+  email: string;
+  date_of_birth: string | null;
+  gender: string;
+  channel: string;
+  blood_group: string;
+  allergies: string[];
+  chronic_conditions: string[];
+  current_medications: string[];
+  status: string;
+  created_at: string;
+  org_name: string;
+  partner_type: string;
+  counts: { enrolments: number; consultations: number; claims: number };
+}
+
+export interface MemberOverview {
+  enrolments: Enrolment[];
+  consultations: Consultation[];
+  prescriptions: Prescription[];
+  triageSessions: TriageSession[];
+}
+
+export interface OtpRequestResult {
+  sent: boolean;
+  delivered?: boolean;
+  channel?: string;
+  destinationHint?: string;
+  // Present only in dev/demo (no live delivery channel) — the code to enter.
+  devCode?: string;
+  notFound?: boolean;
+}
+
 export type TriageLevel = 'emergency' | 'urgent' | 'gp' | 'self_care' | 'info' | 'unknown';
 
 export interface TriageMessage {

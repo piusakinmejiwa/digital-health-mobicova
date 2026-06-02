@@ -1,0 +1,76 @@
+.dev-intro { margin-bottom: 18px; }
+.dev-intro h2, .card.card-pad h2 { margin-top: 0; }
+
+.dev-code {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+.dev-code code { color: inherit; background: none; }
+
+.card.card-pad { margin-bottom: 18px; }
+.dev-section-head { display: flex; justify-content: space-between; align-items: center; }
+
+/* Reveal box for one-time secrets */
+.dev-reveal {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 12px 0;
+}
+.dev-reveal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+.dev-reveal-row code {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.dev-create-row { display: flex; gap: 10px; margin: 14px 0; }
+.dev-create-row input { flex: 1; }
+
+.dev-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.dev-table th, .dev-table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eef2f6; font-size: 14px; }
+.dev-table th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+.dev-table code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.dev-revoked { opacity: 0.55; }
+
+/* Webhooks */
+.dev-webhook-form { margin: 14px 0; display: flex; flex-direction: column; gap: 10px; }
+.dev-webhook-form > input { width: 100%; }
+.dev-events { display: flex; flex-wrap: wrap; gap: 14px; }
+.dev-event { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.dev-event code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+
+.dev-hooks { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.dev-hook {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.dev-hook-main { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.dev-hook-url { word-break: break-all; font-size: 13px; }
+.dev-hook-events { display: flex; flex-wrap: wrap; gap: 6px; }
+.dev-hook-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-wrap: wrap; justify-content: flex-end; }
+
+.btn-danger { color: #dc2626; }

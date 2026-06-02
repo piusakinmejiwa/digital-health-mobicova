@@ -68,6 +68,7 @@ npm run dev               # http://localhost:5173
 | `WHATSAPP_TOKEN` | no | Meta Cloud API access token — enables live WhatsApp replies |
 | `WHATSAPP_PHONE_ID` | no | Meta WhatsApp phone-number ID used to send replies |
 | `PLATFORM_ADMIN_EMAILS` | no | Comma-separated emails granted access to the Admin Console (organisations, users, plans, partners) |
+| `OTP_DEV_MODE` | no | Member-portal login: when `true` (or no delivery channel is set) the OTP is returned in the response so it's testable without an SMS/WhatsApp gateway |
 | `CLIENT_URL` | no | CORS origin, defaults to `http://localhost:5173` |
 | `PORT` | no | API port, defaults to `4000` |
 
@@ -264,6 +265,65 @@ never executed here.
    `SUPABASE_STORAGE_BUCKET` to your name).
 2. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (service-role — server-side only) in the API
    environment, then restart. Without these, text-only claims work unchanged.
+
+## Public API & webhooks
+
+Insurers can integrate MobiCova with their core policy/claims systems through a public REST API and
+outbound webhooks. Org admins manage both from **API & webhooks** (`/settings/developer`, admin role).
+
+- **API keys** — generate per-organisation keys (`mk_live_…`). The full key is shown **once**; only a
+  SHA-256 hash and a short prefix are stored. Revoke at any time. Authenticate with
+  `Authorization: Bearer mk_live_…` (or an `X-API-Key` header).
+- **Public REST API** — a clean, versioned, **read-only** surface at **`/api/public/v1`**, separate
+  from the dashboard's internal API and automatically scoped to the key's organisation:
+
+  | Endpoint | Returns |
+  |----------|---------|
+  | `GET /members` · `GET /members/:id` | enrolled members |
+  | `GET /enrolments` | cover with plan + underwriter |
+  | `GET /claims` (`?status=`) · `GET /claims/:id` | claims |
+
+  List endpoints take `?limit` (1–200, default 50) and `?offset`, and return `{ data, pagination }`.
+- **Webhooks** — register endpoint URLs and subscribe to events (or leave the selection empty for
+  all). MobiCova POSTs a signed JSON envelope `{ id, event, created, data }` with an
+  `X-MobiCova-Signature: t=<ts>,v1=<hmac>` header — **HMAC-SHA256** of `<timestamp>.<body>` keyed by
+  the per-endpoint secret (shown once, Stripe-style). A **Test** button sends a `ping`, and recent
+  delivery attempts (status code + outcome) are logged.
+
+  | Event | Fires when |
+  |-------|-----------|
+  | `member.enrolled` | a member is enrolled in a plan |
+  | `claim.created` | a claim is logged (dashboard or member portal) |
+  | `claim.status_changed` | a claim is adjudicated (includes `previous_status`) |
+
+  Migration `017_create_public_api.sql` adds the `api_keys`, `webhook_endpoints`, and
+  `webhook_deliveries` tables.
+
+## Member self-service portal
+
+Members get a lightweight portal of their own at **`/member`** — separate from the partner
+dashboard — to view their cover and care and to submit claims. It works for **any** member a
+partner has on file (dashboard, CSV import, or WhatsApp/USSD intake) — no separate sign-up.
+
+- **Passwordless login** — a member enters the **phone or email** on their record and receives a
+  **6-digit one-time code** (bcrypt-hashed, 10-minute expiry, single-use, 5-attempt cap). Codes
+  deliver over WhatsApp when Meta credentials are set; otherwise the portal runs in **demo mode** and
+  shows the code on screen so the flow works with no SMS/WhatsApp gateway (set `OTP_DEV_MODE=true` to
+  force this even when a channel is configured). Migration `016_create_member_auth.sql` adds the
+  `member_otps` table.
+- **Separate auth domain** — member sessions carry a `scope:"member"` JWT stored under a different
+  browser key and its own API client. The partner middleware rejects member tokens and vice-versa, so
+  the two never cross. The OTP endpoints are rate-limited and (with a live channel) don't reveal
+  whether a contact matches a member.
+- **What members see** — a health snapshot (profile, blood group, allergies, conditions, meds), their
+  **cover** (enrolments + premium + payment status), **recent care** (consultations + prescriptions),
+  and AI health-check history.
+- **Members submit claims** — the portal reuses the same claims pipeline as the dashboard
+  (`submitted_via: "member_portal"`); a member-submitted claim lands in the partner's Claims queue for
+  adjudication exactly like a staff-logged one.
+- **API** — public `POST /member/auth/request-otp`, `POST /member/auth/verify-otp`; authenticated
+  `GET /member/me`, `GET /member/overview`, `GET /member/claims`, `GET /member/claims/:id`,
+  `POST /member/claims`.
 
 ## WhatsApp & USSD intake
 

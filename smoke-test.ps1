@@ -1,6 +1,6 @@
 <#
   MobiCova API smoke test — verifies the shipped features end-to-end:
-    Q1 Audit log · Q2 Roles · Q4 2FA · Q5 Bulk import · Q6 Claims · Q7 Analytics · Q3 SAML SSO
+    Q1 Audit log · Q2 Roles · Q4 2FA · Q5 Bulk import · Q6 Claims · Q7 Analytics · Q3 SAML SSO · Q8 Public API · Q10 Member portal
 
   Usage (PowerShell, from the repo root):
     # against a local server (npm run dev in server/, after npm run migrate + npm run seed)
@@ -100,6 +100,50 @@ $badChal = $null
 try { $badChal = Invoke-RestMethod -Method Post -Uri "$BaseUrl/auth/mfa/challenge" `
   -ContentType "application/json" -Body (@{ mfaToken = "not-a-token"; code = "000000" } | ConvertTo-Json) } catch { $badChal = "blocked" }
 Check "invalid MFA challenge rejected"  { $badChal -eq "blocked" }
+
+# --- Q10: member self-service portal (OTP) -------------------------------
+# Reuses the member the Q5 import created (email smoke.aragon@member.demo).
+Write-Host "`nQ10 Member self-service portal"
+$otp = Invoke-RestMethod -Method Post -Uri "$BaseUrl/member/auth/request-otp" `
+  -ContentType "application/json" -Body (@{ identifier = "smoke.aragon@member.demo" } | ConvertTo-Json)
+Check "OTP request is accepted"          { $otp.sent -eq $true }
+Check "demo mode returns a code"         { $otp.devCode -match '^\d{6}$' }
+if ($otp.devCode) {
+  $mv = Invoke-RestMethod -Method Post -Uri "$BaseUrl/member/auth/verify-otp" `
+    -ContentType "application/json" -Body (@{ identifier = "smoke.aragon@member.demo"; code = $otp.devCode } | ConvertTo-Json)
+  Check "OTP verify returns a token"     { $mv.token -and $mv.member.id }
+  $MH = @{ Authorization = "Bearer $($mv.token)" }
+  $mme = Invoke-RestMethod -Uri "$BaseUrl/member/me" -Headers $MH
+  Check "member /me returns the profile" { $mme.full_name -like "SMOKE TEST*" -and $null -ne $mme.counts }
+  $mclaims = Invoke-RestMethod -Uri "$BaseUrl/member/claims" -Headers $MH
+  Check "member can list own claims"     { $null -ne $mclaims.claims }
+  # A member token must NOT open a partner endpoint.
+  $crossed = $null
+  try { $crossed = Invoke-RestMethod -Uri "$BaseUrl/members" -Headers $MH } catch { $crossed = "blocked" }
+  Check "member token rejected on staff API" { $crossed -eq "blocked" }
+}
+
+# --- Q8: public API + webhooks -------------------------------------------
+Write-Host "`nQ8  Public API & webhooks"
+$PublicBase = $BaseUrl -replace '/api/v1', '/api/public/v1'
+# Issue a key, then call the public API with it.
+$key = Invoke-RestMethod -Method Post -Uri "$BaseUrl/developer/api-keys" -Headers $H `
+  -ContentType "application/json" -Body (@{ name = "SMOKE TEST key" } | ConvertTo-Json)
+Check "API key issued with mk_live_ prefix" { $key.key -like "mk_live_*" }
+$KH = @{ Authorization = "Bearer $($key.key)" }
+$pub = Invoke-RestMethod -Uri "$PublicBase/members?limit=5" -Headers $KH
+Check "public API returns data+pagination"  { $null -ne $pub.data -and $null -ne $pub.pagination }
+# A bad key must be rejected.
+$badKey = $null
+try { $badKey = Invoke-RestMethod -Uri "$PublicBase/members" -Headers @{ Authorization = "Bearer mk_live_deadbeef" } } catch { $badKey = "blocked" }
+Check "public API rejects an invalid key"   { $badKey -eq "blocked" }
+# Register a webhook endpoint (secret returned once).
+$wh = Invoke-RestMethod -Method Post -Uri "$BaseUrl/developer/webhooks" -Headers $H `
+  -ContentType "application/json" -Body (@{ url = "https://example.com/smoke-hook"; events = @("claim.created") } | ConvertTo-Json)
+Check "webhook created with signing secret" { $wh.secret -like "whsec_*" }
+# Tidy up the artefacts this block created.
+Invoke-RestMethod -Method Delete -Uri "$BaseUrl/developer/webhooks/$($wh.id)" -Headers $H | Out-Null
+Invoke-RestMethod -Method Delete -Uri "$BaseUrl/developer/api-keys/$($key.id)" -Headers $H | Out-Null
 
 # --- Q1: audit log -------------------------------------------------------
 Write-Host "`nQ1  Audit log"

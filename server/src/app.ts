@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import routes from './routes';
+import publicApiRoutes from './routes/publicApi.routes';
 
 const app = express();
 
@@ -48,6 +49,11 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: false }));
 
 app.use('/api/v1', routes);
+
+// Public, API-key-authenticated REST surface for partner integrations. Its own
+// versioned path, separate from the dashboard's internal /api/v1. Gets the same
+// baseline throttle as the rest of the API.
+app.use('/api/public/v1', apiLimiter, publicApiRoutes);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });

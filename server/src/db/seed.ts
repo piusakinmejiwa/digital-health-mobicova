@@ -94,8 +94,8 @@ async function seed() {
     const orgId = org.rows[0].id;
     const passwordHash = await bcrypt.hash('password123', 12);
     await query(
-      `INSERT INTO users (org_id, email, password_hash, full_name, role)
-       VALUES ($1, $2, $3, $4, 'admin')`,
+      `INSERT INTO users (org_id, email, password_hash, full_name, role, is_platform_admin)
+       VALUES ($1, $2, $3, $4, 'admin', true)`,
       [orgId, demoEmail, passwordHash, 'Demo Admin']
     );
 
@@ -115,7 +115,8 @@ async function seed() {
       );
     }
   } else {
-    console.log('Demo organisation already exists, skipping.');
+    console.log('Demo organisation already exists — ensuring platform-admin access.');
+    await query('UPDATE users SET is_platform_admin = true WHERE email = $1', [demoEmail]);
   }
 
   console.log('Seed complete.');

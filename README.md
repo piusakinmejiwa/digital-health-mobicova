@@ -67,6 +67,7 @@ npm run dev               # http://localhost:5173
 | `WHATSAPP_VERIFY_TOKEN` | no | Token Meta echoes back when verifying the WhatsApp webhook |
 | `WHATSAPP_TOKEN` | no | Meta Cloud API access token — enables live WhatsApp replies |
 | `WHATSAPP_PHONE_ID` | no | Meta WhatsApp phone-number ID used to send replies |
+| `PLATFORM_ADMIN_EMAILS` | no | Comma-separated emails granted access to the Admin Console (organisations, users, plans, partners) |
 | `CLIENT_URL` | no | CORS origin, defaults to `http://localhost:5173` |
 | `PORT` | no | API port, defaults to `4000` |
 
@@ -78,6 +79,35 @@ The **client** has one env var (set it in `client/.env`, or in the host's dashbo
 
 This is an MVP: clinical providers, insurers, and pharmacies are represented as partner
 records and mock integrations. No real PHI should be entered.
+
+## Admin Console
+
+**Platform admins** manage tenants, users, and the platform-wide catalog in-app from the
+**Admin Console** page (visible in the sidebar only to platform admins). Four tabs:
+
+- **Organisations** — onboard a partner tenant and, optionally, its first admin user in one
+  step (the live-demo onboarding flow). Slug and 6-digit join code are generated automatically.
+  Edit details, **suspend** (soft — blocks all the tenant's logins without deleting data) or
+  reactivate, and hard-delete (blocked once the org has members — suspend instead). You can't
+  suspend or delete your own organisation. Migration `010_add_org_active.sql` adds the
+  `is_active` flag that login is gated on.
+- **Users** — create dashboard users under any organisation, edit name/role, toggle
+  platform-admin access, reset passwords, deactivate, or delete. Self-lockout is guarded: you
+  can't deactivate, delete, or remove platform-admin from your own account.
+- **Insurance plans** — create, edit, deactivate (soft, keeps existing enrolments intact), or
+  hard-delete (blocked when a plan is referenced by an enrolment).
+- **Partners** — full CRUD across every category (telemedicine, insurer, pharmacy, diagnostics,
+  EHR, distribution), with activate/deactivate and delete.
+
+Insurance plans and the partner ecosystem are **platform-wide** (shared across every
+organisation); organisations and users are the per-tenant records.
+
+**Who is a platform admin?** A user whose `users.is_platform_admin` flag is set, *or* whose email
+is listed in `PLATFORM_ADMIN_EMAILS`. The env allowlist is a zero-DB way to grant yourself access:
+set `PLATFORM_ADMIN_EMAILS=you@example.com` and re-deploy. The seeded demo admin
+(`admin@axamansard.demo`) is elevated automatically by `npm run seed`. Access is enforced
+server-side (all `/admin/*` routes sit behind a platform-admin guard) — the hidden sidebar item is
+just a convenience. Migration `009_add_platform_admin.sql` adds the flag column.
 
 ## WhatsApp & USSD intake
 

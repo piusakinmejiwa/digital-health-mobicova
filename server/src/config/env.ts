@@ -14,5 +14,10 @@ export const env = {
   whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '',
   whatsappToken: process.env.WHATSAPP_TOKEN || '',
   whatsappPhoneId: process.env.WHATSAPP_PHONE_ID || '',
+  // Comma-separated emails granted platform-admin access to the catalog Admin UI.
+  platformAdminEmails: (process.env.PLATFORM_ADMIN_EMAILS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
 };

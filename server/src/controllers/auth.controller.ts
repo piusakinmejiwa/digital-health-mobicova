@@ -4,18 +4,8 @@ import jwt from 'jsonwebtoken';
 import { query } from '../config/database';
 import { env } from '../config/env';
 import { JwtPayload } from '../middleware/auth';
-
-// Generates a short, unique numeric code a member types on WhatsApp/USSD to
-// enrol under this organisation. Retries on the rare collision.
-async function generateJoinCode(): Promise<string> {
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    const clash = await query('SELECT 1 FROM organisations WHERE join_code = $1', [code]);
-    if (clash.rows.length === 0) return code;
-  }
-  // Extremely unlikely fallback: widen to 8 digits.
-  return String(Math.floor(10000000 + Math.random() * 90000000));
-}
+import { isPlatformAdmin } from '../middleware/platformAdmin';
+import { generateJoinCode } from '../lib/org';
 
 export async function register(req: Request, res: Response): Promise<void> {
   const { email, password, fullName, orgName, partnerType } = req.body;
@@ -66,7 +56,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
   const result = await query(
     `SELECT u.id, u.org_id, u.email, u.password_hash, u.full_name, u.role,
-            o.name as org_name, o.partner_type
+            o.name as org_name, o.partner_type, o.is_active AS org_active
      FROM users u JOIN organisations o ON u.org_id = o.id
      WHERE u.email = $1 AND u.is_active = true`,
     [email]
@@ -74,6 +64,12 @@ export async function login(req: Request, res: Response): Promise<void> {
 
   if (result.rows.length === 0) {
     res.status(401).json({ error: 'Invalid email or password' });
+    return;
+  }
+
+  // A suspended organisation blocks all of its users from signing in.
+  if (result.rows[0].org_active === false) {
+    res.status(403).json({ error: 'This organisation is suspended. Contact MobiCova support.' });
     return;
   }
 
@@ -131,5 +127,6 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     partnerType: user.partner_type,
     planTier: user.plan_tier,
     joinCode: user.join_code,
+    isPlatformAdmin: await isPlatformAdmin(req.user.userId),
   });
 }

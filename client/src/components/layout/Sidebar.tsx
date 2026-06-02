@@ -12,8 +12,12 @@ const navItems = [
   { to: '/partners', label: 'Partner Ecosystem', icon: '⌬' },
 ];
 
+// Shown only to platform admins (see AuthContext user.isPlatformAdmin).
+const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
+
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const items = user?.isPlatformAdmin ? [...navItems, adminNavItem] : navItems;
 
   return (
     <aside className="sidebar">
@@ -26,7 +30,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

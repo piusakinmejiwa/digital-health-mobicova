@@ -8,6 +8,7 @@ import triageRoutes from './triage.routes';
 import dashboardRoutes from './dashboard.routes';
 import billingRoutes from './billing.routes';
 import channelsRoutes from './channels.routes';
+import adminRoutes from './admin.routes';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/triage', triageRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/billing', billingRoutes);
 router.use('/channels', channelsRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;

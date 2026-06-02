@@ -1,0 +1,255 @@
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import type { Organisation, AdminUser } from '../../types';
+import {
+  adminListOrgs, adminCreateOrg, adminUpdateOrg, adminDeleteOrg,
+} from '../../api/admin';
+import { useAuth } from '../../context/AuthContext';
+
+const PARTNER_TYPES = ['employer', 'insurer', 'telco', 'fintech', 'cooperative', 'hmo'];
+const PLAN_TIERS = ['starter', 'growth', 'scale', 'enterprise'];
+
+function errMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) return err.response?.data?.error || fallback;
+  return fallback;
+}
+
+const emptyOrg = {
+  name: '', partnerType: 'employer', planTier: 'starter', country: 'Nigeria',
+  adminEmail: '', adminFullName: '', adminPassword: '',
+};
+
+export default function OrgsAdmin() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const { data: orgs } = useQuery({ queryKey: ['admin-orgs'], queryFn: adminListOrgs });
+  const [creating, setCreating] = useState<null | typeof emptyOrg>(null);
+  const [editing, setEditing] = useState<null | (Organisation)>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [provisioned, setProvisioned] = useState<null | { org: Organisation; admin?: AdminUser }>(null);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['admin-orgs'] });
+    qc.invalidateQueries({ queryKey: ['admin-users'] });
+  };
+
+  const openNew = () => { setError(''); setCreating({ ...emptyOrg }); };
+
+  const create = async () => {
+    if (!creating) return;
+    setBusy(true); setError('');
+    const payload: Record<string, unknown> = {
+      name: creating.name, partnerType: creating.partnerType,
+      planTier: creating.planTier, country: creating.country,
+    };
+    // Only send admin fields when an email is provided (provisioning the first user).
+    if (creating.adminEmail.trim()) {
+      payload.adminEmail = creating.adminEmail.trim();
+      payload.adminFullName = creating.adminFullName.trim();
+      payload.adminPassword = creating.adminPassword;
+    }
+    try {
+      const created = await adminCreateOrg(payload);
+      setCreating(null);
+      refresh();
+      setProvisioned({ org: created, admin: created.admin_user });
+    } catch (err) {
+      setError(errMessage(err, 'Could not create the organisation.'));
+    } finally { setBusy(false); }
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    setBusy(true); setError('');
+    try {
+      await adminUpdateOrg(editing.id, {
+        name: editing.name, partner_type: editing.partner_type,
+        plan_tier: editing.plan_tier, country: editing.country,
+      });
+      setEditing(null);
+      refresh();
+    } catch (err) {
+      setError(errMessage(err, 'Could not update the organisation.'));
+    } finally { setBusy(false); }
+  };
+
+  const toggleActive = async (o: Organisation) => {
+    try {
+      await adminUpdateOrg(o.id, { is_active: !o.is_active });
+      refresh();
+    } catch (err) {
+      alert(errMessage(err, 'Could not update the organisation.'));
+    }
+  };
+
+  const remove = async (o: Organisation) => {
+    if (!confirm(`Permanently delete "${o.name}"? This cannot be undone.`)) return;
+    try {
+      await adminDeleteOrg(o.id);
+      refresh();
+    } catch (err) {
+      alert(errMessage(err, 'Could not delete the organisation.'));
+    }
+  };
+
+  return (
+    <div className="card">
+      <div className="admin-toolbar">
+        <span className="muted small">{orgs?.length ?? 0} organisations</span>
+        <button className="btn btn-primary btn-sm" onClick={openNew}>+ Onboard organisation</button>
+      </div>
+      <table className="table">
+        <thead>
+          <tr><th>Name</th><th>Type</th><th>Tier</th><th>Join code</th><th>Members</th><th>Users</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          {orgs?.map((o) => (
+            <tr key={o.id} className={o.is_active ? '' : 'row-inactive'}>
+              <td><strong>{o.name}</strong><div className="muted small">{o.slug}</div></td>
+              <td className="muted small">{o.partner_type}</td>
+              <td className="muted small">{o.plan_tier}</td>
+              <td><code>{o.join_code}</code></td>
+              <td className="muted small">{o.member_count}</td>
+              <td className="muted small">{o.user_count}</td>
+              <td><span className={`badge ${o.is_active ? 'badge-green' : 'badge-gray'}`}>{o.is_active ? 'active' : 'suspended'}</span></td>
+              <td className="admin-actions">
+                <button className="btn btn-secondary btn-sm" onClick={() => { setError(''); setEditing(o); }}>Edit</button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => toggleActive(o)}
+                  disabled={o.id === user?.orgId}
+                  title={o.id === user?.orgId ? 'You cannot suspend your own organisation' : ''}
+                >
+                  {o.is_active ? 'Suspend' : 'Reactivate'}
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => remove(o)}
+                  disabled={o.id === user?.orgId}
+                  title={o.id === user?.orgId ? 'You cannot delete your own organisation' : ''}
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {(!orgs || orgs.length === 0) && <p className="empty-state">No organisations yet. Onboard one to get started.</p>}
+
+      {/* ---- Onboard (create) modal ---- */}
+      {creating && (
+        <div className="drawer-overlay" onClick={() => setCreating(null)}>
+          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+            <h3>Onboard organisation</h3>
+            <p className="muted small">Create a partner tenant and, optionally, its first admin user in one step.</p>
+            {error && <div className="notice notice-error">{error}</div>}
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Organisation name</label>
+                <input value={creating.name} onChange={(e) => setCreating({ ...creating, name: e.target.value })} placeholder="e.g. Leadway Assurance" />
+              </div>
+              <div className="form-group">
+                <label>Country</label>
+                <input value={creating.country} onChange={(e) => setCreating({ ...creating, country: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Partner type</label>
+                <select value={creating.partnerType} onChange={(e) => setCreating({ ...creating, partnerType: e.target.value })}>
+                  {PARTNER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Plan tier</label>
+                <select value={creating.planTier} onChange={(e) => setCreating({ ...creating, planTier: e.target.value })}>
+                  {PLAN_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="form-group form-span-2">
+                <label className="admin-section-label">First admin user (optional)</label>
+                <p className="muted small">Leave blank to create the organisation only — you can add users later.</p>
+              </div>
+              <div className="form-group">
+                <label>Admin full name</label>
+                <input value={creating.adminFullName} onChange={(e) => setCreating({ ...creating, adminFullName: e.target.value })} placeholder="e.g. Ada Obi" />
+              </div>
+              <div className="form-group">
+                <label>Admin email</label>
+                <input value={creating.adminEmail} onChange={(e) => setCreating({ ...creating, adminEmail: e.target.value })} placeholder="admin@partner.com" />
+              </div>
+              <div className="form-group form-span-2">
+                <label>Admin password {creating.adminEmail.trim() ? '(min 8 characters)' : ''}</label>
+                <input type="text" value={creating.adminPassword} onChange={(e) => setCreating({ ...creating, adminPassword: e.target.value })} placeholder="Set a temporary password" disabled={!creating.adminEmail.trim()} />
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setCreating(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={create} disabled={busy || !creating.name.trim()}>
+                {busy ? 'Creating…' : 'Create organisation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Edit modal ---- */}
+      {editing && (
+        <div className="drawer-overlay" onClick={() => setEditing(null)}>
+          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+            <h3>Edit organisation</h3>
+            {error && <div className="notice notice-error">{error}</div>}
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Organisation name</label>
+                <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Country</label>
+                <input value={editing.country} onChange={(e) => setEditing({ ...editing, country: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Partner type</label>
+                <select value={editing.partner_type} onChange={(e) => setEditing({ ...editing, partner_type: e.target.value })}>
+                  {PARTNER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Plan tier</label>
+                <select value={editing.plan_tier} onChange={(e) => setEditing({ ...editing, plan_tier: e.target.value })}>
+                  {PLAN_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setEditing(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveEdit} disabled={busy || !editing.name.trim()}>
+                {busy ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Provisioned confirmation ---- */}
+      {provisioned && (
+        <div className="drawer-overlay" onClick={() => setProvisioned(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Organisation created</h3>
+            <p><strong>{provisioned.org.name}</strong> is live.</p>
+            <ul className="provisioned-summary">
+              <li>Join code: <code>{provisioned.org.join_code}</code> — members type this on WhatsApp/USSD to enrol.</li>
+              {provisioned.admin
+                ? <li>Admin login: <code>{provisioned.admin.email}</code> — share the password you set so they can sign in.</li>
+                : <li className="muted">No admin user was created. Add one from the Users tab when ready.</li>}
+            </ul>
+            <div className="modal-actions">
+              <button className="btn btn-primary" onClick={() => setProvisioned(null)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

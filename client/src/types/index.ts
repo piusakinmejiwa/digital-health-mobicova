@@ -8,6 +8,7 @@ export interface User {
   partnerType?: string;
   planTier?: string;
   joinCode?: string;
+  isPlatformAdmin?: boolean;
 }
 
 export interface AuthResponse {
@@ -49,6 +50,33 @@ export interface Partner {
   coverage: string;
   licence: string;
   status: string;
+}
+
+// Platform-admin views of tenant organisations and their dashboard users.
+export interface Organisation {
+  id: string;
+  name: string;
+  slug: string;
+  partner_type: string;
+  country: string;
+  plan_tier: string;
+  join_code: string;
+  is_active: boolean;
+  created_at: string;
+  member_count: number;
+  user_count: number;
+}
+
+export interface AdminUser {
+  id: string;
+  org_id: string;
+  org_name: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  is_platform_admin: boolean;
+  created_at: string;
 }
 
 export interface Consultation {

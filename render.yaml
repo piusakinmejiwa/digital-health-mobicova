@@ -36,6 +36,9 @@ services:
         sync: false
       - key: WHATSAPP_PHONE_ID
         sync: false
+      # Comma-separated emails granted platform-admin access to the catalog Admin UI.
+      - key: PLATFORM_ADMIN_EMAILS
+        sync: false
 
   # React (Vite) static client
   - type: web

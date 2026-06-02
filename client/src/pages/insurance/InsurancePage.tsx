@@ -4,6 +4,7 @@ import {
   listPlans, listEnrolments, listMembers, enrolMember, checkoutPremium,
 } from '../../api/resources';
 import { naira, formatDate, badgeClass } from '../../lib/format';
+import { useAuth } from '../../context/AuthContext';
 import './Insurance.css';
 
 const planTypeLabel: Record<string, string> = {
@@ -13,6 +14,7 @@ const planTypeLabel: Record<string, string> = {
 
 export default function InsurancePage() {
   const queryClient = useQueryClient();
+  const { canWrite } = useAuth();
   const { data: plans } = useQuery({ queryKey: ['plans'], queryFn: listPlans });
   const { data: enrolments } = useQuery({ queryKey: ['enrolments'], queryFn: listEnrolments });
   const { data: members } = useQuery({ queryKey: ['members'], queryFn: listMembers });
@@ -87,7 +89,7 @@ export default function InsurancePage() {
               </ul>
               <div className="plan-foot">
                 <span className="muted small">Underwritten by {p.underwriter}</span>
-                <button className="btn btn-primary btn-sm" onClick={() => { setEnrolPlan(p.id); setNotice(''); }}>Enrol a member</button>
+                {canWrite && <button className="btn btn-primary btn-sm" onClick={() => { setEnrolPlan(p.id); setNotice(''); }}>Enrol a member</button>}
               </div>
             </div>
           ))}
@@ -112,7 +114,7 @@ export default function InsurancePage() {
                     <td><span className={`badge ${badgeClass(e.payment_status)}`}>{e.payment_status}</span></td>
                     <td className="muted small">{formatDate(e.enrolled_at)}</td>
                     <td>
-                      {e.payment_status !== 'paid' && (
+                      {canWrite && e.payment_status !== 'paid' && (
                         <button className="btn btn-secondary btn-sm" onClick={() => pay(e.id)} disabled={busy === e.id}>
                           {busy === e.id ? '…' : 'Collect premium'}
                         </button>

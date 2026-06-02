@@ -8,7 +8,13 @@ import {
 } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
 
-const ROLES = ['admin', 'member'];
+// Per-tenant roles (independent of platform-admin). Order = most → least privilege.
+const ROLES = ['admin', 'manager', 'analyst'] as const;
+const ROLE_HELP: Record<string, string> = {
+  admin: 'Full control of the organisation, including its users and billing.',
+  manager: 'Manage members and services (telemedicine, insurance, triage). No user or billing admin.',
+  analyst: 'Read-only access to the organisation’s data.',
+};
 
 function errMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) return err.response?.data?.error || fallback;
@@ -160,6 +166,7 @@ export default function UsersAdmin() {
                 <select value={creating.role} onChange={(e) => setCreating({ ...creating, role: e.target.value })}>
                   {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
+                <span className="muted small">{ROLE_HELP[creating.role]}</span>
               </div>
               <div className="form-group">
                 <label>Full name</label>
@@ -207,6 +214,7 @@ export default function UsersAdmin() {
                 <select value={editing.role} onChange={(e) => setEditing({ ...editing, role: e.target.value })}>
                   {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
+                <span className="muted small">{ROLE_HELP[editing.role]}</span>
               </div>
               <div className="form-group form-span-2">
                 <label className="checkbox-row">

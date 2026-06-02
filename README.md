@@ -93,7 +93,8 @@ records and mock integrations. No real PHI should be entered.
   `is_active` flag that login is gated on.
 - **Users** — create dashboard users under any organisation, edit name/role, toggle
   platform-admin access, reset passwords, deactivate, or delete. Self-lockout is guarded: you
-  can't deactivate, delete, or remove platform-admin from your own account.
+  can't deactivate, delete, or remove platform-admin from your own account. Each user has a
+  per-tenant **role** (see below).
 - **Insurance plans** — create, edit, deactivate (soft, keeps existing enrolments intact), or
   hard-delete (blocked when a plan is referenced by an enrolment).
 - **Partners** — full CRUD across every category (telemedicine, insurer, pharmacy, diagnostics,
@@ -105,6 +106,24 @@ records and mock integrations. No real PHI should be entered.
 
 Insurance plans and the partner ecosystem are **platform-wide** (shared across every
 organisation); organisations and users are the per-tenant records.
+
+## Roles & access control
+
+Every dashboard user has a **per-tenant role** that governs what they can do with their own
+organisation's data. This is independent of platform-admin (which governs the Admin Console):
+
+| Role | Can do |
+|------|--------|
+| **Admin** | Full control of the organisation, including its users and billing |
+| **Manager** | Manage members and services (telemedicine, insurance enrolment, AI triage) — no user or billing admin |
+| **Analyst** | Read-only access to the organisation's data |
+
+Enforcement is **server-side**: reads are open to every role, while mutating endpoints
+(create/update/delete a member, book a consultation, prescribe, enrol, collect a premium, run a
+new triage) sit behind a `requireWrite` guard that admits only Admin and Manager. The client
+mirrors this by hiding write controls from Analysts, but the API is the security boundary.
+Migration `012_widen_user_roles.sql` widens the role set and adds a CHECK constraint; legacy
+rows collapse to the safest role (Analyst).
 
 **Who is a platform admin?** A user whose `users.is_platform_admin` flag is set, *or* whose email
 is listed in `PLATFORM_ADMIN_EMAILS`. The env allowlist is a zero-DB way to grant yourself access:

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireWrite } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { asyncHandler } from '../middleware/asyncHandler';
 import {
@@ -11,10 +11,12 @@ const router = Router();
 
 router.use(authenticate);
 
+// Reads are open to every role (incl. read-only analysts); mutations require
+// admin or manager (requireWrite).
 router.get('/', asyncHandler(listMembers));
 router.get('/:id', asyncHandler(getMember));
-router.post('/', [body('fullName').trim().notEmpty().withMessage('Full name is required')], validate, asyncHandler(createMember));
-router.put('/:id', asyncHandler(updateMember));
-router.delete('/:id', asyncHandler(deleteMember));
+router.post('/', requireWrite, [body('fullName').trim().notEmpty().withMessage('Full name is required')], validate, asyncHandler(createMember));
+router.put('/:id', requireWrite, asyncHandler(updateMember));
+router.delete('/:id', requireWrite, asyncHandler(deleteMember));
 
 export default router;

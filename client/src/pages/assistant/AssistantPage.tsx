@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { sendTriageMessage, listMembers } from '../../api/resources';
 import type { TriageMessage, TriageSession } from '../../types';
 import { triageLabel } from '../../lib/format';
+import { useAuth } from '../../context/AuthContext';
 import './Assistant.css';
 
 interface LocationState { memberId?: string; memberName?: string }
@@ -19,6 +20,7 @@ const STARTERS = [
 export default function AssistantPage() {
   const location = useLocation();
   const initial = (location.state as LocationState) || {};
+  const { canWrite } = useAuth();
   const { data: members } = useQuery({ queryKey: ['members'], queryFn: listMembers });
 
   const [memberId, setMemberId] = useState(initial.memberId || '');
@@ -77,12 +79,18 @@ export default function AssistantPage() {
               <div className="chat-empty">
                 <div className="chat-orb">✦</div>
                 <h3>How can I help with your health today?</h3>
-                <p className="muted">Describe symptoms or ask a health question. Try one of these:</p>
-                <div className="starters">
-                  {STARTERS.map((s) => (
-                    <button key={s} className="starter" onClick={() => send(s)}>{s}</button>
-                  ))}
-                </div>
+                {canWrite ? (
+                  <>
+                    <p className="muted">Describe symptoms or ask a health question. Try one of these:</p>
+                    <div className="starters">
+                      {STARTERS.map((s) => (
+                        <button key={s} className="starter" onClick={() => send(s)}>{s}</button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p className="muted">Your role has read-only access. Past triage sessions appear on member profiles; running a new triage requires manager or admin access.</p>
+                )}
               </div>
             ) : (
               messages.map((m, i) => (
@@ -102,17 +110,19 @@ export default function AssistantPage() {
             )}
           </div>
 
-          <form
-            className="chat-input"
-            onSubmit={(e) => { e.preventDefault(); send(input); }}
-          >
-            <input
-              placeholder="Describe symptoms or ask a question…"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
-            <button className="btn btn-primary" type="submit" disabled={!input.trim() || sending}>Send</button>
-          </form>
+          {canWrite && (
+            <form
+              className="chat-input"
+              onSubmit={(e) => { e.preventDefault(); send(input); }}
+            >
+              <input
+                placeholder="Describe symptoms or ask a question…"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+              />
+              <button className="btn btn-primary" type="submit" disabled={!input.trim() || sending}>Send</button>
+            </form>
+          )}
         </div>
 
         <aside className="triage-panel card card-pad">

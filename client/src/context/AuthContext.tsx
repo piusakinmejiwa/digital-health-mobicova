@@ -7,6 +7,10 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  // True when the signed-in user may mutate their org's data (admin/manager).
+  // Analysts are read-only. Mirrors the server's requireWrite guard so the UI
+  // can hide actions that would be rejected — the server stays the boundary.
+  canWrite: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
 }
@@ -44,8 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const canWrite = user?.role === 'admin' || user?.role === 'manager';
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, canWrite, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

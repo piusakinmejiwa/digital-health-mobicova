@@ -6,10 +6,12 @@ import {
 } from '../../api/resources';
 import type { Consultation } from '../../types';
 import { formatDateTime, badgeClass } from '../../lib/format';
+import { useAuth } from '../../context/AuthContext';
 import './Telemedicine.css';
 
 export default function TelemedicinePage() {
   const queryClient = useQueryClient();
+  const { canWrite } = useAuth();
   const { data: consultations, isLoading } = useQuery({ queryKey: ['consultations'], queryFn: listConsultations });
   const { data: members } = useQuery({ queryKey: ['members'], queryFn: listMembers });
   const { data: partners } = useQuery({ queryKey: ['partners'], queryFn: listPartners });
@@ -44,6 +46,7 @@ export default function TelemedicinePage() {
         </div>
       </div>
 
+      {canWrite && (
       <div className="card card-pad book-bar">
         <h3 className="card-title">Book a consultation</h3>
         <div className="book-row">
@@ -65,6 +68,7 @@ export default function TelemedicinePage() {
           </button>
         </div>
       </div>
+      )}
 
       <div className="card">
         {isLoading ? (
@@ -86,7 +90,7 @@ export default function TelemedicinePage() {
                   <td className="muted small">{c.partner_name}</td>
                   <td><span className={`badge ${badgeClass(c.status)}`}>{c.status}</span></td>
                   <td className="muted small">{formatDateTime(c.scheduled_at)}</td>
-                  <td><button className="btn btn-secondary btn-sm" onClick={() => setSelected(c.id)}>Manage</button></td>
+                  <td><button className="btn btn-secondary btn-sm" onClick={() => setSelected(c.id)}>{canWrite ? 'Manage' : 'View'}</button></td>
                 </tr>
               ))}
             </tbody>
@@ -97,6 +101,7 @@ export default function TelemedicinePage() {
       {selected && (
         <ConsultationDrawer
           id={selected}
+          canWrite={canWrite}
           onClose={() => setSelected(null)}
           onChanged={refresh}
           pharmacies={(partners?.filter((p) => p.category === 'pharmacy') || []).map((p) => p.name)}
@@ -106,8 +111,8 @@ export default function TelemedicinePage() {
   );
 }
 
-function ConsultationDrawer({ id, onClose, onChanged, pharmacies }: {
-  id: string; onClose: () => void; onChanged: () => void; pharmacies: string[];
+function ConsultationDrawer({ id, canWrite, onClose, onChanged, pharmacies }: {
+  id: string; canWrite: boolean; onClose: () => void; onChanged: () => void; pharmacies: string[];
 }) {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['consultation', id], queryFn: () => getConsultation(id) });
@@ -164,33 +169,41 @@ function ConsultationDrawer({ id, onClose, onChanged, pharmacies }: {
 
             <div className="form-group">
               <label>Consultation notes</label>
-              <textarea rows={3} defaultValue={data.notes} onChange={(e) => setNotes(e.target.value)} />
+              {canWrite
+                ? <textarea rows={3} defaultValue={data.notes} onChange={(e) => setNotes(e.target.value)} />
+                : <p className="muted">{data.notes || '—'}</p>}
             </div>
             <div className="form-group">
               <label>Diagnosis / impression</label>
-              <input defaultValue={data.diagnosis} onChange={(e) => setDiagnosis(e.target.value)} />
+              {canWrite
+                ? <input defaultValue={data.diagnosis} onChange={(e) => setDiagnosis(e.target.value)} />
+                : <p className="muted">{data.diagnosis || '—'}</p>}
             </div>
-            <div className="drawer-actions">
-              <button className="btn btn-secondary btn-sm" onClick={() => save('in_progress')} disabled={busy === 'save'}>Mark in progress</button>
-              <button className="btn btn-primary btn-sm" onClick={() => save('completed')} disabled={busy === 'save'}>Save &amp; complete</button>
-            </div>
+            {canWrite && (
+              <div className="drawer-actions">
+                <button className="btn btn-secondary btn-sm" onClick={() => save('in_progress')} disabled={busy === 'save'}>Mark in progress</button>
+                <button className="btn btn-primary btn-sm" onClick={() => save('completed')} disabled={busy === 'save'}>Save &amp; complete</button>
+              </div>
+            )}
 
             <h4 className="drawer-subhead">e-Prescription</h4>
-            {data.prescriptions && data.prescriptions.length > 0 && (
+            {data.prescriptions && data.prescriptions.length > 0 ? (
               <ul className="rx-list">
                 {data.prescriptions.map((p) => (
                   <li key={p.id}><strong>{p.medication}</strong> {p.dosage} <span className="muted small">· {p.pharmacy_partner}</span></li>
                 ))}
               </ul>
+            ) : !canWrite && <p className="muted small">No prescriptions on this consultation.</p>}
+            {canWrite && (
+              <div className="rx-form">
+                <input placeholder="Medication" value={med} onChange={(e) => setMed(e.target.value)} />
+                <input placeholder="Dosage" value={dosage} onChange={(e) => setDosage(e.target.value)} />
+                <select value={pharmacy} onChange={(e) => setPharmacy(e.target.value)}>
+                  {pharmacies.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <button className="btn btn-primary btn-sm" onClick={prescribe} disabled={!med || busy === 'rx'}>Add</button>
+              </div>
             )}
-            <div className="rx-form">
-              <input placeholder="Medication" value={med} onChange={(e) => setMed(e.target.value)} />
-              <input placeholder="Dosage" value={dosage} onChange={(e) => setDosage(e.target.value)} />
-              <select value={pharmacy} onChange={(e) => setPharmacy(e.target.value)}>
-                {pharmacies.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-              <button className="btn btn-primary btn-sm" onClick={prescribe} disabled={!med || busy === 'rx'}>Add</button>
-            </div>
           </div>
         )}
       </div>

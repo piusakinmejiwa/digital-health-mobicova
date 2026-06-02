@@ -5,11 +5,13 @@ import {
   getMember, listPlans, bookConsultation, enrolMember, checkoutPremium,
 } from '../../api/resources';
 import { naira, formatDate, formatDateTime, age, triageLabel, badgeClass } from '../../lib/format';
+import { useAuth } from '../../context/AuthContext';
 import './Members.css';
 
 export default function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
   const queryClient = useQueryClient();
   const { data: member, isLoading } = useQuery({
     queryKey: ['member', id], queryFn: () => getMember(id!), enabled: !!id,
@@ -104,16 +106,18 @@ export default function MemberDetailPage() {
                 </tbody>
               </table>
             )}
-            <div className="inline-action">
-              <input placeholder="Reason for consultation" value={reason} onChange={(e) => setReason(e.target.value)} />
-              <select value={mode} onChange={(e) => setMode(e.target.value)}>
-                <option value="video">Video</option>
-                <option value="voice">Voice</option>
-              </select>
-              <button className="btn btn-primary btn-sm" onClick={handleBook} disabled={busy === 'book'}>
-                {busy === 'book' ? 'Booking…' : 'Book consultation'}
-              </button>
-            </div>
+            {canWrite && (
+              <div className="inline-action">
+                <input placeholder="Reason for consultation" value={reason} onChange={(e) => setReason(e.target.value)} />
+                <select value={mode} onChange={(e) => setMode(e.target.value)}>
+                  <option value="video">Video</option>
+                  <option value="voice">Voice</option>
+                </select>
+                <button className="btn btn-primary btn-sm" onClick={handleBook} disabled={busy === 'book'}>
+                  {busy === 'book' ? 'Booking…' : 'Book consultation'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Enrolments */}
@@ -134,7 +138,7 @@ export default function MemberDetailPage() {
                       <td>{naira(e.monthly_premium, e.currency)}/mo</td>
                       <td><span className={`badge ${badgeClass(e.payment_status)}`}>{e.payment_status}</span></td>
                       <td>
-                        {e.payment_status !== 'paid' && (
+                        {canWrite && e.payment_status !== 'paid' && (
                           <button className="btn btn-secondary btn-sm" onClick={() => handlePay(e.id)} disabled={busy === e.id}>
                             {busy === e.id ? '…' : 'Collect premium'}
                           </button>
@@ -146,17 +150,19 @@ export default function MemberDetailPage() {
               </table>
             )}
             {notice && <p className="muted small" style={{ margin: '0.75rem 1rem 0' }}>{notice}</p>}
-            <div className="inline-action">
-              <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
-                <option value="">Select a plan…</option>
-                {plans?.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} — {naira(p.monthly_premium, p.currency)}/mo</option>
-                ))}
-              </select>
-              <button className="btn btn-primary btn-sm" onClick={handleEnrol} disabled={!planId || busy === 'enrol'}>
-                {busy === 'enrol' ? 'Enrolling…' : 'Enrol member'}
-              </button>
-            </div>
+            {canWrite && (
+              <div className="inline-action">
+                <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
+                  <option value="">Select a plan…</option>
+                  {plans?.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name} — {naira(p.monthly_premium, p.currency)}/mo</option>
+                  ))}
+                </select>
+                <button className="btn btn-primary btn-sm" onClick={handleEnrol} disabled={!planId || busy === 'enrol'}>
+                  {busy === 'enrol' ? 'Enrolling…' : 'Enrol member'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Prescriptions */}

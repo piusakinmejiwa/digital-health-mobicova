@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'admin' | 'member';
+  role: 'admin' | 'manager' | 'analyst';
   orgId: string;
   orgName: string;
   partnerType?: string;

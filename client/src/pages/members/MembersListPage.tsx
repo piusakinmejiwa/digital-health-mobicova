@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { listMembers } from '../../api/resources';
 import { age, formatDate } from '../../lib/format';
+import { useAuth } from '../../context/AuthContext';
 import './Members.css';
 
 const channelBadge: Record<string, string> = {
@@ -10,6 +11,7 @@ const channelBadge: Record<string, string> = {
 
 export default function MembersListPage() {
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
   const { data: members, isLoading } = useQuery({ queryKey: ['members'], queryFn: listMembers });
 
   return (
@@ -19,7 +21,7 @@ export default function MembersListPage() {
           <h1>Members</h1>
           <p>The individuals your organisation has enrolled on the platform.</p>
         </div>
-        <Link to="/members/new" className="btn btn-primary">+ Add member</Link>
+        {canWrite && <Link to="/members/new" className="btn btn-primary">+ Add member</Link>}
       </div>
 
       <div className="card">
@@ -28,7 +30,7 @@ export default function MembersListPage() {
         ) : !members || members.length === 0 ? (
           <div className="empty-state">
             <p>No members yet.</p>
-            <Link to="/members/new" className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }}>Add your first member</Link>
+            {canWrite && <Link to="/members/new" className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }}>Add your first member</Link>}
           </div>
         ) : (
           <table className="table">

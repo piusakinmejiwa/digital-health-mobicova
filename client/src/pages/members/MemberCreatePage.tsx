@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { createMember } from '../../api/resources';
+import { useAuth } from '../../context/AuthContext';
 import './Members.css';
 
 interface FormValues {
@@ -21,6 +22,7 @@ interface FormValues {
 const toArray = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
 
 export default function MemberCreatePage() {
+  const { canWrite } = useAuth();
   const { register, handleSubmit } = useForm<FormValues>({
     defaultValues: { channel: 'app', gender: '' },
   });
@@ -28,6 +30,9 @@ export default function MemberCreatePage() {
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Read-only analysts can't create members; the server rejects it too.
+  if (!canWrite) return <Navigate to="/members" replace />;
 
   const onSubmit = async (values: FormValues) => {
     setError('');

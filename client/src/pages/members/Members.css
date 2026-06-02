@@ -52,3 +52,37 @@
   .detail-grid { grid-template-columns: 1fr; }
   .detail-aside { position: static; }
 }
+
+/* ---- Bulk CSV import modal ---- */
+.page-header-actions { display: flex; gap: 0.6rem; align-items: center; }
+
+.notice-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 0.8rem 1rem;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+}
+
+.import-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.import-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.import-preview { max-height: 320px; overflow: auto; border: 1px solid var(--gray-100); border-radius: 8px; }
+.import-preview .table { margin: 0; }
+
+.import-skipped { max-height: 220px; overflow: auto; margin-top: 0.5rem; }

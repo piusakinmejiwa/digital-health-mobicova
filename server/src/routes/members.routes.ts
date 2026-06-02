@@ -4,7 +4,7 @@ import { authenticate, requireWrite } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { asyncHandler } from '../middleware/asyncHandler';
 import {
-  listMembers, getMember, createMember, updateMember, deleteMember,
+  listMembers, getMember, createMember, importMembers, updateMember, deleteMember,
 } from '../controllers/members.controller';
 
 const router = Router();
@@ -16,6 +16,7 @@ router.use(authenticate);
 router.get('/', asyncHandler(listMembers));
 router.get('/:id', asyncHandler(getMember));
 router.post('/', requireWrite, [body('fullName').trim().notEmpty().withMessage('Full name is required')], validate, asyncHandler(createMember));
+router.post('/import', requireWrite, asyncHandler(importMembers));
 router.put('/:id', requireWrite, asyncHandler(updateMember));
 router.delete('/:id', requireWrite, asyncHandler(deleteMember));
 

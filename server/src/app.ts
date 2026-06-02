@@ -41,7 +41,9 @@ app.use(
   ['/api/v1/billing/stripe/webhook', '/api/v1/billing/paystack/webhook'],
   express.raw({ type: '*/*' })
 );
-app.use(express.json());
+// 2 MB accommodates a bulk member import (up to ~1,000 rows) while still
+// bounding request size as an abuse guard.
+app.use(express.json({ limit: '2mb' }));
 // USSD gateways (Africa's Talking et al.) post application/x-www-form-urlencoded.
 app.use(express.urlencoded({ extended: false }));
 

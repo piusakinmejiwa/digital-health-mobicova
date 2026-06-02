@@ -19,6 +19,15 @@ export async function getMember(id: string): Promise<MemberDetail> {
 export async function createMember(data: Record<string, unknown>): Promise<Member> {
   return (await api.post('/members', data)).data;
 }
+export interface MemberImportResult {
+  inserted: number;
+  total: number;
+  skipped: { row: number; reason: string }[];
+  error?: string;
+}
+export async function importMembers(members: Record<string, unknown>[]): Promise<MemberImportResult> {
+  return (await api.post('/members/import', { members })).data;
+}
 export async function updateMember(id: string, data: Record<string, unknown>): Promise<Member> {
   return (await api.put(`/members/${id}`, data)).data;
 }

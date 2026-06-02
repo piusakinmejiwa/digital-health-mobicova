@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { listMembers } from '../../api/resources';
 import { age, formatDate } from '../../lib/format';
 import { useAuth } from '../../context/AuthContext';
+import MemberImportModal from './MemberImportModal';
 import './Members.css';
 
 const channelBadge: Record<string, string> = {
@@ -11,7 +13,9 @@ const channelBadge: Record<string, string> = {
 
 export default function MembersListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { canWrite } = useAuth();
+  const [importing, setImporting] = useState(false);
   const { data: members, isLoading } = useQuery({ queryKey: ['members'], queryFn: listMembers });
 
   return (
@@ -21,7 +25,12 @@ export default function MembersListPage() {
           <h1>Members</h1>
           <p>The individuals your organisation has enrolled on the platform.</p>
         </div>
-        {canWrite && <Link to="/members/new" className="btn btn-primary">+ Add member</Link>}
+        {canWrite && (
+          <div className="page-header-actions">
+            <button className="btn btn-secondary" onClick={() => setImporting(true)}>Import CSV</button>
+            <Link to="/members/new" className="btn btn-primary">+ Add member</Link>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -60,6 +69,13 @@ export default function MembersListPage() {
           </table>
         )}
       </div>
+
+      {importing && (
+        <MemberImportModal
+          onClose={() => setImporting(false)}
+          onImported={() => queryClient.invalidateQueries({ queryKey: ['members'] })}
+        />
+      )}
     </div>
   );
 }

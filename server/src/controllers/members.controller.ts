@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { query } from '../config/database';
+import { query, pool } from '../config/database';
 
 export async function listMembers(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
@@ -72,6 +72,93 @@ export async function createMember(req: Request, res: Response): Promise<void> {
     ]
   );
   res.status(201).json(result.rows[0]);
+}
+
+// Bulk member import. Accepts a `members` array (parsed from a CSV upload on
+// the client), validates every row, and inserts the valid ones in a single
+// transaction attributed to the caller's organisation. Invalid rows are skipped
+// and reported back with 1-based row numbers so the uploader can fix and retry.
+const IMPORT_ALLOWED_CHANNELS = new Set(['app', 'whatsapp', 'ussd', 'web']);
+const IMPORT_MAX_ROWS = 1000;
+const IMPORT_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function importStr(v: unknown): string {
+  if (v == null) return '';
+  return (typeof v === 'string' ? v : String(v)).trim();
+}
+function importArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean);
+  const s = importStr(v);
+  if (!s) return [];
+  // Within a CSV cell, list values are separated by ';' (commas delimit columns).
+  return s.split(';').map((x) => x.trim()).filter(Boolean);
+}
+
+export async function importMembers(req: Request, res: Response): Promise<void> {
+  const orgId = req.user!.orgId;
+  const rows: unknown[] = Array.isArray(req.body?.members) ? req.body.members : [];
+
+  if (rows.length === 0) {
+    res.status(400).json({ error: 'No rows to import. Provide a non-empty "members" array.' });
+    return;
+  }
+  if (rows.length > IMPORT_MAX_ROWS) {
+    res.status(400).json({ error: `Too many rows: ${rows.length}. The maximum per import is ${IMPORT_MAX_ROWS}.` });
+    return;
+  }
+
+  const valid: unknown[][] = [];
+  const skipped: { row: number; reason: string }[] = [];
+
+  rows.forEach((raw, i) => {
+    const rowNum = i + 1;
+    const r = (raw ?? {}) as Record<string, unknown>;
+    const fullName = importStr(r.fullName);
+    if (!fullName) {
+      skipped.push({ row: rowNum, reason: 'Full name is required' });
+      return;
+    }
+    const dob = importStr(r.dateOfBirth);
+    if (dob && !IMPORT_DATE_RE.test(dob)) {
+      skipped.push({ row: rowNum, reason: `Invalid date of birth "${dob}" (expected YYYY-MM-DD)` });
+      return;
+    }
+    let channel = importStr(r.channel).toLowerCase() || 'app';
+    if (!IMPORT_ALLOWED_CHANNELS.has(channel)) channel = 'app';
+
+    valid.push([
+      orgId, fullName, importStr(r.phone), importStr(r.email), dob || null,
+      importStr(r.gender), channel, importStr(r.bloodGroup),
+      importArray(r.allergies), importArray(r.chronicConditions), importArray(r.currentMedications),
+    ]);
+  });
+
+  if (valid.length === 0) {
+    res.status(400).json({ inserted: 0, skipped, total: rows.length, error: 'No valid rows to import.' });
+    return;
+  }
+
+  // All valid rows succeed together or not at all.
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const values of valid) {
+      await client.query(
+        `INSERT INTO members (org_id, full_name, phone, email, date_of_birth, gender, channel,
+                              blood_group, allergies, chronic_conditions, current_medications)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        values
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.status(201).json({ inserted: valid.length, skipped, total: rows.length });
 }
 
 export async function updateMember(req: Request, res: Response): Promise<void> {

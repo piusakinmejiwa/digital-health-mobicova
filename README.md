@@ -132,6 +132,26 @@ set `PLATFORM_ADMIN_EMAILS=you@example.com` and re-deploy. The seeded demo admin
 server-side (all `/admin/*` routes sit behind a platform-admin guard) — the hidden sidebar item is
 just a convenience. Migration `009_add_platform_admin.sql` adds the flag column.
 
+## Bulk member import
+
+Beyond adding members one at a time, the **Members** page has an **Import CSV** button
+(Admin/Manager only) that onboards a whole roster at once — useful when an insurer hands over a
+spreadsheet of policyholders.
+
+- **Template** — the modal offers a downloadable CSV template. The only required column is
+  `fullName`; optional columns are `phone`, `email`, `dateOfBirth` (YYYY-MM-DD), `gender`,
+  `channel` (app/whatsapp/ussd/web), `bloodGroup`, `allergies`, `chronicConditions`,
+  `currentMedications`. List columns hold several values separated by a **semicolon**
+  (e.g. `Penicillin;Peanuts`), since commas delimit CSV columns.
+- **Headers are matched flexibly** — common aliases map to the right field (`name`→fullName,
+  `dob`→dateOfBirth, `meds`→currentMedications, etc.); unrecognised columns are ignored and
+  listed back to you.
+- **Preview before commit** — the modal parses the file client-side, previews the first rows, and
+  flags any with issues (missing name, malformed date) before you upload.
+- **Server is the authority** — `POST /members/import` re-validates every row, inserts the valid
+  ones in a single transaction attributed to your organisation (max 1,000 rows per import), and
+  returns a per-row report of anything it skipped so you can fix and re-import just those.
+
 ## WhatsApp & USSD intake
 
 Partners enrol members without the dashboard — from a feature phone (USSD) or a chat

@@ -1,12 +1,17 @@
 import api from './client';
 import type {
   Member, MemberDetail, Partner, Consultation, InsurancePlan, Enrolment,
-  TriageSession, TriageSummary, DashboardData,
+  TriageSession, TriageSummary, DashboardData, AnalyticsReport,
 } from '../types';
 
 // Dashboard
 export async function getDashboard(): Promise<DashboardData> {
   return (await api.get('/dashboard')).data;
+}
+
+// Analytics & reporting
+export async function getAnalytics(months = 6): Promise<AnalyticsReport> {
+  return (await api.get('/analytics', { params: { months } })).data;
 }
 
 // Members

@@ -152,6 +152,28 @@ spreadsheet of policyholders.
   ones in a single transaction attributed to your organisation (max 1,000 rows per import), and
   returns a per-row report of anything it skipped so you can fix and re-import just those.
 
+## Analytics & reporting
+
+The **Analytics & reporting** page gives each partner a board-ready view of their own tenant's
+activity. All figures are scoped to the signed-in organisation and available to every role
+(read-only — no mutations).
+
+- **Reporting window** — a selector (last 6 / 12 / 24 months) drives the whole report; the API
+  clamps the range server-side.
+- **Headline KPIs** — members & active members, consultations & completed, enrolments & paid,
+  triage sessions, and monthly premium / platform commission from active plans.
+- **Utilisation** — engagement ratios per member (consultations, triage, enrolment rate) and the
+  active-member rate.
+- **Growth trend** — a monthly bar chart (new members, consultations, enrolments) over the window,
+  zero-filled so empty months still appear.
+- **Premium & commission by plan / by underwriter** — tables with running totals, so you can see
+  where recurring revenue and distributor commission come from.
+- **Service mix** — consultations by status and mode, triage outcomes, and members by acquisition
+  channel.
+- **Export** — every table has an **Export CSV** button (dependency-free client-side download), and
+  **Print / Save as PDF** renders a clean report (sidebar and controls hidden via print styles).
+  Data comes from `GET /analytics?months=N`.
+
 ## WhatsApp & USSD intake
 
 Partners enrol members without the dashboard — from a feature phone (USSD) or a chat

@@ -10,6 +10,7 @@ import MemberDetailPage from './pages/members/MemberDetailPage';
 import TelemedicinePage from './pages/telemedicine/TelemedicinePage';
 import AssistantPage from './pages/assistant/AssistantPage';
 import InsurancePage from './pages/insurance/InsurancePage';
+import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import PartnersPage from './pages/partners/PartnersPage';
 import ChannelsPage from './pages/channels/ChannelsPage';
 import AdminPage from './pages/admin/AdminPage';
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: 'telemedicine', element: <TelemedicinePage /> },
       { path: 'assistant', element: <AssistantPage /> },
       { path: 'insurance', element: <InsurancePage /> },
+      { path: 'analytics', element: <AnalyticsPage /> },
       { path: 'channels', element: <ChannelsPage /> },
       { path: 'partners', element: <PartnersPage /> },
       { path: 'admin', element: <AdminRoute><AdminPage /></AdminRoute> },

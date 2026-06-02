@@ -183,6 +183,35 @@ export interface TriageSummary {
   created_at: string;
 }
 
+export interface AnalyticsReport {
+  summary: {
+    members: number;
+    activeMembers: number;
+    consultations: number;
+    completedConsultations: number;
+    enrolments: number;
+    paidEnrolments: number;
+    triageSessions: number;
+    monthlyPremium: number;
+    monthlyCommission: number;
+  };
+  utilization: {
+    consultationsPerMember: number;
+    triagePerMember: number;
+    enrolmentRate: number;
+    activeRate: number;
+  };
+  trend: { month: string; members: number; consultations: number; enrolments: number }[];
+  premiumByPlan: {
+    planName: string; underwriter: string; enrolments: number; premium: number; commission: number;
+  }[];
+  byUnderwriter: { underwriter: string; enrolments: number; premium: number }[];
+  consultationsByStatus: { status: string; count: number }[];
+  consultationsByMode: { mode: string; count: number }[];
+  triageByLevel: { triage_level: string; count: number }[];
+  channelBreakdown: { channel: string; count: number }[];
+}
+
 export interface DashboardData {
   metrics: {
     members: number;

@@ -1,0 +1,74 @@
+/* Analytics & reporting — utilisation grid, distribution bars, and print rules.
+   Reuses the global .metric-grid/.metric-card, .card, .table, .btn classes;
+   only the report-specific pieces live here. */
+
+.report-header { align-items: flex-start; }
+.report-header p { color: var(--gray-400); font-size: 0.85rem; margin-top: 0.2rem; }
+.report-actions { display: flex; align-items: center; gap: 0.6rem; }
+.report-actions select {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  background: var(--white);
+  font-size: 0.85rem;
+  color: var(--dark);
+}
+
+.btn-sm { padding: 0.4rem 0.7rem; font-size: 0.78rem; }
+
+/* Utilisation cards */
+.util-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.util-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.1rem;
+  background: var(--gray-50, #f8fafa);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+}
+.util-value { font-size: 1.5rem; font-weight: 800; color: #0a7b7b; }
+.util-label { font-size: 0.78rem; color: var(--gray-400); }
+
+/* Distribution bars (service mix) */
+.dist { margin-top: 1.1rem; }
+.dist:first-of-type { margin-top: 0.6rem; }
+.dist-title {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gray-400);
+  margin-bottom: 0.5rem;
+}
+.dist-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 36px;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.5rem;
+}
+.dist-label { font-size: 0.84rem; text-transform: capitalize; }
+.dist-track { height: 8px; background: var(--gray-100); border-radius: 50px; overflow: hidden; }
+.dist-fill { height: 100%; background: linear-gradient(90deg, #0a7b7b, #12a3a3); border-radius: 50px; }
+.dist-count { font-size: 0.84rem; text-align: right; }
+
+@media (max-width: 1100px) {
+  .util-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Print / Save as PDF — strip the app chrome and interactive controls so the
+   report prints clean on white. */
+@media print {
+  .sidebar, .report-actions, .topbar { display: none !important; }
+  .app-shell, .app-main, .page { margin: 0 !important; padding: 0 !important; }
+  .card, .metric-card { box-shadow: none !important; break-inside: avoid; }
+  .report-header { border-bottom: 2px solid #0a7b7b; padding-bottom: 0.6rem; }
+  body { background: #fff !important; }
+}

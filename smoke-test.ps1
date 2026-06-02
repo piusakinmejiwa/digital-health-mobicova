@@ -1,6 +1,7 @@
 <#
   MobiCova API smoke test — verifies the shipped features end-to-end:
-    Q1 Audit log · Q2 Roles · Q4 2FA · Q5 Bulk import · Q6 Claims · Q7 Analytics · Q3 SAML SSO · Q8 Public API · Q10 Member portal
+    Q1 Audit log · Q2 Roles · Q4 2FA · Q5 Bulk import · Q6 Claims · Q7 Analytics
+    Q3 SAML SSO · Q8 Public API · Q9 Provider portal · Q10 Member portal
 
   Usage (PowerShell, from the repo root):
     # against a local server (npm run dev in server/, after npm run migrate + npm run seed)
@@ -144,6 +145,35 @@ Check "webhook created with signing secret" { $wh.secret -like "whsec_*" }
 # Tidy up the artefacts this block created.
 Invoke-RestMethod -Method Delete -Uri "$BaseUrl/developer/webhooks/$($wh.id)" -Headers $H | Out-Null
 Invoke-RestMethod -Method Delete -Uri "$BaseUrl/developer/api-keys/$($key.id)" -Headers $H | Out-Null
+
+# --- Q9: provider portal -------------------------------------------------
+# Requires seeded demo providers (npm run seed).
+Write-Host "`nQ9  Provider portal"
+try {
+  $doc = Invoke-RestMethod -Method Post -Uri "$BaseUrl/provider/auth/login" `
+    -ContentType "application/json" -Body (@{ email = "doctor@mobicova.demo"; password = "password123" } | ConvertTo-Json)
+  Check "doctor signs in"                  { $doc.token -and $doc.provider.role -eq "doctor" }
+  $DH = @{ Authorization = "Bearer $($doc.token)" }
+  $consults = Invoke-RestMethod -Uri "$BaseUrl/provider/consultations" -Headers $DH
+  Check "doctor sees consult queue+counts" { $null -ne $consults.consultations -and $null -ne $consults.counts }
+  # A doctor token must NOT reach the pharmacist-only endpoint.
+  $wrongRole = $null
+  try { $wrongRole = Invoke-RestMethod -Uri "$BaseUrl/provider/prescriptions" -Headers $DH } catch { $wrongRole = "blocked" }
+  Check "doctor blocked from dispensary"   { $wrongRole -eq "blocked" }
+  # A provider token must NOT reach the staff API.
+  $crossed = $null
+  try { $crossed = Invoke-RestMethod -Uri "$BaseUrl/members" -Headers $DH } catch { $crossed = "blocked" }
+  Check "provider token rejected on staff API" { $crossed -eq "blocked" }
+
+  $pharm = Invoke-RestMethod -Method Post -Uri "$BaseUrl/provider/auth/login" `
+    -ContentType "application/json" -Body (@{ email = "pharmacist@mobicova.demo"; password = "password123" } | ConvertTo-Json)
+  Check "pharmacist signs in"              { $pharm.token -and $pharm.provider.role -eq "pharmacist" }
+  $PH = @{ Authorization = "Bearer $($pharm.token)" }
+  $rx = Invoke-RestMethod -Uri "$BaseUrl/provider/prescriptions" -Headers $PH
+  Check "pharmacist sees dispensary queue" { $null -ne $rx.prescriptions }
+} catch {
+  Write-Host "  (skipped — run 'npm run seed' to create demo providers)" -ForegroundColor DarkGray
+}
 
 # --- Q1: audit log -------------------------------------------------------
 Write-Host "`nQ1  Audit log"

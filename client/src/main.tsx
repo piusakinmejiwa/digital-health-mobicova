@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './index.css';
 import { AuthProvider } from './context/AuthContext';
 import { MemberAuthProvider } from './context/MemberAuthContext';
+import { ProviderAuthProvider } from './context/ProviderAuthContext';
 import { router } from './router';
 
 const queryClient = new QueryClient({
@@ -16,7 +17,9 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <MemberAuthProvider>
-          <RouterProvider router={router} />
+          <ProviderAuthProvider>
+            <RouterProvider router={router} />
+          </ProviderAuthProvider>
         </MemberAuthProvider>
       </AuthProvider>
     </QueryClientProvider>

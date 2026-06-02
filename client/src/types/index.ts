@@ -224,6 +224,69 @@ export interface ClaimsResponse {
   storageEnabled: boolean;
 }
 
+// --- Provider portal (Q9) ---
+export type ProviderRole = 'doctor' | 'pharmacist';
+
+export interface ProviderSession {
+  id: string;
+  fullName: string;
+  email: string;
+  role: ProviderRole;
+  specialty: string;
+  partnerName: string;
+  partnerCategory: string;
+}
+
+export interface ProviderConsultation {
+  id: string;
+  org_id: string;
+  org_name: string;
+  member_id: string;
+  member_name: string;
+  gender: string;
+  date_of_birth: string | null;
+  allergies: string[];
+  chronic_conditions: string[];
+  mode: string;
+  channel: string;
+  reason: string;
+  scheduled_at: string | null;
+  status: string;
+  doctor_name: string;
+  notes: string;
+  diagnosis: string;
+  provider_id: string | null;
+  created_at: string;
+  updated_at: string;
+  prescriptions?: Prescription[];
+}
+
+export interface ProviderConsultationsResponse {
+  consultations: ProviderConsultation[];
+  counts: { status: string; count: number }[];
+}
+
+export interface ProviderPrescription {
+  id: string;
+  consultation_id: string;
+  member_id: string;
+  member_name: string;
+  medication: string;
+  dosage: string;
+  instructions: string;
+  pharmacy_partner: string;
+  fulfilment_status: string;
+  dispensed_at: string | null;
+  created_at: string;
+  diagnosis: string;
+  doctor_name: string;
+}
+
+export interface ProviderPrescriptionsResponse {
+  prescriptions: ProviderPrescription[];
+  counts: { status: string; count: number }[];
+}
+
 // --- Public API + webhooks (Q8) ---
 export interface ApiKey {
   id: string;

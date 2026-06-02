@@ -25,6 +25,10 @@ import MemberProtectedRoute from './components/member/MemberProtectedRoute';
 import MemberLoginPage from './pages/member/MemberLoginPage';
 import MemberHomePage from './pages/member/MemberHomePage';
 import MemberClaimsPage from './pages/member/MemberClaimsPage';
+import ProviderShell from './components/provider/ProviderShell';
+import ProviderProtectedRoute from './components/provider/ProviderProtectedRoute';
+import ProviderLoginPage from './pages/provider/ProviderLoginPage';
+import ProviderHome from './pages/provider/ProviderHome';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -43,6 +47,20 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <MemberHomePage /> },
       { path: 'claims', element: <MemberClaimsPage /> },
+    ],
+  },
+
+  // --- Provider portal (clinician / pharmacist — separate auth domain) ---
+  { path: '/provider/login', element: <ProviderLoginPage /> },
+  {
+    path: '/provider',
+    element: (
+      <ProviderProtectedRoute>
+        <ProviderShell />
+      </ProviderProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <ProviderHome /> },
     ],
   },
 

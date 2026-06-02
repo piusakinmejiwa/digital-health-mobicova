@@ -119,8 +119,80 @@ async function seed() {
     await query('UPDATE users SET is_platform_admin = true WHERE email = $1', [demoEmail]);
   }
 
+  await seedProviders();
+
   console.log('Seed complete.');
   await pool.end();
+}
+
+// Q9 — demo providers (a doctor + a pharmacist) plus a little queue data so the
+// provider portal has something to show on first sign-in. Idempotent: safe to
+// re-run against an already-seeded database.
+async function seedProviders() {
+  console.log('Seeding demo providers...');
+  const passwordHash = await bcrypt.hash('password123', 12);
+
+  const telco = await query(`SELECT id FROM partners WHERE name = 'Helium Health' LIMIT 1`);
+  const pharma = await query(`SELECT id FROM partners WHERE name = 'HealthPlus' LIMIT 1`);
+  const telePartnerId = telco.rows[0]?.id;
+  const pharmacyPartnerId = pharma.rows[0]?.id;
+  if (!telePartnerId || !pharmacyPartnerId) {
+    console.log('  partners not found — skipping provider seed.');
+    return;
+  }
+
+  async function upsertProvider(email: string, fullName: string, role: string, specialty: string, partnerId: string) {
+    const exists = await query('SELECT id FROM providers WHERE email = $1', [email]);
+    if (exists.rows.length > 0) return exists.rows[0].id;
+    const r = await query(
+      `INSERT INTO providers (partner_id, full_name, email, password_hash, role, specialty)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [partnerId, fullName, email, passwordHash, role, specialty]
+    );
+    return r.rows[0].id;
+  }
+
+  await upsertProvider('doctor@mobicova.demo', 'Dr. Adaeze Okonkwo', 'doctor', 'General Practice', telePartnerId);
+  await upsertProvider('pharmacist@mobicova.demo', 'Pharm. Bode Adesina', 'pharmacist', '', pharmacyPartnerId);
+
+  // Find the demo org + a member to attach queue data to.
+  const org = await query(`SELECT id FROM organisations WHERE slug = 'axa-mansard-health' LIMIT 1`);
+  const orgId = org.rows[0]?.id;
+  if (!orgId) return;
+  const member = await query(`SELECT id FROM members WHERE org_id = $1 ORDER BY created_at LIMIT 1`, [orgId]);
+  const memberId = member.rows[0]?.id;
+  if (!memberId) return;
+
+  // Ensure the doctor has at least one scheduled consult waiting.
+  const pending = await query(
+    `SELECT id FROM consultations WHERE partner_id = $1 AND status = 'scheduled' LIMIT 1`,
+    [telePartnerId]
+  );
+  if (pending.rows.length === 0) {
+    await query(
+      `INSERT INTO consultations (org_id, member_id, partner_id, mode, channel, reason, scheduled_at, status)
+       VALUES ($1, $2, $3, 'video', 'app', $4, NOW() + interval '1 hour', 'scheduled')`,
+      [orgId, memberId, telePartnerId, 'Persistent headache and mild fever for 3 days']
+    );
+  }
+
+  // Ensure the pharmacist has at least one pending prescription waiting.
+  const pendingRx = await query(
+    `SELECT id FROM prescriptions WHERE pharmacy_partner = 'HealthPlus' AND fulfilment_status = 'pending' LIMIT 1`
+  );
+  if (pendingRx.rows.length === 0) {
+    const c = await query(
+      `INSERT INTO consultations (org_id, member_id, partner_id, mode, channel, reason, scheduled_at, status, doctor_name, diagnosis)
+       VALUES ($1, $2, $3, 'video', 'app', $4, NOW() - interval '1 day', 'completed', 'Dr. Adaeze Okonkwo', 'Acute bacterial sinusitis')
+       RETURNING id`,
+      [orgId, memberId, telePartnerId, 'Facial pain and congestion']
+    );
+    await query(
+      `INSERT INTO prescriptions (consultation_id, member_id, medication, dosage, instructions, pharmacy_partner, fulfilment_status)
+       VALUES ($1, $2, 'Amoxicillin-clavulanate 625mg', '1 tablet twice daily', 'Take with food for 7 days', 'HealthPlus', 'pending')`,
+      [c.rows[0].id, memberId]
+    );
+  }
 }
 
 seed().catch((err) => {

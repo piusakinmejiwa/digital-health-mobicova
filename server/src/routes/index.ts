@@ -14,6 +14,7 @@ import channelsRoutes from './channels.routes';
 import adminRoutes from './admin.routes';
 import memberPortalRoutes from './memberPortal.routes';
 import developerRoutes from './developer.routes';
+import providerRoutes from './provider.routes';
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use('/channels', channelsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/member', memberPortalRoutes);
 router.use('/developer', developerRoutes);
+router.use('/provider', providerRoutes);
 
 export default router;

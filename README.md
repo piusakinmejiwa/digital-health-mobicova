@@ -266,6 +266,32 @@ never executed here.
 2. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (service-role — server-side only) in the API
    environment, then restart. Without these, text-only claims work unchanged.
 
+## Provider portal
+
+A separate portal at **`/provider`** for the clinicians and pharmacists who staff MobiCova's
+**partner** organisations (telemedicine clinics, pharmacy networks) — the people who actually
+deliver care. It's a third, isolated auth domain alongside staff and members.
+
+- **Provider login** — password-based (`provider` JWT scope), provisioned by the platform (no
+  self-signup). A provider belongs to a partner and has a role: **doctor** or **pharmacist**.
+- **Doctors** see a queue of consultations booked against their partner (across every org that
+  partner serves). They **accept** a consult (stamping their name, moving it in-progress), record a
+  **diagnosis + clinical notes**, issue **e-prescriptions**, and **complete** it. The patient's
+  allergies and chronic conditions are surfaced for safety.
+- **Pharmacists** see e-prescriptions routed to their pharmacy and **mark them dispensed**.
+- **Isolation** — provider tokens carry no `userId`, so the staff API rejects them; the member and
+  provider middlewares each accept only their own scope. Doctor and pharmacist endpoints are
+  role-gated server-side. Migration `018_create_providers.sql` adds the `providers` table (plus
+  `consultations.provider_id` and `prescriptions.dispensed_at`).
+- **API** — public `POST /provider/auth/login`; authenticated `GET /provider/me`; doctor:
+  `GET /provider/consultations` (+`/:id`), `POST /provider/consultations/:id/accept`,
+  `PATCH /provider/consultations/:id`, `POST /provider/consultations/:id/prescriptions`;
+  pharmacist: `GET /provider/prescriptions`, `PATCH /provider/prescriptions/:id/dispense`.
+
+**Demo providers** (after `npm run seed`): `doctor@mobicova.demo` and `pharmacist@mobicova.demo`,
+both `password123`. The seed also drops a consult into the doctor's queue and a prescription into the
+pharmacist's, so both portals have something to show immediately.
+
 ## Public API & webhooks
 
 Insurers can integrate MobiCova with their core policy/claims systems through a public REST API and

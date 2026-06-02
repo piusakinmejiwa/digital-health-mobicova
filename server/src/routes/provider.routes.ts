@@ -1,0 +1,44 @@
+import { Router } from 'express';
+import { body } from 'express-validator';
+import {
+  providerLogin, getProviderMe,
+  listProviderConsultations, getProviderConsultation, acceptConsultation,
+  updateProviderConsultation, addProviderPrescription,
+  listProviderPrescriptions, dispensePrescription,
+} from '../controllers/provider.controller';
+import { authenticateProvider, requireProviderRole } from '../middleware/providerAuth';
+import { validate } from '../middleware/validate';
+import { asyncHandler } from '../middleware/asyncHandler';
+
+const router = Router();
+
+// Public auth.
+router.post(
+  '/auth/login',
+  [body('email').isEmail().normalizeEmail(), body('password').notEmpty()],
+  validate,
+  asyncHandler(providerLogin)
+);
+
+router.get('/me', authenticateProvider, asyncHandler(getProviderMe));
+
+// Doctor — consultations.
+const doctorOnly = [authenticateProvider, requireProviderRole('doctor')];
+router.get('/consultations', doctorOnly, asyncHandler(listProviderConsultations));
+router.get('/consultations/:id', doctorOnly, asyncHandler(getProviderConsultation));
+router.post('/consultations/:id/accept', doctorOnly, asyncHandler(acceptConsultation));
+router.patch('/consultations/:id', doctorOnly, asyncHandler(updateProviderConsultation));
+router.post(
+  '/consultations/:id/prescriptions',
+  doctorOnly,
+  [body('medication').trim().notEmpty()],
+  validate,
+  asyncHandler(addProviderPrescription)
+);
+
+// Pharmacist — dispensary.
+const pharmacistOnly = [authenticateProvider, requireProviderRole('pharmacist')];
+router.get('/prescriptions', pharmacistOnly, asyncHandler(listProviderPrescriptions));
+router.patch('/prescriptions/:id/dispense', pharmacistOnly, asyncHandler(dispensePrescription));
+
+export default router;

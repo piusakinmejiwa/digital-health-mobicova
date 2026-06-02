@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import { generateJoinCode, uniqueSlug } from '../lib/org';
+import { passwordIssue } from '../lib/password';
+import { recordAudit } from '../lib/audit';
 
 // Platform-admin management of partner organisations (tenants). Behind
 // authenticate + requirePlatformAdmin (see admin.routes.ts).
@@ -33,8 +35,9 @@ export async function adminCreateOrg(req: Request, res: Response): Promise<void>
 
   // If provisioning an admin alongside the org, validate before creating anything.
   if (adminEmail) {
-    if (!adminPassword || String(adminPassword).length < 8) {
-      res.status(400).json({ error: 'Admin password must be at least 8 characters' });
+    const pwIssue = passwordIssue(adminPassword);
+    if (pwIssue) {
+      res.status(400).json({ error: `Admin ${pwIssue.charAt(0).toLowerCase()}${pwIssue.slice(1)}` });
       return;
     }
     const clash = await query('SELECT 1 FROM users WHERE email = $1', [adminEmail]);
@@ -64,6 +67,15 @@ export async function adminCreateOrg(req: Request, res: Response): Promise<void>
     );
     adminUser = userResult.rows[0];
   }
+
+  await recordAudit(req, {
+    action: 'org.create',
+    targetType: 'organisation',
+    targetId: org.id,
+    targetLabel: org.name,
+    orgId: org.id,
+    metadata: { partnerType, planTier, provisionedAdmin: Boolean(adminUser) },
+  });
 
   res.status(201).json({
     ...org,
@@ -103,7 +115,21 @@ export async function adminUpdateOrg(req: Request, res: Response): Promise<void>
       b.is_active ?? cur.is_active,
     ]
   );
-  res.json(result.rows[0]);
+  const updated = result.rows[0];
+
+  // Distinguish suspend/reactivate from a plain edit for a clearer trail.
+  let action = 'org.update';
+  if (b.is_active === false && cur.is_active !== false) action = 'org.suspend';
+  else if (b.is_active === true && cur.is_active === false) action = 'org.reactivate';
+  await recordAudit(req, {
+    action,
+    targetType: 'organisation',
+    targetId: updated.id,
+    targetLabel: updated.name,
+    orgId: updated.id,
+  });
+
+  res.json(updated);
 }
 
 export async function adminDeleteOrg(req: Request, res: Response): Promise<void> {
@@ -124,10 +150,18 @@ export async function adminDeleteOrg(req: Request, res: Response): Promise<void>
     return;
   }
 
+  const existing = await query('SELECT name FROM organisations WHERE id = $1', [id]);
   const result = await query('DELETE FROM organisations WHERE id = $1 RETURNING id', [id]);
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'Organisation not found' });
     return;
   }
+  await recordAudit(req, {
+    action: 'org.delete',
+    targetType: 'organisation',
+    targetId: id,
+    targetLabel: existing.rows[0]?.name,
+    orgId: id,
+  });
   res.json({ deleted: true });
 }

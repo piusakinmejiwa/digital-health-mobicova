@@ -1,5 +1,5 @@
 import api from './client';
-import type { Partner, InsurancePlan, Organisation, AdminUser } from '../types';
+import type { Partner, InsurancePlan, Organisation, AdminUser, AuditEntry } from '../types';
 
 // Platform-admin catalog management. All endpoints require platform-admin
 // privileges (enforced server-side); the Admin page is only reachable when
@@ -62,4 +62,9 @@ export async function adminResetUserPassword(id: string, password: string): Prom
 }
 export async function adminDeleteUser(id: string): Promise<void> {
   await api.delete(`/admin/users/${id}`);
+}
+
+// Audit trail (read-only)
+export async function adminListAudit(orgId?: string): Promise<AuditEntry[]> {
+  return (await api.get('/admin/audit', { params: orgId ? { orgId } : undefined })).data;
 }

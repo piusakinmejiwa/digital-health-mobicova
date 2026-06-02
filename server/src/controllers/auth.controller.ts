@@ -6,9 +6,16 @@ import { env } from '../config/env';
 import { JwtPayload } from '../middleware/auth';
 import { isPlatformAdmin } from '../middleware/platformAdmin';
 import { generateJoinCode } from '../lib/org';
+import { passwordIssue } from '../lib/password';
 
 export async function register(req: Request, res: Response): Promise<void> {
   const { email, password, fullName, orgName, partnerType } = req.body;
+
+  const pwIssue = passwordIssue(password);
+  if (pwIssue) {
+    res.status(400).json({ error: pwIssue });
+    return;
+  }
 
   const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
   if (existing.rows.length > 0) {

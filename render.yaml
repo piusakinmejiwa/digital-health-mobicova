@@ -19,6 +19,9 @@ services:
       # Set these in the Render dashboard (Environment tab) — not stored in the repo.
       - key: DATABASE_URL
         sync: false
+      # Optional — PEM CA cert to verify the DB TLS certificate (MITM defence).
+      - key: DATABASE_CA_CERT
+        sync: false
       - key: CLIENT_URL
         sync: false
       - key: ANTHROPIC_API_KEY

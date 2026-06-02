@@ -13,6 +13,7 @@ import {
   adminListUsers, adminCreateUser, adminUpdateUser,
   adminResetUserPassword, adminDeleteUser,
 } from '../controllers/adminUsers.controller';
+import { adminListAudit } from '../controllers/adminAudit.controller';
 
 const router = Router();
 
@@ -44,5 +45,8 @@ router.get('/plans', asyncHandler(adminListPlans));
 router.post('/plans', asyncHandler(adminCreatePlan));
 router.patch('/plans/:id', asyncHandler(adminUpdatePlan));
 router.delete('/plans/:id', asyncHandler(adminDeletePlan));
+
+// Audit trail (read-only)
+router.get('/audit', asyncHandler(adminListAudit));
 
 export default router;

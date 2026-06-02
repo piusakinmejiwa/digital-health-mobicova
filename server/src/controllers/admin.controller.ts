@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
+import { recordAudit } from '../lib/audit';
 
 // Platform-admin CRUD for the global catalog: partner ecosystem records and
 // insurance plans. All routes here sit behind authenticate + requirePlatformAdmin
@@ -32,6 +33,7 @@ export async function adminCreatePartner(req: Request, res: Response): Promise<v
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
     [name, category, description, coverage, licence, status]
   );
+  await recordAudit(req, { action: 'partner.create', targetType: 'partner', targetId: result.rows[0].id, targetLabel: result.rows[0].name });
   res.status(201).json(result.rows[0]);
 }
 
@@ -58,16 +60,18 @@ export async function adminUpdatePartner(req: Request, res: Response): Promise<v
       b.status ?? cur.status,
     ]
   );
+  await recordAudit(req, { action: 'partner.update', targetType: 'partner', targetId: id, targetLabel: result.rows[0].name });
   res.json(result.rows[0]);
 }
 
 export async function adminDeletePartner(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
-  const result = await query('DELETE FROM partners WHERE id = $1 RETURNING id', [id]);
+  const result = await query('DELETE FROM partners WHERE id = $1 RETURNING id, name', [id]);
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'Partner not found' });
     return;
   }
+  await recordAudit(req, { action: 'partner.delete', targetType: 'partner', targetId: id, targetLabel: result.rows[0].name });
   res.json({ deleted: true });
 }
 
@@ -95,6 +99,7 @@ export async function adminCreatePlan(req: Request, res: Response): Promise<void
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
     [name, plan_type, underwriter, monthly_premium, currency, cover_amount, benefits, description, commission_rate, is_active]
   );
+  await recordAudit(req, { action: 'plan.create', targetType: 'plan', targetId: result.rows[0].id, targetLabel: result.rows[0].name });
   res.status(201).json(result.rows[0]);
 }
 
@@ -127,6 +132,7 @@ export async function adminUpdatePlan(req: Request, res: Response): Promise<void
       b.is_active ?? cur.is_active,
     ]
   );
+  await recordAudit(req, { action: 'plan.update', targetType: 'plan', targetId: id, targetLabel: result.rows[0].name });
   res.json(result.rows[0]);
 }
 
@@ -141,10 +147,11 @@ export async function adminDeletePlan(req: Request, res: Response): Promise<void
     });
     return;
   }
-  const result = await query('DELETE FROM insurance_plans WHERE id = $1 RETURNING id', [id]);
+  const result = await query('DELETE FROM insurance_plans WHERE id = $1 RETURNING id, name', [id]);
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'Plan not found' });
     return;
   }
+  await recordAudit(req, { action: 'plan.delete', targetType: 'plan', targetId: id, targetLabel: result.rows[0].name });
   res.json({ deleted: true });
 }

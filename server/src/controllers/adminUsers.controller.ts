@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
+import { passwordIssue } from '../lib/password';
+import { recordAudit } from '../lib/audit';
 
 // Platform-admin management of the dashboard users that belong to partner
 // organisations. Behind authenticate + requirePlatformAdmin (see admin.routes.ts).
@@ -34,8 +36,9 @@ export async function adminCreateUser(req: Request, res: Response): Promise<void
     res.status(400).json({ error: 'orgId, email and fullName are required' });
     return;
   }
-  if (!password || String(password).length < 8) {
-    res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const pwIssue = passwordIssue(password);
+  if (pwIssue) {
+    res.status(400).json({ error: pwIssue });
     return;
   }
 
@@ -58,7 +61,16 @@ export async function adminCreateUser(req: Request, res: Response): Promise<void
      RETURNING id, org_id, email, full_name, role, is_active, is_platform_admin, created_at`,
     [orgId, email, passwordHash, fullName, role, Boolean(isPlatformAdmin)]
   );
-  res.status(201).json(result.rows[0]);
+  const created = result.rows[0];
+  await recordAudit(req, {
+    action: 'user.create',
+    targetType: 'user',
+    targetId: created.id,
+    targetLabel: created.email,
+    orgId,
+    metadata: { role, isPlatformAdmin: Boolean(isPlatformAdmin) },
+  });
+  res.status(201).json(created);
 }
 
 export async function adminUpdateUser(req: Request, res: Response): Promise<void> {
@@ -97,25 +109,47 @@ export async function adminUpdateUser(req: Request, res: Response): Promise<void
       b.is_platform_admin ?? cur.is_platform_admin,
     ]
   );
-  res.json(result.rows[0]);
+  const updated = result.rows[0];
+
+  let action = 'user.update';
+  if (b.is_active === false && cur.is_active !== false) action = 'user.deactivate';
+  else if (b.is_active === true && cur.is_active === false) action = 'user.activate';
+  await recordAudit(req, {
+    action,
+    targetType: 'user',
+    targetId: updated.id,
+    targetLabel: updated.email,
+    orgId: updated.org_id,
+    metadata: { role: updated.role, isPlatformAdmin: updated.is_platform_admin },
+  });
+
+  res.json(updated);
 }
 
 export async function adminResetUserPassword(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const { password } = req.body;
-  if (!password || String(password).length < 8) {
-    res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const pwIssue = passwordIssue(password);
+  if (pwIssue) {
+    res.status(400).json({ error: pwIssue });
     return;
   }
   const passwordHash = await bcrypt.hash(password, 12);
   const result = await query(
-    'UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1 RETURNING id',
+    'UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1 RETURNING id, email, org_id',
     [id, passwordHash]
   );
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'User not found' });
     return;
   }
+  await recordAudit(req, {
+    action: 'user.reset_password',
+    targetType: 'user',
+    targetId: id,
+    targetLabel: result.rows[0].email,
+    orgId: result.rows[0].org_id,
+  });
   res.json({ reset: true });
 }
 
@@ -125,10 +159,17 @@ export async function adminDeleteUser(req: Request, res: Response): Promise<void
     res.status(400).json({ error: 'You cannot delete your own account' });
     return;
   }
-  const result = await query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+  const result = await query('DELETE FROM users WHERE id = $1 RETURNING id, email, org_id', [id]);
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'User not found' });
     return;
   }
+  await recordAudit(req, {
+    action: 'user.delete',
+    targetType: 'user',
+    targetId: id,
+    targetLabel: result.rows[0].email,
+    orgId: result.rows[0].org_id,
+  });
   res.json({ deleted: true });
 }

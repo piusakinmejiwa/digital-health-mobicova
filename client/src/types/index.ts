@@ -79,6 +79,20 @@ export interface AdminUser {
   created_at: string;
 }
 
+export interface AuditEntry {
+  id: string;
+  actor_email: string | null;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  target_label: string | null;
+  org_id: string | null;
+  org_name: string | null;
+  metadata: Record<string, unknown>;
+  ip: string | null;
+  created_at: string;
+}
+
 export interface Consultation {
   id: string;
   member_id: string;

@@ -98,6 +98,10 @@ records and mock integrations. No real PHI should be entered.
   hard-delete (blocked when a plan is referenced by an enrolment).
 - **Partners** — full CRUD across every category (telemedicine, insurer, pharmacy, diagnostics,
   EHR, distribution), with activate/deactivate and delete.
+- **Audit log** — an append-only, read-only trail of every privileged action (org/user/plan/
+  partner create, update, suspend, delete, password reset), with the actor, target, tenant, and
+  timestamp. Migration `011_create_audit_log.sql` adds the `audit_log` table; writes are
+  best-effort so auditing can never break the action it records.
 
 Insurance plans and the partner ecosystem are **platform-wide** (shared across every
 organisation); organisations and users are the per-tenant records.

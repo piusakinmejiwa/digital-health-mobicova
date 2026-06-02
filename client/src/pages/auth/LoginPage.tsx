@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { loginUser } from '../../api/auth';
+import { loginUser, mfaChallenge } from '../../api/auth';
 import { ssoStatus, beginSso } from '../../api/sso';
 import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
@@ -38,6 +38,13 @@ export default function LoginPage() {
   const [ssoBusy, setSsoBusy] = useState(false);
   const [ssoError, setSsoError] = useState('');
 
+  // MFA second-step state. When the server demands a second factor, it returns a
+  // short-lived pending token; we swap that + a code for the real session.
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaError, setMfaError] = useState('');
+  const [mfaBusy, setMfaBusy] = useState(false);
+
   // Surface an SSO failure passed back via the URL, then clean the query string.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -54,12 +61,36 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await loginUser(values);
-      login(res.token, res.user);
-      navigate('/dashboard');
+      if (res.mfaRequired && res.mfaToken) {
+        setMfaToken(res.mfaToken);
+        setMfaCode('');
+        setMfaError('');
+        return;
+      }
+      if (res.token && res.user) {
+        login(res.token, res.user);
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onMfaSubmit = async () => {
+    const code = mfaCode.trim();
+    if (!code) return;
+    setMfaBusy(true);
+    setMfaError('');
+    try {
+      const res = await mfaChallenge({ mfaToken, code });
+      login(res.token, res.user);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setMfaError(err.response?.data?.error || 'Verification failed');
+    } finally {
+      setMfaBusy(false);
     }
   };
 
@@ -103,7 +134,35 @@ export default function LoginPage() {
           <h2>Partner sign in</h2>
           <p className="sub">Access your MobiCova health platform.</p>
 
-          {!ssoMode ? (
+          {mfaToken ? (
+            <>
+              <div className="form-group">
+                <label>Authentication code</label>
+                <input
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value)}
+                  placeholder="123456"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') onMfaSubmit(); }}
+                />
+                <p className="muted small">
+                  Enter the 6-digit code from your authenticator app, or one of your backup codes.
+                </p>
+              </div>
+              {mfaError && <div className="error-text">{mfaError}</div>}
+              <button className="btn btn-primary btn-block" onClick={onMfaSubmit} disabled={mfaBusy || !mfaCode.trim()}>
+                {mfaBusy ? 'Verifying…' : 'Verify & sign in'}
+              </button>
+              <button
+                className="btn btn-link btn-block"
+                onClick={() => { setMfaToken(''); setMfaCode(''); setMfaError(''); }}
+              >
+                ← Back to sign in
+              </button>
+            </>
+          ) : !ssoMode ? (
             <>
               <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="form-group">

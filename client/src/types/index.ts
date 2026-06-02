@@ -8,12 +8,32 @@ export interface User {
   partnerType?: string;
   planTier?: string;
   joinCode?: string;
+  mfaEnabled?: boolean;
   isPlatformAdmin?: boolean;
 }
 
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+// A password login can either succeed outright or demand a second factor.
+export interface LoginResult {
+  token?: string;
+  user?: User;
+  mfaRequired?: boolean;
+  mfaToken?: string;
+}
+
+export interface MfaStatus {
+  enabled: boolean;
+  backupCodesRemaining: number;
+}
+
+export interface MfaSetup {
+  secret: string;
+  otpauthUrl: string;
+  qrDataUrl: string;
 }
 
 export interface Member {
@@ -151,6 +171,57 @@ export interface Enrolment {
   status: string;
   payment_status: string;
   enrolled_at: string;
+}
+
+export type ClaimStatus = 'submitted' | 'under_review' | 'approved' | 'rejected' | 'paid';
+
+export interface Claim {
+  id: string;
+  org_id: string;
+  member_id: string;
+  member_name?: string;
+  member_email?: string;
+  member_phone?: string;
+  enrolment_id: string | null;
+  plan_id: string | null;
+  plan_name?: string | null;
+  underwriter?: string | null;
+  reference: string;
+  claim_type: string;
+  provider_name: string;
+  service_date: string | null;
+  amount: string;
+  currency: string;
+  description: string;
+  status: ClaimStatus;
+  decision_note: string;
+  decided_by: string | null;
+  decided_by_name?: string | null;
+  decided_at: string | null;
+  submitted_via: string;
+  document_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClaimDocument {
+  id: string;
+  label: string;
+  file_name: string;
+  file_url: string;
+  content_type: string;
+  size_bytes: number;
+  created_at: string;
+}
+
+export interface ClaimDetail extends Claim {
+  documents: ClaimDocument[];
+}
+
+export interface ClaimsResponse {
+  claims: Claim[];
+  counts: { status: string; count: number }[];
+  storageEnabled: boolean;
 }
 
 export type TriageLevel = 'emergency' | 'urgent' | 'gp' | 'self_care' | 'info' | 'unknown';

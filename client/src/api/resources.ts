@@ -2,6 +2,7 @@ import api from './client';
 import type {
   Member, MemberDetail, Partner, Consultation, InsurancePlan, Enrolment,
   TriageSession, TriageSummary, DashboardData, AnalyticsReport,
+  Claim, ClaimDetail, ClaimDocument, ClaimsResponse,
 } from '../types';
 
 // Dashboard
@@ -74,6 +75,29 @@ export async function enrolMember(data: { memberId: string; planId: string }): P
 }
 export async function checkoutPremium(enrolmentId: string): Promise<{ provider: 'paystack' | 'stripe' | 'demo'; url?: string; message?: string }> {
   return (await api.post(`/insurance/enrolments/${enrolmentId}/checkout`)).data;
+}
+
+// Claims
+export async function listClaims(status?: string): Promise<ClaimsResponse> {
+  return (await api.get('/claims', { params: status ? { status } : {} })).data;
+}
+export async function getClaim(id: string): Promise<ClaimDetail> {
+  return (await api.get(`/claims/${id}`)).data;
+}
+export async function createClaim(data: Record<string, unknown>): Promise<Claim> {
+  return (await api.post('/claims', data)).data;
+}
+export async function decideClaim(id: string, status: string, note?: string): Promise<Claim> {
+  return (await api.patch(`/claims/${id}/decision`, { status, note })).data;
+}
+export async function uploadClaimDocument(id: string, file: File, label?: string): Promise<ClaimDocument> {
+  const form = new FormData();
+  form.append('file', file);
+  if (label) form.append('label', label);
+  // Let the browser set the multipart boundary; overriding the JSON default.
+  return (await api.post(`/claims/${id}/documents`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })).data;
 }
 
 // Triage

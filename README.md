@@ -170,6 +170,27 @@ Built on [`@node-saml/node-saml`](https://github.com/node-saml/node-saml). Confi
 `org_sso` table (migration `013_create_org_sso.sql`). Set `SERVER_URL` to this API's public origin
 (no trailing slash) so the generated SP URLs are reachable by partner IdPs.
 
+## Two-factor authentication (2FA)
+
+Any dashboard user can add a TOTP second factor (Google Authenticator, Microsoft Authenticator,
+1Password, Authy…) from **Security** in the sidebar. 2FA protects the individual account, so it's
+available to every role — not just admins.
+
+- **Enrol** — *Security → Set up 2FA* generates a secret, shows a QR code (and the manual key), and
+  asks for one code to confirm. On success the user gets **10 single-use backup codes**, shown once.
+- **Sign-in** — when 2FA is on, a correct password returns a short-lived (`5 min`) pending token
+  instead of a session. The login page then asks for the 6-digit code (or a backup code) and
+  exchanges both for the usual 7-day JWT.
+- **SSO bypasses MFA** — SAML logins authenticate against the corporate IdP, which owns the second
+  factor; the password+TOTP flow doesn't apply to them.
+- **Disable** — turning 2FA off requires re-entering the current password.
+- **Storage** — secrets and backup codes live on the `users` row (migration `015_add_mfa.sql`);
+  backup codes are **bcrypt-hashed**, the TOTP secret is base32. Enabling/disabling is written to the
+  audit log (`auth.mfa_enabled` / `auth.mfa_disabled`).
+- **API** — `POST /auth/login` (may return `{ mfaRequired, mfaToken }`), `POST /auth/mfa/challenge`,
+  and authenticated `GET /auth/mfa/status`, `POST /auth/mfa/setup`, `POST /auth/mfa/enable`,
+  `POST /auth/mfa/disable`.
+
 ## Bulk member import
 
 Beyond adding members one at a time, the **Members** page has an **Import CSV** button
@@ -211,6 +232,38 @@ activity. All figures are scoped to the signed-in organisation and available to 
 - **Export** — every table has an **Export CSV** button (dependency-free client-side download), and
   **Print / Save as PDF** renders a clean report (sidebar and controls hidden via print styles).
   Data comes from `GET /analytics?months=N`.
+
+## Claims
+
+The **Claims** page runs the insurance claims workflow end-to-end. A claim is logged for a
+member (on their behalf from the dashboard today; member self-submission arrives with the member
+portal), then the partner adjudicates it. MobiCova owns the workflow and record — the
+NAICOM-licensed underwriter partner remains the risk carrier, and payouts are tracked as a status,
+never executed here.
+
+- **Lifecycle** — `submitted → under_review → approved → paid`, with `rejected` reachable from any
+  open state. Transitions are enforced server-side (`server/src/lib/claims.ts`); an illegal move
+  returns `409`. Every decision is written to the audit log (`claim.approve`, `claim.rejected`, …).
+- **Queue & filters** — claims list newest-first with per-status counts; tabs filter by status. Each
+  row shows reference, member, type, provider, amount and status.
+- **Adjudication** — admins/managers move a claim through the lifecycle from the detail drawer; a
+  decision note is captured (and required when rejecting). Analysts are read-only.
+- **Documents** — receipts, referral letters and scans attach to a claim. Files upload to a private
+  **Supabase Storage** bucket and are served via year-long signed URLs. Storage is optional: when
+  `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are unset the module still works and the upload
+  control is hidden (same graceful-degradation pattern as Stripe/Anthropic).
+- **Linked cover** — a claim can be tied to one of the member's enrolments, which copies the plan and
+  underwriter onto the claim for reporting.
+- **API** — `GET /claims?status=`, `GET /claims/:id`, `POST /claims`, `PATCH /claims/:id/decision`,
+  `POST /claims/:id/documents` (multipart). Migration `014_create_claims.sql` adds the `claims` and
+  `claim_documents` tables.
+
+### Enabling document uploads (Supabase Storage)
+
+1. In your Supabase project, create a **private** Storage bucket named `claim-documents` (or set
+   `SUPABASE_STORAGE_BUCKET` to your name).
+2. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (service-role — server-side only) in the API
+   environment, then restart. Without these, text-only claims work unchanged.
 
 ## WhatsApp & USSD intake
 

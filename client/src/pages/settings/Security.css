@@ -1,0 +1,67 @@
+.sec-title {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+
+.sec-subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 18px 0 8px;
+}
+
+.sec-block {
+  margin-top: 18px;
+}
+
+.sec-qr {
+  display: block;
+  width: 180px;
+  height: 180px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.sec-secret {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--surface-2, #f1f5f9);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+
+.sec-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.sec-inline {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.sec-inline label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.backup-codes {
+  list-style: none;
+  padding: 14px;
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 15px;
+  letter-spacing: 1px;
+}

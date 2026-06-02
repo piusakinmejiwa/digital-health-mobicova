@@ -42,7 +42,30 @@ const statusClass: Record<string, string> = {
   pending: 'badge-amber',
   paid: 'badge-green',
   unpaid: 'badge-amber',
+  // Claim adjudication statuses
+  submitted: 'badge-blue',
+  under_review: 'badge-amber',
+  approved: 'badge-green',
+  rejected: 'badge-red',
 };
 export function badgeClass(status: string): string {
   return statusClass[status] || 'badge-gray';
+}
+
+const claimStatusLabels: Record<string, string> = {
+  submitted: 'Submitted',
+  under_review: 'Under review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  paid: 'Paid',
+};
+export function claimStatusLabel(status: string): string {
+  return claimStatusLabels[status] || status;
+}
+
+export function fileSize(bytes: number): string {
+  if (!bytes) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

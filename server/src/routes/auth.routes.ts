@@ -1,6 +1,15 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { register, login, getMe } from '../controllers/auth.controller';
+import {
+  register,
+  login,
+  getMe,
+  mfaChallenge,
+  mfaSetup,
+  mfaEnable,
+  mfaDisable,
+  mfaStatus,
+} from '../controllers/auth.controller';
 import { ssoMetadata, ssoStatus, ssoLogin, ssoCallback } from '../controllers/sso.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
@@ -28,6 +37,33 @@ router.post(
 );
 
 router.get('/me', authenticate, asyncHandler(getMe));
+
+// --- Multi-factor authentication (TOTP) ---
+// Second login step: exchange the pending token + a code for a session (public,
+// the pending token is the credential).
+router.post(
+  '/mfa/challenge',
+  [body('mfaToken').notEmpty(), body('code').trim().notEmpty()],
+  validate,
+  asyncHandler(mfaChallenge)
+);
+// Authenticated self-service setup/management.
+router.get('/mfa/status', authenticate, asyncHandler(mfaStatus));
+router.post('/mfa/setup', authenticate, asyncHandler(mfaSetup));
+router.post(
+  '/mfa/enable',
+  authenticate,
+  [body('code').trim().notEmpty()],
+  validate,
+  asyncHandler(mfaEnable)
+);
+router.post(
+  '/mfa/disable',
+  authenticate,
+  [body('password').notEmpty()],
+  validate,
+  asyncHandler(mfaDisable)
+);
 
 // --- SAML SSO (public; per-tenant by org slug) ---
 // status lets the login page decide whether to offer the SSO button.

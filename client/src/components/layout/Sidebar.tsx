@@ -8,11 +8,14 @@ const navItems = [
   { to: '/telemedicine', label: 'Telemedicine', icon: '✚' },
   { to: '/assistant', label: 'AI Health Assistant', icon: '✦' },
   { to: '/insurance', label: 'Insurance', icon: '◎' },
+  { to: '/claims', label: 'Claims', icon: '▦' },
   { to: '/analytics', label: 'Analytics & reporting', icon: '▤' },
   { to: '/channels', label: 'WhatsApp & USSD', icon: '☷' },
   { to: '/partners', label: 'Partner Ecosystem', icon: '⌬' },
 ];
 
+// Shown to every signed-in user — self-service two-factor authentication.
+const securityNavItem = { to: '/settings/security', label: 'Security', icon: '⛨' };
 // Shown only to org admins (role === 'admin') — self-service SSO setup.
 const ssoNavItem = { to: '/settings/sso', label: 'Single sign-on', icon: '⚷' };
 // Shown only to platform admins (see AuthContext user.isPlatformAdmin).
@@ -22,6 +25,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const items = [
     ...navItems,
+    securityNavItem,
     ...(user?.role === 'admin' ? [ssoNavItem] : []),
     ...(user?.isPlatformAdmin ? [adminNavItem] : []),
   ];

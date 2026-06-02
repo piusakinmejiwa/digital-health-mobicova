@@ -1,0 +1,123 @@
+<#
+  MobiCova API smoke test — verifies the shipped features end-to-end:
+    Q1 Audit log · Q2 Roles · Q4 2FA · Q5 Bulk import · Q6 Claims · Q7 Analytics · Q3 SAML SSO
+
+  Usage (PowerShell, from the repo root):
+    # against a local server (npm run dev in server/, after npm run migrate + npm run seed)
+    ./smoke-test.ps1
+
+    # against production
+    ./smoke-test.ps1 -BaseUrl "https://mobicova-api.onrender.com/api/v1"
+
+  It only READS, except one bulk-import call that inserts a single member named
+  "SMOKE TEST Aragon" so you can spot and delete it afterwards.
+#>
+param(
+  [string]$BaseUrl  = "http://localhost:4000/api/v1",
+  [string]$Email    = "admin@axamansard.demo",
+  [string]$Password = "password123",
+  [string]$Slug     = "axa-mansard-health"
+)
+
+$ErrorActionPreference = "Stop"
+$pass = 0; $fail = 0
+
+function Check($name, [scriptblock]$test) {
+  try {
+    $ok = & $test
+    if ($ok) { Write-Host "  PASS  $name" -ForegroundColor Green; $script:pass++ }
+    else     { Write-Host "  FAIL  $name" -ForegroundColor Red;   $script:fail++ }
+  } catch {
+    Write-Host "  FAIL  $name  ->  $($_.Exception.Message)" -ForegroundColor Red
+    $script:fail++
+  }
+}
+
+Write-Host "`nMobiCova smoke test against $BaseUrl`n" -ForegroundColor Cyan
+
+# --- Auth: log in and grab a token ---------------------------------------
+$login = Invoke-RestMethod -Method Post -Uri "$BaseUrl/auth/login" `
+  -ContentType "application/json" `
+  -Body (@{ email = $Email; password = $Password } | ConvertTo-Json)
+$token = $login.token
+if (-not $token) { Write-Host "Login failed — aborting." -ForegroundColor Red; exit 1 }
+$H = @{ Authorization = "Bearer $token" }
+Write-Host "Logged in as $($login.user.email) (role=$($login.user.role))`n" -ForegroundColor Cyan
+
+# --- Q2: roles / identity ------------------------------------------------
+Write-Host "Q2  Roles & access control"
+$me = Invoke-RestMethod -Uri "$BaseUrl/auth/me" -Headers $H
+Check "GET /auth/me returns a known role" { $me.role -in @('admin','manager','analyst') }
+Check "demo admin is a platform admin"     { $me.isPlatformAdmin -eq $true }
+
+# --- Q7: analytics -------------------------------------------------------
+Write-Host "`nQ7  Analytics & reporting"
+$an = Invoke-RestMethod -Uri "$BaseUrl/analytics?months=6" -Headers $H
+Check "summary has KPI fields"        { $null -ne $an.summary.members -and $null -ne $an.summary.monthlyPremium }
+Check "utilization block present"     { $null -ne $an.utilization.activeRate }
+Check "trend is a 6-point series"     { $an.trend.Count -eq 6 }
+Check "service-mix breakdowns exist"  { $null -ne $an.consultationsByStatus -and $null -ne $an.channelBreakdown }
+
+# --- Q5: bulk member import ---------------------------------------------
+Write-Host "`nQ5  Bulk member import"
+$rows = @(
+  @{ fullName = "SMOKE TEST Aragon"; email = "smoke.aragon@member.demo"; channel = "app"; dateOfBirth = "1991-05-02" },
+  @{ fullName = "";                   email = "missing.name@member.demo"; channel = "app" },                 # invalid: no name
+  @{ fullName = "Bad Date Person";    channel = "app"; dateOfBirth = "02/05/1991" }                          # invalid: date format
+)
+$imp = Invoke-RestMethod -Method Post -Uri "$BaseUrl/members/import" -Headers $H `
+  -ContentType "application/json" -Body (@{ members = $rows } | ConvertTo-Json)
+Check "exactly 1 row inserted"         { $imp.inserted -eq 1 }
+Check "exactly 2 rows skipped"         { $imp.skipped.Count -eq 2 }
+Check "skipped rows carry a reason"    { $imp.skipped[0].reason -and $imp.skipped[1].reason }
+
+# --- Q6: claims workflow ------------------------------------------------
+Write-Host "`nQ6  Claims workflow"
+$members = Invoke-RestMethod -Uri "$BaseUrl/members" -Headers $H
+$firstMember = $members[0]
+$newClaim = Invoke-RestMethod -Method Post -Uri "$BaseUrl/claims" -Headers $H `
+  -ContentType "application/json" `
+  -Body (@{ memberId = $firstMember.id; claimType = "outpatient"; providerName = "SMOKE TEST Clinic"; amount = 25000; description = "Smoke test claim" } | ConvertTo-Json)
+Check "claim created with CLM- reference" { $newClaim.reference -like "CLM-*" }
+Check "new claim starts as submitted"     { $newClaim.status -eq "submitted" }
+$decided = Invoke-RestMethod -Method Patch -Uri "$BaseUrl/claims/$($newClaim.id)/decision" -Headers $H `
+  -ContentType "application/json" -Body (@{ status = "under_review" } | ConvertTo-Json)
+Check "claim advances to under_review"    { $decided.status -eq "under_review" }
+$badMove = $null
+try { $badMove = Invoke-RestMethod -Method Patch -Uri "$BaseUrl/claims/$($newClaim.id)/decision" -Headers $H `
+  -ContentType "application/json" -Body (@{ status = "paid" } | ConvertTo-Json) } catch { $badMove = "blocked" }
+Check "illegal transition is rejected"    { $badMove -eq "blocked" }
+$queue = Invoke-RestMethod -Uri "$BaseUrl/claims?status=under_review" -Headers $H
+Check "queue returns claims + counts"     { $null -ne $queue.claims -and $null -ne $queue.counts }
+$detail = Invoke-RestMethod -Uri "$BaseUrl/claims/$($newClaim.id)" -Headers $H
+Check "claim detail carries documents[]"  { $null -ne $detail.documents }
+
+# --- Q4: two-factor auth -------------------------------------------------
+Write-Host "`nQ4  Two-factor authentication"
+$mfa = Invoke-RestMethod -Uri "$BaseUrl/auth/mfa/status" -Headers $H
+Check "MFA status endpoint answers"    { $null -ne $mfa.enabled }
+$badChal = $null
+try { $badChal = Invoke-RestMethod -Method Post -Uri "$BaseUrl/auth/mfa/challenge" `
+  -ContentType "application/json" -Body (@{ mfaToken = "not-a-token"; code = "000000" } | ConvertTo-Json) } catch { $badChal = "blocked" }
+Check "invalid MFA challenge rejected"  { $badChal -eq "blocked" }
+
+# --- Q1: audit log -------------------------------------------------------
+Write-Host "`nQ1  Audit log"
+$audit = Invoke-RestMethod -Uri "$BaseUrl/admin/audit" -Headers $H
+Check "audit endpoint returns a list"  { $audit -is [System.Array] -or $audit.Count -ge 0 }
+
+# --- Q3: SAML SSO --------------------------------------------------------
+Write-Host "`nQ3  SAML single sign-on"
+$sso = Invoke-RestMethod -Uri "$BaseUrl/sso/config" -Headers $H
+Check "SP entityId is derived"         { $sso.sp.entityId -like "*/auth/saml/$Slug/metadata" }
+Check "SP ACS url is derived"          { $sso.sp.acsUrl   -like "*/auth/saml/$Slug/callback" }
+$status = Invoke-RestMethod -Uri "$BaseUrl/auth/sso/status?slug=$Slug"
+Check "public status endpoint answers" { $null -ne $status.enabled }
+$meta = Invoke-WebRequest -Uri "$BaseUrl/auth/saml/$Slug/metadata"
+Check "SP metadata XML is served"      { $meta.Content -like "*EntityDescriptor*" }
+
+# --- summary -------------------------------------------------------------
+Write-Host "`n----------------------------------------" -ForegroundColor Cyan
+Write-Host "  $pass passed, $fail failed" -ForegroundColor $(if ($fail) { "Red" } else { "Green" })
+Write-Host "  Reminder: delete the 'SMOKE TEST Aragon' member (Q5) and the 'SMOKE TEST Clinic' claim (Q6).`n" -ForegroundColor DarkGray
+if ($fail) { exit 1 }

@@ -1,0 +1,95 @@
+.tab-count {
+  display: inline-block;
+  margin-left: 0.45rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.tab.active .tab-count {
+  background: var(--primary, #0d9488);
+  color: #fff;
+}
+
+.claim-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.claim-head h3 { margin: 0; }
+
+.claim-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.claim-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.claim-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gray-500, #6b7280);
+  font-weight: 600;
+}
+
+.claim-section {
+  border-top: 1px solid var(--gray-100, #f1f5f9);
+  padding-top: 0.9rem;
+  margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.claim-desc { margin: 0; white-space: pre-wrap; }
+
+.doc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.doc-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--gray-50, #f8fafc);
+  border-radius: 6px;
+}
+.doc-list a { font-weight: 500; word-break: break-all; }
+
+.doc-upload {
+  align-self: flex-start;
+  cursor: pointer;
+}
+
+.claim-note {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: 6px;
+}
+
+.claim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .claim-grid { grid-template-columns: 1fr; }
+}

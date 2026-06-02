@@ -18,6 +18,13 @@ export const env = {
   whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '',
   whatsappToken: process.env.WHATSAPP_TOKEN || '',
   whatsappPhoneId: process.env.WHATSAPP_PHONE_ID || '',
+  // Optional — Supabase Storage for claim documents (receipts, scans). When the
+  // URL + service-role key are set, uploads go to a private bucket and the API
+  // stores a signed URL; when unset, claims still work but document upload is
+  // disabled (graceful degradation, same as Stripe/Anthropic).
+  supabaseUrl: process.env.SUPABASE_URL || '',
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  supabaseStorageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'claim-documents',
   // Comma-separated emails granted platform-admin access to the catalog Admin UI.
   platformAdminEmails: (process.env.PLATFORM_ADMIN_EMAILS || '')
     .split(',')

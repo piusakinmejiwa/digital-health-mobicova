@@ -1,5 +1,6 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
+import MarketingPage from './pages/marketing/MarketingPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -38,6 +39,9 @@ import ProviderLoginPage from './pages/provider/ProviderLoginPage';
 import ProviderHome from './pages/provider/ProviderHome';
 
 export const router = createBrowserRouter([
+  // Public marketing & pricing site (pre-login landing).
+  { path: '/', element: <MarketingPage /> },
+
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/sso/callback', element: <SsoCallbackPage /> },
@@ -75,14 +79,15 @@ export const router = createBrowserRouter([
   },
 
   {
-    path: '/',
+    // Pathless layout route: the authenticated dashboard app. Child paths
+    // resolve at the root (e.g. /dashboard), while '/' itself is the public
+    // marketing page above.
     element: (
       <ProtectedRoute>
         <AppShell />
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'inbox', element: <InboxPage /> },
       { path: 'members', element: <MembersListPage /> },

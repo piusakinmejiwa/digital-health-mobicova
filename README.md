@@ -325,6 +325,19 @@ outbound webhooks. Org admins manage both from **API & webhooks** (`/settings/de
   Migration `017_create_public_api.sql` adds the `api_keys`, `webhook_endpoints`, and
   `webhook_deliveries` tables.
 
+## Public marketing & pricing site
+
+The root path **`/`** is a public, pre-login **marketing & pricing site** (the dashboard app now
+lives under its own routes like `/dashboard`). Sections: sticky nav, hero, **audience tabs**
+(Insurers / Employers / Telcos — swap the copy), the three services + channel pills, a stats band,
+**pricing** (Starter / Growth / Scale / Enterprise, Growth highlighted), a **"Book a demo"
+lead-capture form**, and a footer. Signed-in users see "Go to dashboard" instead of "Sign in".
+
+The demo form posts to a public, rate-limited endpoint (`POST /leads`) that stores the contact in
+`demo_leads` (migration `022_create_demo_leads.sql`) for sales follow-up — contact details only, no
+PHI. Point your custom domain (e.g. `digitalhealth.mobicova.com`) at the client to serve this as your
+public site.
+
 ## Inbox / Action centre
 
 The **Inbox** (`/inbox`, with an unread count in the sidebar) is a prioritised queue of everything

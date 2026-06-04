@@ -17,6 +17,7 @@ import developerRoutes from './developer.routes';
 import providerRoutes from './provider.routes';
 import settingsRoutes from './settings.routes';
 import inboxRoutes from './inbox.routes';
+import leadsRoutes from './leads.routes';
 
 const router = Router();
 
@@ -38,5 +39,6 @@ router.use('/developer', developerRoutes);
 router.use('/provider', providerRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/inbox', inboxRoutes);
+router.use('/leads', leadsRoutes);
 
 export default router;

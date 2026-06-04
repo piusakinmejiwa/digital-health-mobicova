@@ -1,44 +1,35 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useMemberAuth } from '../../context/MemberAuthContext';
+import { NavLink, Outlet } from 'react-router-dom';
 import '../../pages/member/Member.css';
+import '../../pages/member/MemberApp.css';
 
-// A lightweight, mobile-first chrome for the member portal — a top bar with a
-// couple of tabs, no partner sidebar. Deliberately distinct from the staff app.
+// Mobile-first member app: a centered phone-width column with a bottom tab bar.
+// Each screen renders its own header (the branded teal header lives on Home).
+const TABS = [
+  { to: '/member', label: 'Home', icon: '⌂', end: true },
+  { to: '/member/care', label: 'Care', icon: '✚', end: false },
+  { to: '/member/claims', label: 'Claims', icon: '▦', end: false },
+  { to: '/member/profile', label: 'Profile', icon: '◎', end: false },
+];
+
 export default function MemberShell() {
-  const { member, logout } = useMemberAuth();
-  const navigate = useNavigate();
-
-  const signOut = () => {
-    logout();
-    navigate('/member/login');
-  };
-
   return (
-    <div className="member-app">
-      <header className="member-topbar">
-        <div className="member-brand">
-          <span className="logo-mark">M</span>
-          <div className="member-brand-text">
-            <strong>MobiCova</strong>
-            <span>Member portal</span>
-          </div>
-        </div>
-        <nav className="member-tabs">
-          <NavLink end to="/member" className={({ isActive }) => `member-tab ${isActive ? 'active' : ''}`}>
-            Overview
-          </NavLink>
-          <NavLink to="/member/claims" className={({ isActive }) => `member-tab ${isActive ? 'active' : ''}`}>
-            Claims
-          </NavLink>
-        </nav>
-        <div className="member-account">
-          <span className="member-hello">Hi, {member?.fullName?.split(' ')[0] || 'there'}</span>
-          <button className="btn btn-link" onClick={signOut}>Sign out</button>
-        </div>
-      </header>
-      <main className="member-main">
+    <div className="mapp">
+      <div className="mapp-content">
         <Outlet />
-      </main>
+      </div>
+      <nav className="m-tabbar">
+        {TABS.map((t) => (
+          <NavLink
+            key={t.to}
+            to={t.to}
+            end={t.end}
+            className={({ isActive }) => `m-tab ${isActive ? 'on' : ''}`}
+          >
+            <span className="m-ti">{t.icon}</span>
+            {t.label}
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }

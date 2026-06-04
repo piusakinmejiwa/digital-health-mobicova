@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { getDashboard } from '../../api/resources';
+import { getDashboard, dismissOnboarding } from '../../api/resources';
 import { useAuth } from '../../context/AuthContext';
+import type { Onboarding } from '../../types';
 import { naira, formatDateTime, triageLabel, badgeClass } from '../../lib/format';
 import './Dashboard.css';
 
@@ -18,10 +20,11 @@ export default function DashboardPage() {
     return <div className="page"><p className="muted">Loading dashboard…</p></div>;
   }
 
-  const { metrics, milestones, channelBreakdown, triageBreakdown, recentConsultations, recentEnrolments } = data;
+  const { onboarding, metrics, milestones, channelBreakdown, triageBreakdown, recentConsultations, recentEnrolments } = data;
 
   const channelData = channelBreakdown.map((c) => ({ name: c.channel, value: c.count }));
   const pct = (cur: number, target: number) => Math.min(100, (cur / target) * 100);
+  const showOnboarding = onboarding && !onboarding.dismissed && !onboarding.allDone;
 
   return (
     <div className="page">
@@ -32,6 +35,8 @@ export default function DashboardPage() {
         </div>
         <Link to="/members/new" className="btn btn-primary">+ Add member</Link>
       </div>
+
+      {showOnboarding && <OnboardingPanel onboarding={onboarding} />}
 
       <div className="metric-grid">
         <MetricCard label="Members" value={metrics.members.toLocaleString()} sub="enrolled" accent="teal" />
@@ -152,6 +157,93 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function OnboardingPanel({ onboarding }: { onboarding: Onboarding }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [active, setActive] = useState(onboarding.activeIndex);
+
+  const pct = Math.round((onboarding.completed / onboarding.total) * 100);
+  const R = 38;
+  const C = 2 * Math.PI * R;
+  const step = onboarding.steps[active] || onboarding.steps[onboarding.activeIndex];
+
+  const dismiss = async () => {
+    await dismissOnboarding();
+    qc.invalidateQueries({ queryKey: ['dashboard'] });
+  };
+
+  return (
+    <>
+      <div className="ob-banner">
+        <div className="ob-ring">
+          <svg width="88" height="88" viewBox="0 0 88 88">
+            <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(255,255,255,.16)" strokeWidth="8" />
+            <circle
+              cx="44" cy="44" r={R} fill="none" stroke="var(--highlight)" strokeWidth="8"
+              strokeLinecap="round" strokeDasharray={C.toFixed(2)}
+              strokeDashoffset={(C * (1 - pct / 100)).toFixed(2)}
+              transform="rotate(-90 44 44)"
+            />
+          </svg>
+          <div className="ob-ring-text">
+            <b>{pct}%</b><span>set up</span>
+          </div>
+        </div>
+        <div className="ob-banner-copy">
+          <h2>Get MobiCova live</h2>
+          <p>{onboarding.completed} of {onboarding.total} steps complete. Finish setup to start enrolling members and collecting premiums across every channel.</p>
+        </div>
+        <button className="ob-dismiss" onClick={dismiss}>Dismiss setup ✕</button>
+      </div>
+
+      <div className="ob-grid">
+        <div className="card card-pad">
+          <h3 className="card-title">Get to live</h3>
+          <p className="muted small">{onboarding.completed} of {onboarding.total} steps complete</p>
+          <div className="ob-steps">
+            {onboarding.steps.map((s, i) => {
+              const state = s.done ? 'done' : i === active ? 'active' : '';
+              return (
+                <div
+                  key={s.key}
+                  className={`ob-step ${state}`}
+                  onClick={() => { if (!s.done) setActive(i); }}
+                >
+                  <div className={`ob-check ${state}`}>{s.done ? '✓' : i + 1}</div>
+                  <div className="ob-step-body">
+                    <div className="ob-step-title">{s.title}</div>
+                    <div className="ob-step-sub">{s.sub}</div>
+                  </div>
+                  {!s.done && i === active && (
+                    <button
+                      className="btn btn-amber btn-sm"
+                      onClick={(e) => { e.stopPropagation(); navigate(s.ctaHref); }}
+                    >
+                      {s.cta}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="ob-detail">
+          <div className="ob-kick">{step.kicker}</div>
+          <h3>{step.detailTitle}</h3>
+          <p>{step.body}</p>
+          <ul className="ob-perks">
+            {step.perks.map((p) => <li key={p}>{p}</li>)}
+          </ul>
+          <button className="btn btn-primary btn-block ob-cta" onClick={() => navigate(step.ctaHref)}>
+            {step.cta} →
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 

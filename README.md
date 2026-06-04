@@ -69,7 +69,7 @@ npm run dev               # http://localhost:5173
 | `WHATSAPP_PHONE_ID` | no | Meta WhatsApp phone-number ID used to send replies |
 | `PLATFORM_ADMIN_EMAILS` | no | Comma-separated emails granted access to the Admin Console (organisations, users, plans, partners) |
 | `OTP_DEV_MODE` | no | Member-portal login: when `true` (or no delivery channel is set) the OTP is returned in the response so it's testable without an SMS/WhatsApp gateway |
-| `CLIENT_URL` | no | CORS origin, defaults to `http://localhost:5173` |
+| `CLIENT_URL` | no | Allowed CORS origin(s), defaults to `http://localhost:5173`. Accepts a **comma-separated list** (e.g. a custom domain + the Render URL); the first entry is the canonical origin used for payment redirect URLs |
 | `PORT` | no | API port, defaults to `4000` |
 
 The **client** has one env var (set it in `client/.env`, or in the host's dashboard):
@@ -325,6 +325,20 @@ outbound webhooks. Org admins manage both from **API & webhooks** (`/settings/de
   Migration `017_create_public_api.sql` adds the `api_keys`, `webhook_endpoints`, and
   `webhook_deliveries` tables.
 
+## Onboarding, command palette & help
+
+The dashboard ships a few product-polish touches:
+
+- **Onboarding checklist** — a new partner org sees a "Get to live" banner on the **Dashboard** with a
+  progress ring and a six-step checklist (verify org, channels, add members, first enrolment, invite a
+  teammate, connect a webhook). Step completion is **derived server-side** from real signals (member,
+  enrolment, user and webhook counts) so it never drifts; only the per-user "dismiss" choice is stored
+  (migration `019_add_onboarding_dismissed.sql`). The banner hides once everything's done or dismissed.
+- **Command palette** — press **⌘K / Ctrl+K** anywhere in the dashboard to jump to any page or run a
+  quick action. Filtered by your role.
+- **Contextual help** — a floating **?** widget (bottom-right) suggests actions for the page you're on
+  and opens the command palette to search everything.
+
 ## Member self-service portal
 
 Members get a lightweight portal of their own at **`/member`** — separate from the partner
@@ -341,9 +355,10 @@ partner has on file (dashboard, CSV import, or WhatsApp/USSD intake) — no sepa
   browser key and its own API client. The partner middleware rejects member tokens and vice-versa, so
   the two never cross. The OTP endpoints are rate-limited and (with a live channel) don't reveal
   whether a contact matches a member.
-- **What members see** — a health snapshot (profile, blood group, allergies, conditions, meds), their
-  **cover** (enrolments + premium + payment status), **recent care** (consultations + prescriptions),
-  and AI health-check history.
+- **What members see** — a mobile-first app with a bottom tab bar (**Home / Care / Claims / Profile**):
+  a branded home with cover card and recent care, a **Care** tab with an **AI symptom check** (chat
+  wired to the Claude triage engine, member-scoped — `POST /member/triage`), self-service **Claims**,
+  and a **Profile** with health snapshot and cover.
 - **Members submit claims** — the portal reuses the same claims pipeline as the dashboard
   (`submitted_via: "member_portal"`); a member-submitted claim lands in the partner's Claims queue for
   adjudication exactly like a staff-logged one.

@@ -89,6 +89,10 @@ h1, h2, h3 { color: var(--dark); line-height: 1.25; }
 .btn-secondary { background: var(--white); color: var(--gray-800); border: 1px solid var(--gray-200); }
 .btn-secondary:hover:not(:disabled) { background: var(--gray-50); }
 .btn-danger { background: var(--danger); color: var(--white); }
+.btn-amber { background: var(--highlight); color: #4a2e05; }
+.btn-amber:hover:not(:disabled) { background: #e8912c; }
+.btn-ghost { background: transparent; color: var(--gray-800); border: 1px solid var(--gray-200); }
+.btn-ghost:hover:not(:disabled) { background: var(--gray-50); }
 .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
 .btn-block { width: 100%; justify-content: center; }
 

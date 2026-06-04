@@ -45,7 +45,81 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
 
   const memberCount = members.rows[0].count;
 
+  // --- Onboarding progress (derived from real signals, never stored booleans) ---
+  const [org, userCount, webhookCount, me] = await Promise.all([
+    query(`SELECT name, join_code FROM organisations WHERE id = $1`, [orgId]),
+    query(`SELECT COUNT(*)::int AS count FROM users WHERE org_id = $1`, [orgId]),
+    query(`SELECT COUNT(*)::int AS count FROM webhook_endpoints WHERE org_id = $1 AND active = true`, [orgId]),
+    query(`SELECT onboarding_dismissed FROM users WHERE id = $1`, [req.user!.userId]),
+  ]);
+
+  const enrolmentCount = enrolments.rows[0].count;
+  const orgName = org.rows[0]?.name || 'your organisation';
+  const joinCode = org.rows[0]?.join_code || '';
+
+  // Each step's `done` comes from a live count. The first not-done step is "active".
+  const steps = [
+    {
+      key: 'verify_org', title: 'Verify your organisation',
+      sub: `${orgName} · join code ${joinCode}`, done: true,
+      kicker: 'Step 1 of 6', detailTitle: 'Your organisation is live',
+      body: 'Your workspace is set up and your join code is active. Members who enrol over WhatsApp or USSD with this code are attributed to you.',
+      cta: 'View join code', ctaHref: '/channels',
+      perks: ['Workspace ready', '6-digit join code active', 'Attribution wired across every channel'],
+    },
+    {
+      key: 'join_code', title: 'Set your join code & channels',
+      sub: 'WhatsApp & USSD intake ready to go', done: !!joinCode,
+      kicker: 'Step 2 of 6', detailTitle: 'Channels are ready',
+      body: 'Test the WhatsApp and USSD enrolment flows with the in-app simulators — no telco account needed.',
+      cta: 'Open WhatsApp & USSD', ctaHref: '/channels',
+      perks: ['In-app simulators', 'No telco account needed', 'Stateless USSD + stateful WhatsApp'],
+    },
+    {
+      key: 'add_members', title: 'Add members or import a CSV',
+      sub: 'Onboard a roster, or enrol over WhatsApp & USSD', done: memberCount > 0,
+      kicker: 'Step 3 of 6', detailTitle: 'Bring your members in',
+      body: 'Add members one at a time, bulk-import a spreadsheet of policyholders, or let members self-enrol over WhatsApp & USSD with your join code.',
+      cta: 'Import CSV', ctaHref: '/members',
+      perks: ['Up to 1,000 rows per import', 'Flexible column matching', 'Per-row error report'],
+    },
+    {
+      key: 'first_enrolment', title: 'Enrol a member in a plan',
+      sub: 'Members enrol into cover over any channel', done: enrolmentCount > 0,
+      kicker: 'Step 4 of 6', detailTitle: 'Enrol your first member',
+      body: 'A plan is the cover members enrol into. Enrol a member to start tracking premium and commission — and to unlock claims.',
+      cta: 'Go to Insurance', ctaHref: '/insurance',
+      perks: ['Premium & commission tracking', 'Paystack / Stripe checkout', 'Unlocks the claims workflow'],
+    },
+    {
+      key: 'invite_team', title: 'Invite a teammate',
+      sub: 'Add admins, managers or analysts', done: userCount.rows[0].count >= 2,
+      kicker: 'Step 5 of 6', detailTitle: 'Bring your team on',
+      body: 'Add colleagues with the right role — admins manage everything, managers handle members and services, analysts get read-only access.',
+      cta: 'Open Admin Console', ctaHref: '/admin',
+      perks: ['Per-tenant roles', 'Read-only analyst access', 'Server-enforced permissions'],
+    },
+    {
+      key: 'connect_webhook', title: 'Connect a webhook',
+      sub: 'Stream enrolments & claims to your core system', done: webhookCount.rows[0].count > 0,
+      kicker: 'Step 6 of 6', detailTitle: 'Wire up your systems',
+      body: 'Register an endpoint and subscribe to events like member.enrolled and claim.status_changed. Payloads are signed with HMAC-SHA256.',
+      cta: 'Open API & webhooks', ctaHref: '/settings/developer',
+      perks: ['Signed, verifiable payloads', 'Delivery log', 'Test ping button'],
+    },
+  ];
+  const completed = steps.filter((s) => s.done).length;
+  const activeIndex = steps.findIndex((s) => !s.done);
+
   res.json({
+    onboarding: {
+      dismissed: me.rows[0]?.onboarding_dismissed ?? false,
+      completed,
+      total: steps.length,
+      activeIndex: activeIndex === -1 ? steps.length - 1 : activeIndex,
+      allDone: completed === steps.length,
+      steps,
+    },
     metrics: {
       members: memberCount,
       consultations: consultations.rows[0].count,
@@ -64,4 +138,11 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
     recentConsultations: recentConsults.rows,
     recentEnrolments: recentEnrolments.rows,
   });
+}
+
+// POST /dashboard/onboarding/dismiss — persist the per-user "hide setup" choice.
+export async function dismissOnboarding(req: Request, res: Response): Promise<void> {
+  const dismissed = req.body?.dismissed !== false; // default true
+  await query('UPDATE users SET onboarding_dismissed = $1 WHERE id = $2', [dismissed, req.user!.userId]);
+  res.json({ dismissed });
 }

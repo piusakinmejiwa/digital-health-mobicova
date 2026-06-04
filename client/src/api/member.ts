@@ -49,3 +49,17 @@ export async function submitMemberClaim(data: {
   const res = await memberApi.post('/member/claims', data);
   return res.data;
 }
+
+// AI symptom check (member-scoped triage). Returns the updated session.
+export interface MemberTriageSession {
+  id: string;
+  messages: { role: 'user' | 'assistant'; content: string }[];
+  triage_level: string;
+  recommendation: string;
+  engine: string;
+}
+
+export async function sendMemberTriage(message: string, sessionId?: string): Promise<MemberTriageSession> {
+  const res = await memberApi.post('/member/triage', { message, sessionId });
+  return res.data;
+}

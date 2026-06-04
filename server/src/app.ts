@@ -10,7 +10,19 @@ import publicApiRoutes from './routes/publicApi.routes';
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: env.clientUrl, credentials: true }));
+// Allow the configured client origins (custom domain, Render URL, localhost).
+// Requests without an Origin header (server-to-server, curl, the public API) are
+// permitted — CORS only governs browsers.
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || env.clientUrls.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 
 // Global throttle across the whole API as a baseline DoS / abuse guard. Inbound
 // provider traffic (USSD/WhatsApp aggregators, payment webhooks) arrives from a

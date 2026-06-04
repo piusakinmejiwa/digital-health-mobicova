@@ -1,131 +1,96 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { getMemberMe, getMemberOverview } from '../../api/member';
-import { naira, formatDate, formatDateTime, badgeClass, triageLabel } from '../../lib/format';
+import { naira, formatDate, badgeClass } from '../../lib/format';
 import './Member.css';
 
 export default function MemberHomePage() {
+  const navigate = useNavigate();
   const { data: me } = useQuery({ queryKey: ['member-me'], queryFn: getMemberMe });
-  const { data: overview, isLoading } = useQuery({ queryKey: ['member-overview'], queryFn: getMemberOverview });
+  const { data: overview } = useQuery({ queryKey: ['member-overview'], queryFn: getMemberOverview });
+
+  const cover = overview?.enrolments[0];
+  const firstName = me?.full_name?.split(' ')[0] || 'there';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <div className="member-page">
-      {/* Profile header */}
-      <section className="member-hero">
-        <div>
-          <h1>{me?.full_name || 'Your health profile'}</h1>
-          <p className="muted">{me?.org_name ? `Covered through ${me.org_name}` : ''}</p>
-        </div>
-        <div className="member-hero-stats">
-          <div className="member-stat"><strong>{me?.counts.enrolments ?? '—'}</strong><span>Cover</span></div>
-          <div className="member-stat"><strong>{me?.counts.consultations ?? '—'}</strong><span>Consults</span></div>
-          <div className="member-stat"><strong>{me?.counts.claims ?? '—'}</strong><span>Claims</span></div>
-        </div>
-      </section>
-
-      {/* Health snapshot */}
-      {me && (
-        <section className="member-card">
-          <h2>Health snapshot</h2>
-          <div className="member-grid">
-            <div><span className="member-label">Phone</span>{me.phone || '—'}</div>
-            <div><span className="member-label">Email</span>{me.email || '—'}</div>
-            <div><span className="member-label">Blood group</span>{me.blood_group || '—'}</div>
-            <div><span className="member-label">Allergies</span>{me.allergies?.length ? me.allergies.join(', ') : '—'}</div>
-            <div><span className="member-label">Chronic conditions</span>{me.chronic_conditions?.length ? me.chronic_conditions.join(', ') : '—'}</div>
-            <div><span className="member-label">Medications</span>{me.current_medications?.length ? me.current_medications.join(', ') : '—'}</div>
+    <div className="m-screen">
+      {/* Branded header */}
+      <header className="m-head-brand">
+        <div className="m-head-row">
+          <div className="m-greet">
+            <small>{greeting}</small>
+            <b>{me?.full_name || 'Welcome'}</b>
           </div>
-        </section>
-      )}
+          <div className="m-av">{firstName.charAt(0)}</div>
+        </div>
+      </header>
 
-      {isLoading ? (
-        <p className="muted">Loading…</p>
-      ) : (
-        <>
-          {/* Cover / enrolments */}
-          <section className="member-card">
-            <h2>My cover</h2>
-            {overview?.enrolments.length ? (
-              <div className="member-list">
-                {overview.enrolments.map((e) => (
-                  <div key={e.id} className="member-row">
-                    <div>
-                      <strong>{e.plan_name}</strong>
-                      <span className="muted small"> · {e.underwriter}</span>
-                    </div>
-                    <div className="member-row-meta">
-                      <span>{naira(e.monthly_premium, e.currency)}/mo</span>
-                      <span className={`badge ${badgeClass(e.payment_status)}`}>{e.payment_status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="muted">You don’t have any active cover yet. Your provider can enrol you in a plan.</p>
-            )}
-          </section>
+      <div className="m-body">
+        {/* Cover card */}
+        {cover ? (
+          <div className="m-cover">
+            <div className="m-cover-lab">Your cover</div>
+            <div className="m-cover-pl">{cover.plan_name}</div>
+            <div className="m-cover-meta">
+              <span>Premium {naira(cover.monthly_premium, cover.currency)} / mo</span>
+              <span className="m-cover-st">● {cover.payment_status === 'paid' ? 'Active · Paid' : cover.status}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="m-cover m-cover-empty">
+            <div className="m-cover-lab">Your cover</div>
+            <div className="m-cover-pl">No active cover yet</div>
+            <div className="m-cover-meta"><span>Your provider can enrol you in a plan.</span></div>
+          </div>
+        )}
 
-          {/* Care / consultations */}
-          <section className="member-card">
-            <h2>Recent care</h2>
-            {overview?.consultations.length ? (
-              <div className="member-list">
-                {overview.consultations.slice(0, 6).map((c) => (
-                  <div key={c.id} className="member-row">
-                    <div>
-                      <strong>{c.reason || 'Consultation'}</strong>
-                      <span className="muted small"> · {c.partner_name || c.mode}</span>
-                    </div>
-                    <div className="member-row-meta">
-                      <span>{formatDateTime(c.scheduled_at || c.created_at)}</span>
-                      <span className={`badge ${badgeClass(c.status)}`}>{c.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="muted">No consultations on record yet.</p>
-            )}
-          </section>
+        {/* Stat tiles */}
+        <div className="m-stat2">
+          <div className="m-statc">
+            <div className="m-statc-v">{me?.counts.consultations ?? 0}</div>
+            <div className="m-statc-l">Consultations</div>
+          </div>
+          <div className="m-statc">
+            <div className="m-statc-v">{me?.counts.claims ?? 0}</div>
+            <div className="m-statc-l">Claims</div>
+          </div>
+        </div>
 
-          {/* Prescriptions */}
-          {overview?.prescriptions.length ? (
-            <section className="member-card">
-              <h2>Prescriptions</h2>
-              <div className="member-list">
-                {overview.prescriptions.slice(0, 6).map((p) => (
-                  <div key={p.id} className="member-row">
-                    <div>
-                      <strong>{p.medication}</strong>
-                      <span className="muted small"> · {p.dosage}</span>
-                    </div>
-                    <div className="member-row-meta">
-                      <span className="muted small">{p.pharmacy_partner || '—'}</span>
-                      <span className={`badge ${badgeClass(p.fulfilment_status)}`}>{p.fulfilment_status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
+        <button className="m-btn primary m-mt" onClick={() => navigate('/member/claims')}>
+          ＋ Submit a claim
+        </button>
 
-          {/* Triage history */}
-          {overview?.triageSessions.length ? (
-            <section className="member-card">
-              <h2>AI health checks</h2>
-              <div className="member-list">
-                {overview.triageSessions.slice(0, 5).map((t) => (
-                  <div key={t.id} className="member-row">
-                    <div><strong>{triageLabel(t.triage_level)}</strong></div>
-                    <div className="member-row-meta">
-                      <span className="muted small">{formatDate(t.created_at)}</span>
-                    </div>
-                  </div>
-                ))}
+        {/* Recent care */}
+        <div className="m-sec-h">Recent care</div>
+        {overview && (overview.consultations.length > 0 || overview.prescriptions.length > 0) ? (
+          <>
+            {overview.consultations.slice(0, 3).map((c) => (
+              <div key={c.id} className="m-list-card">
+                <div className="m-ci">✚</div>
+                <div className="m-ct">
+                  <b>{c.reason || 'Consultation'}</b>
+                  <small>{formatDate(c.scheduled_at || c.created_at)} · {c.mode}</small>
+                </div>
+                <span className={`badge ${badgeClass(c.status)}`}>{c.status}</span>
               </div>
-            </section>
-          ) : null}
-        </>
-      )}
+            ))}
+            {overview.prescriptions.slice(0, 2).map((p) => (
+              <div key={p.id} className="m-list-card">
+                <div className="m-ci">℞</div>
+                <div className="m-ct">
+                  <b>{p.medication}</b>
+                  <small>Prescribed · {p.fulfilment_status}</small>
+                </div>
+                <span className={`badge ${badgeClass(p.fulfilment_status)}`}>{p.fulfilment_status}</span>
+              </div>
+            ))}
+          </>
+        ) : (
+          <p className="m-muted">No care on record yet. Start a symptom check or talk to a doctor under Care.</p>
+        )}
+      </div>
     </div>
   );
 }

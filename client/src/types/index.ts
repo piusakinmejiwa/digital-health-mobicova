@@ -449,7 +449,30 @@ export interface SsoConfig {
   };
 }
 
+export interface OnboardingStep {
+  key: string;
+  title: string;
+  sub: string;
+  done: boolean;
+  kicker: string;
+  detailTitle: string;
+  body: string;
+  cta: string;
+  ctaHref: string;
+  perks: string[];
+}
+
+export interface Onboarding {
+  dismissed: boolean;
+  completed: number;
+  total: number;
+  activeIndex: number;
+  allDone: boolean;
+  steps: OnboardingStep[];
+}
+
 export interface DashboardData {
+  onboarding: Onboarding;
   metrics: {
     members: number;
     consultations: number;

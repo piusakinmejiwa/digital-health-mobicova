@@ -10,6 +10,10 @@ export async function getDashboard(): Promise<DashboardData> {
   return (await api.get('/dashboard')).data;
 }
 
+export async function dismissOnboarding(): Promise<void> {
+  await api.post('/dashboard/onboarding/dismiss', { dismissed: true });
+}
+
 // Analytics & reporting
 export async function getAnalytics(months = 6): Promise<AnalyticsReport> {
   return (await api.get('/analytics', { params: { months } })).data;

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import HelpLayer from '../help/HelpLayer';
 import './AppShell.css';
 
 export default function AppShell() {
@@ -9,6 +10,7 @@ export default function AppShell() {
       <main className="app-main">
         <Outlet />
       </main>
+      <HelpLayer />
     </div>
   );
 }

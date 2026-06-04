@@ -8,6 +8,7 @@ import {
 } from '../lib/memberAuth';
 import { generateClaimReference, isClaimType } from '../lib/claims';
 import { emitEvent } from '../lib/webhooks';
+import { runTriage, TriageMessage } from '../services/triage.service';
 
 // ── Identity resolution ─────────────────────────────────────────────────
 // A member identifies with either a phone number or an email already on their
@@ -317,4 +318,64 @@ export async function createMemberClaim(req: Request, res: Response): Promise<vo
   });
 
   res.status(201).json(claim);
+}
+
+// POST /member/triage — AI symptom check from the member app. Reuses the shared
+// triage engine, scoped to the member and their org, with their health profile
+// as context. Creates a session on the first message, continues it thereafter.
+export async function memberTriage(req: Request, res: Response): Promise<void> {
+  const memberId = req.member!.memberId;
+  const orgId = req.member!.orgId;
+  const { sessionId, message } = req.body;
+
+  if (!message || typeof message !== 'string') {
+    res.status(400).json({ error: 'message is required' });
+    return;
+  }
+
+  let session;
+  if (sessionId) {
+    const existing = await query(
+      `SELECT * FROM triage_sessions WHERE id = $1 AND member_id = $2`,
+      [sessionId, memberId]
+    );
+    if (existing.rows.length === 0) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+    session = existing.rows[0];
+  } else {
+    const created = await query(
+      `INSERT INTO triage_sessions (org_id, member_id, messages) VALUES ($1, $2, '[]') RETURNING *`,
+      [orgId, memberId]
+    );
+    session = created.rows[0];
+  }
+
+  const m = await query(
+    `SELECT full_name, gender, date_of_birth, allergies, chronic_conditions, current_medications
+     FROM members WHERE id = $1`,
+    [memberId]
+  );
+  const r = m.rows[0];
+  const member = r
+    ? {
+        fullName: r.full_name, gender: r.gender, dateOfBirth: r.date_of_birth,
+        allergies: r.allergies, chronicConditions: r.chronic_conditions, currentMedications: r.current_medications,
+      }
+    : undefined;
+
+  const history: TriageMessage[] = Array.isArray(session.messages) ? session.messages : [];
+  history.push({ role: 'user', content: message });
+  const result = await runTriage(history, member);
+  history.push({ role: 'assistant', content: result.reply });
+
+  const updated = await query(
+    `UPDATE triage_sessions
+       SET messages = $2, triage_level = $3, recommendation = $4, engine = $5, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, messages, triage_level, recommendation, engine`,
+    [session.id, JSON.stringify(history), result.triageLevel, result.recommendation, result.engine]
+  );
+  res.json(updated.rows[0]);
 }

@@ -1,6 +1,14 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Allowed browser origins for CORS. CLIENT_URL may be a comma-separated list so a
+// custom domain and the Render URL (and localhost in dev) can all be permitted.
+// Trailing slashes are stripped so origins match the browser's Origin header.
+const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
 export const env = {
   port: parseInt(process.env.PORT || '4000', 10),
   databaseUrl: process.env.DATABASE_URL || '',
@@ -35,7 +43,11 @@ export const env = {
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  // Canonical client origin (first one listed) — used for redirect URLs (payment
+  // callbacks etc.) where a single absolute URL is required.
+  clientUrl: clientUrls[0],
+  // Every allowed origin, for CORS.
+  clientUrls,
   // Public base URL of THIS API, used to derive the SAML Service Provider
   // identifiers (entityID, ACS callback, login URL) that partners hand to their
   // IdP. Must be the externally reachable origin in production (e.g.

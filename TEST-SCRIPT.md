@@ -1,12 +1,18 @@
-# MobiCova — Manual Test Script (UAT)
+# MobiCova — Manual Test Script (UAT) · Full Platform
 
-A click-by-click script for a tester to verify the live MobiCova platform. No technical
-knowledge needed — just a web browser. Work top to bottom; some later tests rely on data
-created in earlier ones.
+A click-by-click script for a tester to verify the live MobiCova platform end to end. No technical
+knowledge needed — just a web browser. Work top to bottom; some later tests rely on data created in
+earlier ones.
 
-- **Estimated time:** 60–90 minutes for the full pass.
-- **How to record results:** for each step, mark the **Result** column **Pass** or **Fail**.
-  If it fails, write what you saw in **Notes** (and a screenshot helps).
+This single document covers everything in two parts:
+- **Part A — Core platform** (Tests 1–20): dashboard, members, telemedicine, insurance, claims,
+  analytics, channels, admin, 2FA, SSO, API keys, member & provider portals, security isolation.
+- **Part B — SaaS features** (Tests 21–31): public marketing site, onboarding, command palette &
+  help, docs, inbox, analytics query builder, API console, billing, white-label branding, member app.
+
+- **Estimated time:** ~90–120 minutes for the full pass (or run a part at a time).
+- **How to record results:** for each step, mark the **Result** column **Pass** or **Fail**. If it
+  fails, write what you saw in **Notes** (a screenshot helps).
 
 ---
 
@@ -15,12 +21,15 @@ created in earlier ones.
 ### Test environment
 | What | Where |
 |------|-------|
-| Partner dashboard | https://mobicova-client.onrender.com |
+| Public marketing site | https://mobicova-client.onrender.com/ (the **root** URL) |
+| Partner dashboard | **Sign in** from the site, or go to `/login` → lands on `/dashboard` |
 | Member portal | https://mobicova-client.onrender.com/member/login |
 | Provider portal | https://mobicova-client.onrender.com/provider/login |
 
-> ⏳ **First load may take ~30 seconds.** The server sleeps when idle and wakes on the first
-> request. If a page is slow or a button seems stuck the very first time, wait and retry once.
+> 🆕 **The root URL `/` is the public marketing site**, not the dashboard. Use **Sign in** (top
+> right) to reach the app.
+>
+> ⏳ **First load may take ~30 seconds.** The server sleeps when idle and wakes on the first request.
 
 ### Logins
 | Role | Email | Password |
@@ -37,24 +46,26 @@ created in earlier ones.
 > 2. One of the admin's backup codes, **or**
 > 3. They can turn 2FA off first (Security page) so you sign in with the password only.
 >
-> You'll test setting up 2FA yourself later (Test 11), so option 3 is the smoothest start.
+> You'll test setting up 2FA yourself in **Test 11**, so option 3 is the smoothest start.
 
 ### A quick note on "demo mode"
-Where a real text message or payment would normally happen, the platform runs in **demo mode**
-and shows you what you need on screen instead (e.g. the member login code appears in the page,
-premiums are marked paid without a card). This is expected.
+Where a real text message or payment would normally happen, the platform runs in **demo mode** and
+shows you what you need on screen instead (e.g. the member login code appears in the page, premiums
+are marked paid without a card, plan changes apply instantly). This is expected.
 
 ---
+
+# Part A — Core platform
 
 ## 2. Partner dashboard
 
 ### Test 1 — Admin sign-in
 | # | Step | Expected result | Result | Notes |
 |---|------|-----------------|:------:|-------|
-|1.1| Open the dashboard URL | The "Partner sign in" screen loads | ☐ | |
+|1.1| From the marketing site click **Sign in** (or open `/login`) | The "Partner sign in" screen loads | ☐ | |
 |1.2| Enter the admin email + password, click **Sign in** | If 2FA is on, a code prompt appears; enter the code from the owner | ☐ | |
 |1.3| Complete sign-in | You land on the **Dashboard** with a left sidebar | ☐ | |
-|1.4| Look at the sidebar | You can see: Dashboard, Members, Telemedicine, AI Health Assistant, Insurance, Claims, Analytics & reporting, WhatsApp & USSD, Partner Ecosystem, Security, Single sign-on, API & webhooks, and **Admin Console** | ☐ | |
+|1.4| Look at the sidebar | You can see (among others): Dashboard, **Inbox**, Members, Telemedicine, AI Health Assistant, Insurance, Claims, Analytics & reporting, WhatsApp & USSD, Partner Ecosystem, **Help & docs**, Security, **Billing & plan**, **Branding**, Single sign-on, API & webhooks, and **Admin Console** | ☐ | |
 
 ### Test 2 — Dashboard overview
 | # | Step | Expected result | Result | Notes |
@@ -107,6 +118,8 @@ premiums are marked paid without a card). This is expected.
 |8.3| Click **Export CSV** on any table | A CSV file downloads | ☐ | |
 |8.4| Click **Print / Save as PDF** | A clean printable report appears (no sidebar) | ☐ | |
 
+*(The query-builder at the top of this page is covered in Test 27.)*
+
 ### Test 9 — WhatsApp & USSD simulators
 | # | Step | Expected result | Result | Notes |
 |---|------|-----------------|:------:|-------|
@@ -122,11 +135,11 @@ premiums are marked paid without a card). This is expected.
 |10.3| **Users** — create a user under an org, edit its role | Changes save | ☐ | |
 |10.4| **Insurance plans** — create or edit a plan | Changes save | ☐ | |
 |10.5| **Partners** — view the partner list across categories | The ecosystem list loads | ☐ | |
-|10.6| **Audit log** — open it | A list of recent privileged actions (with actor + timestamp) is shown, including the things you just did | ☐ | |
+|10.6| **Audit log** — open it | A list of recent privileged actions (with actor + timestamp), including the things you just did | ☐ | |
 
 ### Test 11 — Security / Two-factor authentication
-> If the owner turned 2FA off for your sign-in, do this on the admin account. Otherwise the
-> owner can do it with you, or you can use any other dashboard account.
+> If the owner turned 2FA off for your sign-in, do this on the admin account. Otherwise the owner
+> can do it with you, or use any other dashboard account.
 
 | # | Step | Expected result | Result | Notes |
 |---|------|-----------------|:------:|-------|
@@ -155,12 +168,15 @@ premiums are marked paid without a card). This is expected.
 |13.5| Back in the dashboard, adjudicate or create a claim (Test 7) | A `claim.*` event arrives at your webhook.site URL | ☐ | |
 |13.6| *(Optional)* Revoke the key / delete the webhook | They're removed from the lists | ☐ | |
 
+*(The **Console** tab on this page is covered in Test 28.)*
+
 ---
 
 ## 3. Member self-service portal
 
-> 💡 To make this meaningful, use **Amaka Obi** — the member you enrolled (Test 6), booked a
-> consult for (Test 4), and logged a claim for (Test 7). Her portal will then show real data.
+> 💡 To make this meaningful, use **Amaka Obi** — the member you enrolled (Test 6), booked a consult
+> for (Test 4), and logged a claim for (Test 7). Her portal will then show real data. (The richer
+> member-app screens — Care / AI symptom check / Profile — are covered in Test 31.)
 
 ### Test 14 — Member OTP sign-in
 | # | Step | Expected result | Result | Notes |
@@ -172,7 +188,7 @@ premiums are marked paid without a card). This is expected.
 ### Test 15 — Member views their info
 | # | Step | Expected result | Result | Notes |
 |---|------|-----------------|:------:|-------|
-|15.1| Read the **Overview** tab | You see a health snapshot, **My cover** (the plan you enrolled), and **Recent care** (the consult you booked) | ☐ | |
+|15.1| Read the **Home** tab | A health snapshot, **cover** (the plan you enrolled), and **recent care** (the consult you booked) | ☐ | |
 |15.2| Click the **Claims** tab | The claim you logged for her is listed with its status | ☐ | |
 
 ### Test 16 — Member submits a claim
@@ -209,7 +225,7 @@ premiums are marked paid without a card). This is expected.
 | # | Step | Expected result | Result | Notes |
 |---|------|-----------------|:------:|-------|
 |19.1| Sign out, sign back in as the **pharmacist** | You land on a **Dispensary** workspace | ☐ | |
-|19.2| Look at the **To dispense** tab | Pending prescriptions are listed (incl. the one the doctor just routed to HealthPlus, and a pre-loaded demo one) | ☐ | |
+|19.2| Look at the **To dispense** tab | Pending prescriptions are listed (incl. the one the doctor routed to HealthPlus, and a pre-loaded demo one) | ☐ | |
 |19.3| Click **Mark dispensed** on a prescription | It moves to **Dispensed** | ☐ | |
 
 ---
@@ -219,30 +235,137 @@ premiums are marked paid without a card). This is expected.
 ### Test 20 — The three logins stay separate
 | # | Step | Expected result | Result | Notes |
 |---|------|-----------------|:------:|-------|
-|20.1| While signed in to the **member** portal, manually visit the dashboard URL | You are **not** treated as staff — you're sent to the staff login (member access doesn't unlock the dashboard) | ☐ | |
+|20.1| While signed in to the **member** portal, manually visit the dashboard URL | You are **not** treated as staff — you're sent to the staff login | ☐ | |
 |20.2| While signed in as a **provider**, manually visit the dashboard URL | Same — you're sent to the staff login | ☐ | |
 |20.3| Sign out of each portal using its **Sign out** button | You're returned to that portal's login screen | ☐ | |
 
 ---
 
-## 7. Tester sign-off
+# Part B — SaaS features
+
+## 7. Public marketing & pricing site (no login)
+
+### Test 21 — Landing page
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|21.1| Open the **root** URL | A marketing site loads: dark hero, sticky top nav | ☐ | |
+|21.2| Click the **audience tabs** (Insurers / Employers / Telcos) | The headline, copy and bullets swap for each | ☐ | |
+|21.3| Scroll to **Pricing** | Four tiers; **Growth** badged "Most popular" | ☐ | |
+|21.4| In **Book a demo**, enter a work email, click **Request demo** | A thank-you confirmation replaces the form | ☐ | |
+|21.5| Click **Sign in** (top right) | You reach the partner login | ☐ | |
+
+## 8. Onboarding & global helpers (admin)
+
+### Test 22 — Onboarding checklist
+> If your org completed all six steps or you dismissed the banner before, it won't show — that's
+> correct behaviour.
+
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|22.1| Land on the **Dashboard** | A "Get MobiCova live" banner with a **% progress ring** + 6-step checklist (if not all done/dismissed) | ☐ | |
+|22.2| Click an **incomplete** step | It becomes active; the detail panel updates with its description + CTA | ☐ | |
+|22.3| Click the step's **CTA button** | You navigate to the relevant page | ☐ | |
+|22.4| Click **Dismiss setup ✕** | The banner disappears | ☐ | |
+
+### Test 23 — Command palette (Ctrl+K / ⌘K)
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|23.1| Press **Ctrl + K** anywhere in the dashboard | A search palette opens | ☐ | |
+|23.2| Type "claims" | Results filter to matching pages/actions | ☐ | |
+|23.3| Press **Enter** (or click a result) | You navigate there; palette closes | ☐ | |
+|23.4| Open again, press **Esc** | It closes | ☐ | |
+
+### Test 24 — Help widget
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|24.1| Click the floating **?** button (bottom-right) | A help panel opens with suggestions for the current page | ☐ | |
+|24.2| Click a suggestion | It navigates you there | ☐ | |
+|24.3| Open again, click **Search all commands** | The ⌘K palette opens | ☐ | |
+
+### Test 25 — Help & docs
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|25.1| Click **Help & docs** in the sidebar | A three-pane docs page (guides nav · article · on-this-page) | ☐ | |
+|25.2| Click a different guide in the left nav | The article content swaps | ☐ | |
+
+## 9. Inbox, analytics builder, API console
+
+### Test 26 — Inbox / Action centre
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|26.1| Click **Inbox** in the sidebar (may show a number badge) | Stat cards (Urgent / To review / System / Done today) | ☐ | |
+|26.2| Review the grouped action cards | Each has a title, detail, and action button(s) | ☐ | |
+|26.3| Click an action (e.g. "Open claims") | You navigate to the relevant page | ☐ | |
+|26.4| Back in Inbox, click **Mark all read** (if shown) | The sidebar unread badge clears | ☐ | |
+
+### Test 27 — Analytics query builder
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|27.1| Open **Analytics & reporting** | A **query builder** sits at the top (Measure + Group by + result) | ☐ | |
+|27.2| Change the **Measure** (e.g. Enrolments) and **Group by** (e.g. Plan) | The chart/figures recompute | ☐ | |
+|27.3| Toggle **Chart / Table** | The view switches; the table shows % of total + a Total row | ☐ | |
+|27.4| Click **Export CSV** (in the builder) | A CSV downloads | ☐ | |
+
+### Test 28 — API console
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|28.1| Open **API & webhooks**, click the **Console** tab | An endpoint list + request bar + response area | ☐ | |
+|28.2| Pick an endpoint (e.g. `/members`) and click **Send** | A `200 OK` and syntax-highlighted JSON (`{ data, pagination }`) appears | ☐ | |
+
+## 10. Billing & white-label branding (admin)
+
+### Test 29 — Billing & plan
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|29.1| Click **Billing & plan** in the sidebar | Plan banner, usage meters, plan tiers, invoices table | ☐ | |
+|29.2| Read the **usage meters** | Real numbers (members, deliveries, intake) against plan limits | ☐ | |
+|29.3| Click **Switch** on a different tier | The current plan updates (banner + highlighted tier change) | ☐ | |
+
+### Test 30 — Branding (white-label)
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|30.1| Click **Branding** in the sidebar | A form on the left + a **live phone preview** on the right | ☐ | |
+|30.2| Type a **Display name** | The preview's name updates as you type | ☐ | |
+|30.3| Click a different **colour swatch** | The preview's header, cover and button recolour instantly | ☐ | |
+|30.4| Click **Save changes** | A "✓ Saved" confirmation | ☐ | |
+|30.5| Open the **member portal** and sign in (Test 31) | The member app's header/cover use your **new brand colour** | ☐ | |
+
+## 11. Member app (mobile)
+
+### Test 31 — Member app
+> Use **Amaka Obi** (`amaka.obi@member.demo`).
+
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|31.1| Open the **member portal**, sign in with the on-screen code | A mobile app with a **bottom tab bar** (Home / Care / Claims / Profile) | ☐ | |
+|31.2| **Home** | Branded header, a cover card, stat tiles, "Submit a claim", recent care | ☐ | |
+|31.3| **Care → AI symptom check** | A chat opens; type "I have a sore throat" and send | ☐ | |
+|31.4| Wait for the reply | The AI assistant responds with guidance (and a "not a diagnosis" note) | ☐ | |
+|31.5| **Claims → Submit a claim** | Fill type + amount, submit → it appears in the member's list | ☐ | |
+|31.6| **Profile** | Health snapshot (blood group, allergies as tags), cover, **Sign out** | ☐ | |
+
+---
+
+## 12. Tester sign-off
 
 | Item | Value |
 |------|-------|
 | Tester name | |
 | Date | |
 | Browser / device | |
-| Total tests passed | ___ / 20 |
+| Total tests passed | ___ / 31 |
 | Overall result (Pass / Pass with issues / Fail) | |
 
-**Summary of any issues found:**
+**Summary of any issues found** (list the test number and what went wrong; attach screenshots where
+possible):
 
-> _(List the test number and what went wrong. Attach screenshots where possible.)_
+> _________________________________________________________________________________
 
 ---
 
 ### Cleanup note (for the site owner, after testing)
-Testing creates demo records (a test member, claims, an enrolment, API key/webhook, etc.).
-None of it is harmful, but if you want a clean slate before an investor/insurer demo, remove the
-tester's obviously-named test entries from the **Members**, **Claims**, and **API & webhooks**
-pages, and the test organisation/user from the **Admin Console**.
+Testing creates demo records (a test member, claims, an enrolment, API key/webhook, a demo lead, and
+a plan/branding change). None of it is harmful, but for a clean slate before an investor/insurer
+demo: remove obviously-named test entries from **Members**, **Claims**, and **API & webhooks**; reset
+the tier on **Billing** and colours on **Branding**; and remove the test organisation/user from the
+**Admin Console**. Demo leads are stored server-side and are harmless.

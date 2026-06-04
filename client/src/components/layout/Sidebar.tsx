@@ -14,12 +14,16 @@ const navItems = [
   { to: '/partners', label: 'Partner Ecosystem', icon: '⌬' },
 ];
 
+// Shown only to org admins — subscription, usage & invoices.
+const billingNavItem = { to: '/settings/billing', label: 'Billing & plan', icon: '₦' };
 // Shown to every signed-in user — self-service two-factor authentication.
 const securityNavItem = { to: '/settings/security', label: 'Security', icon: '⛨' };
 // Shown only to org admins (role === 'admin') — self-service SSO setup.
 const ssoNavItem = { to: '/settings/sso', label: 'Single sign-on', icon: '⚷' };
 // Shown only to org admins — public API keys + webhooks.
 const developerNavItem = { to: '/settings/developer', label: 'API & webhooks', icon: '⧉' };
+// Shown only to org admins — white-label branding.
+const brandingNavItem = { to: '/settings/branding', label: 'Branding', icon: '◑' };
 // Shown only to platform admins (see AuthContext user.isPlatformAdmin).
 const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
 
@@ -28,7 +32,7 @@ export default function Sidebar() {
   const items = [
     ...navItems,
     securityNavItem,
-    ...(user?.role === 'admin' ? [ssoNavItem, developerNavItem] : []),
+    ...(user?.role === 'admin' ? [billingNavItem, brandingNavItem, ssoNavItem, developerNavItem] : []),
     ...(user?.isPlatformAdmin ? [adminNavItem] : []),
   ];
 

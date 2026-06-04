@@ -9,6 +9,7 @@ import {
 import { generateClaimReference, isClaimType } from '../lib/claims';
 import { emitEvent } from '../lib/webhooks';
 import { runTriage, TriageMessage } from '../services/triage.service';
+import { getOrgBranding } from '../lib/branding';
 
 // ── Identity resolution ─────────────────────────────────────────────────
 // A member identifies with either a phone number or an email already on their
@@ -180,7 +181,8 @@ export async function getMemberMe(req: Request, res: Response): Promise<void> {
        (SELECT COUNT(*)::int FROM claims      WHERE member_id = $1) AS claims`,
     [memberId]
   );
-  res.json({ ...result.rows[0], counts: counts.rows[0] });
+  const branding = await getOrgBranding(req.member!.orgId);
+  res.json({ ...result.rows[0], counts: counts.rows[0], branding });
 }
 
 // GET /member/overview — cover + care history in one round trip.

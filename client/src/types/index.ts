@@ -224,6 +224,41 @@ export interface ClaimsResponse {
   storageEnabled: boolean;
 }
 
+// --- Billing & subscription (Phase 2) ---
+export interface BillingTier {
+  key: string;
+  name: string;
+  price: number | null;
+  features: string[];
+  limits: { members: number; webhooks: number; intake: number };
+}
+
+export interface BillingUsage {
+  key: string;
+  label: string;
+  used: number;
+  limit: number;
+}
+
+export interface BillingInvoice {
+  reference: string;
+  date: string;
+  plan: string;
+  amount: number;
+  status: string;
+}
+
+export interface BillingAccount {
+  plan: { key: string; name: string; price: number | null };
+  renewsAt: string;
+  paymentMethod: string;
+  billingCurrency: string;
+  usage: BillingUsage[];
+  tiers: BillingTier[];
+  recommendedTier: BillingTier | null;
+  invoices: BillingInvoice[];
+}
+
 // --- Provider portal (Q9) ---
 export type ProviderRole = 'doctor' | 'pharmacist';
 
@@ -330,6 +365,16 @@ export interface WebhookDelivery {
   created_at: string;
 }
 
+// --- White-label branding (Phase 2) ---
+export interface OrgBranding {
+  displayName: string;
+  logoLetter: string;
+  primaryColor: string;
+  accentColor: string;
+  supportContact: string;
+  whatsappGreeting: string;
+}
+
 // --- Member self-service portal (Q10) ---
 export interface MemberSession {
   id: string;
@@ -354,6 +399,7 @@ export interface MemberProfile {
   org_name: string;
   partner_type: string;
   counts: { enrolments: number; consultations: number; claims: number };
+  branding?: OrgBranding;
 }
 
 export interface MemberOverview {

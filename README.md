@@ -325,6 +325,33 @@ outbound webhooks. Org admins manage both from **API & webhooks** (`/settings/de
   Migration `017_create_public_api.sql` adds the `api_keys`, `webhook_endpoints`, and
   `webhook_deliveries` tables.
 
+## Billing & subscription
+
+Org admins see their MobiCova subscription at **Billing & plan** (`/settings/billing`):
+
+- **Plan banner** — current tier, price, renewal date and payment method.
+- **Usage meters** — **real** counts from your data (members, webhook deliveries this month,
+  WhatsApp/USSD intake this month) against your tier's limits, with an amber warning as you approach a
+  limit.
+- **Plan tiers** — Starter / Growth / Scale / Enterprise, with the current one highlighted; switching
+  tier is one click. An upsell card recommends the next tier up.
+- **Invoices** — a billing history table.
+
+This is **demo-grade**: plan changes switch the org's tier immediately (`POST /billing/account/plan`),
+and invoices are representative. In production, upgrades route through the existing Paystack/Stripe
+checkout and invoices are generated per cycle. Data comes from `GET /billing/account`.
+
+## White-label branding
+
+Admins white-label the member-facing experience at **Branding** (`/settings/branding`):
+
+- **Brand kit** — display name, logo letter-mark, a primary/accent colour pair, support contact and a
+  WhatsApp greeting.
+- **Live preview** — a phone mock-up of the member portal recolours instantly as you edit.
+- **It's real** — the **member app reads these settings** (`GET /member/me` returns branding), so the
+  member portal's header, cover card, tabs and buttons take on the org's colours and name. Stored in
+  `org_branding` (migration `020_create_org_branding.sql`); saved via `PUT /settings/branding` (admin).
+
 ## Onboarding, command palette & help
 
 The dashboard ships a few product-polish touches:

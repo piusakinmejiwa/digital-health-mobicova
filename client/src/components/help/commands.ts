@@ -23,8 +23,10 @@ export const COMMANDS: Command[] = [
   { group: 'Navigate', icon: '▤', label: 'Analytics & reporting', href: '/analytics', keywords: 'report kpi' },
   { group: 'Navigate', icon: '☷', label: 'WhatsApp & USSD', href: '/channels', keywords: 'intake join code' },
   { group: 'Navigate', icon: '⌬', label: 'Partner Ecosystem', href: '/partners' },
+  { group: 'Navigate', icon: '₦', label: 'Billing & plan', href: '/settings/billing', keywords: 'subscription invoice usage upgrade', adminOnly: true },
   { group: 'Navigate', icon: '⛨', label: 'Security', href: '/settings/security', keywords: '2fa two factor mfa' },
   { group: 'Navigate', icon: '⚷', label: 'Single sign-on', href: '/settings/sso', keywords: 'saml sso', adminOnly: true },
+  { group: 'Navigate', icon: '◑', label: 'Branding', href: '/settings/branding', keywords: 'white label logo colour brand', adminOnly: true },
   { group: 'Navigate', icon: '⧉', label: 'API & webhooks', href: '/settings/developer', keywords: 'developer api key webhook', adminOnly: true },
   { group: 'Navigate', icon: '⚙', label: 'Admin Console', href: '/admin', keywords: 'organisations users plans partners audit', platformAdminOnly: true },
 

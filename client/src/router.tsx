@@ -7,6 +7,8 @@ import SsoCallbackPage from './pages/auth/SsoCallbackPage';
 import SsoSettingsPage from './pages/settings/SsoSettingsPage';
 import SecuritySettingsPage from './pages/settings/SecuritySettingsPage';
 import DeveloperSettingsPage from './pages/settings/DeveloperSettingsPage';
+import BillingPage from './pages/settings/BillingPage';
+import BrandingPage from './pages/settings/BrandingPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import MembersListPage from './pages/members/MembersListPage';
 import MemberCreatePage from './pages/members/MemberCreatePage';
@@ -92,6 +94,8 @@ export const router = createBrowserRouter([
       { path: 'settings/sso', element: <SsoSettingsPage /> },
       { path: 'settings/security', element: <SecuritySettingsPage /> },
       { path: 'settings/developer', element: <DeveloperSettingsPage /> },
+      { path: 'settings/billing', element: <BillingPage /> },
+      { path: 'settings/branding', element: <BrandingPage /> },
       { path: 'partners', element: <PartnersPage /> },
       { path: 'admin', element: <AdminRoute><AdminPage /></AdminRoute> },
     ],

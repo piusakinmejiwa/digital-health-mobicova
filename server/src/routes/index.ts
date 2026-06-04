@@ -15,6 +15,7 @@ import adminRoutes from './admin.routes';
 import memberPortalRoutes from './memberPortal.routes';
 import developerRoutes from './developer.routes';
 import providerRoutes from './provider.routes';
+import settingsRoutes from './settings.routes';
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use('/admin', adminRoutes);
 router.use('/member', memberPortalRoutes);
 router.use('/developer', developerRoutes);
 router.use('/provider', providerRoutes);
+router.use('/settings', settingsRoutes);
 
 export default router;

@@ -17,7 +17,10 @@ param(
   [string]$BaseUrl  = "http://localhost:4000/api/v1",
   [string]$Email    = "admin@axamansard.demo",
   [string]$Password = "password123",
-  [string]$Slug     = "axa-mansard-health"
+  [string]$Slug     = "axa-mansard-health",
+  # Optional pre-minted admin bearer token. Supply this when the admin account
+  # has 2FA enabled (password login then returns an MFA challenge, not a token).
+  [string]$Token    = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,13 +40,22 @@ function Check($name, [scriptblock]$test) {
 Write-Host "`nMobiCova smoke test against $BaseUrl`n" -ForegroundColor Cyan
 
 # --- Auth: log in and grab a token ---------------------------------------
-$login = Invoke-RestMethod -Method Post -Uri "$BaseUrl/auth/login" `
-  -ContentType "application/json" `
-  -Body (@{ email = $Email; password = $Password } | ConvertTo-Json)
-$token = $login.token
-if (-not $token) { Write-Host "Login failed — aborting." -ForegroundColor Red; exit 1 }
+if ($Token) {
+  $token = $Token
+  Write-Host "Using supplied bearer token (password/MFA login bypassed)`n" -ForegroundColor Cyan
+} else {
+  $login = Invoke-RestMethod -Method Post -Uri "$BaseUrl/auth/login" `
+    -ContentType "application/json" `
+    -Body (@{ email = $Email; password = $Password } | ConvertTo-Json)
+  if ($login.mfaRequired) {
+    Write-Host "Admin has 2FA enabled — rerun with -Token <jwt> (complete the MFA challenge first)." -ForegroundColor Yellow
+    exit 1
+  }
+  $token = $login.token
+  if (-not $token) { Write-Host "Login failed — aborting." -ForegroundColor Red; exit 1 }
+  Write-Host "Logged in as $($login.user.email) (role=$($login.user.role))`n" -ForegroundColor Cyan
+}
 $H = @{ Authorization = "Bearer $token" }
-Write-Host "Logged in as $($login.user.email) (role=$($login.user.role))`n" -ForegroundColor Cyan
 
 # --- Q2: roles / identity ------------------------------------------------
 Write-Host "Q2  Roles & access control"

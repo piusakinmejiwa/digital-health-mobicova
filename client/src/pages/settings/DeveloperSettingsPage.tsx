@@ -5,11 +5,12 @@ import { useAuth } from '../../context/AuthContext';
 import {
   listApiKeys, createApiKey, revokeApiKey,
   listWebhooks, createWebhook, deleteWebhook, updateWebhook, testWebhook,
-  listWebhookEvents,
+  listWebhookEvents, consoleQuery,
 } from '../../api/developer';
 import type { NewApiKey, NewWebhookEndpoint, WebhookEndpoint } from '../../types';
 import { formatDateTime } from '../../lib/format';
 import './Developer.css';
+import './ApiConsole.css';
 
 // Public API base = the internal base with /api/v1 swapped for /api/public/v1.
 const PUBLIC_API_BASE =
@@ -17,6 +18,7 @@ const PUBLIC_API_BASE =
 
 export default function DeveloperSettingsPage() {
   const { user } = useAuth();
+  const [tab, setTab] = useState<'manage' | 'console'>('manage');
   if (user && user.role !== 'admin') return <Navigate to="/dashboard" replace />;
 
   return (
@@ -28,27 +30,120 @@ export default function DeveloperSettingsPage() {
         </div>
       </div>
 
-      <div className="card card-pad dev-intro">
-        <h2>Public REST API</h2>
-        <p className="muted">
-          Authenticate with an API key in the <code>Authorization</code> header. All endpoints are
-          read-only and scoped to your organisation.
-        </p>
-        <div className="dev-code">
-          <code>
-            curl {PUBLIC_API_BASE}/members \<br />
-            &nbsp;&nbsp;-H &quot;Authorization: Bearer mk_live_…&quot;
-          </code>
-        </div>
-        <p className="muted small">
-          Endpoints: <code>/members</code>, <code>/members/:id</code>, <code>/enrolments</code>,{' '}
-          <code>/claims</code>, <code>/claims/:id</code> — all support <code>?limit</code> &amp;{' '}
-          <code>?offset</code>.
-        </p>
+      <div className="api-tabs">
+        <button className={tab === 'manage' ? 'on' : ''} onClick={() => setTab('manage')}>Keys &amp; webhooks</button>
+        <button className={tab === 'console' ? 'on' : ''} onClick={() => setTab('console')}>Console</button>
       </div>
 
-      <ApiKeysSection />
-      <WebhooksSection />
+      {tab === 'manage' ? (
+        <>
+          <div className="card card-pad dev-intro">
+            <h2>Public REST API</h2>
+            <p className="muted">
+              Authenticate with an API key in the <code>Authorization</code> header. All endpoints are
+              read-only and scoped to your organisation.
+            </p>
+            <div className="dev-code">
+              <code>
+                curl {PUBLIC_API_BASE}/members \<br />
+                &nbsp;&nbsp;-H &quot;Authorization: Bearer mk_live_…&quot;
+              </code>
+            </div>
+            <p className="muted small">
+              Endpoints: <code>/members</code>, <code>/members/:id</code>, <code>/enrolments</code>,{' '}
+              <code>/claims</code>, <code>/claims/:id</code> — all support <code>?limit</code> &amp;{' '}
+              <code>?offset</code>.
+            </p>
+          </div>
+
+          <ApiKeysSection />
+          <WebhooksSection />
+        </>
+      ) : (
+        <ApiConsole />
+      )}
+    </div>
+  );
+}
+
+const ENDPOINTS = [
+  { key: 'members', path: '/members', list: true },
+  { key: 'member', path: '/members/:id', list: false },
+  { key: 'enrolments', path: '/enrolments', list: true },
+  { key: 'claims', path: '/claims', list: true },
+];
+
+// Escape then colourise a JSON string for the dark response viewer.
+function highlightJson(value: unknown): string {
+  const json = JSON.stringify(value, null, 2)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return json
+    .replace(/"([^"]+)":/g, '<span class="k">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="s">"$1"</span>')
+    .replace(/: (-?\d+\.?\d*)(,?)$/gm, ': <span class="n">$1</span>$2')
+    .replace(/\bnull\b/g, '<span class="p">null</span>');
+}
+
+function ApiConsole() {
+  const [cur, setCur] = useState(ENDPOINTS[0]);
+  const [limit, setLimit] = useState(50);
+  const [offset, setOffset] = useState(0);
+  const [resp, setResp] = useState<unknown>(null);
+  const [meta, setMeta] = useState<{ ms: number } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const send = async (ep = cur) => {
+    setBusy(true);
+    const t0 = performance.now();
+    try {
+      const data = await consoleQuery(ep.key, ep.list ? { limit, offset } : {});
+      setResp(data);
+      setMeta({ ms: Math.round(performance.now() - t0) });
+    } catch (e: any) {
+      setResp({ error: e.response?.data?.error || 'Request failed' });
+      setMeta({ ms: Math.round(performance.now() - t0) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pick = (ep: typeof ENDPOINTS[number]) => { setCur(ep); setOffset(0); send(ep); };
+
+  return (
+    <div className="api-console">
+      <div className="api-ep-list">
+        <div className="ael">Endpoints</div>
+        {ENDPOINTS.map((ep) => (
+          <div key={ep.key} className={`api-ep ${ep.key === cur.key ? 'on' : ''}`} onClick={() => pick(ep)}>
+            <span className="method get">GET</span>{ep.path}
+          </div>
+        ))}
+      </div>
+      <div className="api-main">
+        <div className="api-reqbar">
+          <span className="method get">GET</span>
+          <span className="api-path">{PUBLIC_API_BASE}{cur.path}</span>
+          <button className="btn btn-primary btn-sm" onClick={() => send()} disabled={busy}>
+            {busy ? '…' : 'Send'}
+          </button>
+        </div>
+        {cur.list && (
+          <div className="api-params">
+            <label>limit <input type="number" value={limit} min={1} max={200} onChange={(e) => setLimit(Number(e.target.value))} /></label>
+            <label>offset <input type="number" value={offset} min={0} onChange={(e) => setOffset(Number(e.target.value))} /></label>
+          </div>
+        )}
+        <div className="api-meta">
+          {meta ? (
+            <><span className="status-ok">200 OK</span><span>{meta.ms} ms</span><span>application/json</span></>
+          ) : (
+            <span className="muted small">Press Send to call the API with your session.</span>
+          )}
+        </div>
+        {resp != null && (
+          <pre className="code" dangerouslySetInnerHTML={{ __html: highlightJson(resp) }} />
+        )}
+      </div>
     </div>
   );
 }

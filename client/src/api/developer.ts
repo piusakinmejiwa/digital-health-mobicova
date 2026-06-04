@@ -53,3 +53,12 @@ export async function listWebhookDeliveries(id: string): Promise<WebhookDelivery
   const res = await api.get(`/developer/webhooks/${id}/deliveries`);
   return res.data;
 }
+
+// --- API console (real org-scoped data in the public-API shape) ---
+export async function consoleQuery(
+  endpoint: string,
+  params: { limit?: number; offset?: number } = {}
+): Promise<unknown> {
+  const res = await api.get('/developer/console', { params: { endpoint, ...params } });
+  return res.data;
+}

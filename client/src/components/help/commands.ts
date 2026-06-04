@@ -3,7 +3,7 @@
 // add pages (Docs, Inbox, Billing…), extend these lists.
 
 export interface Command {
-  group: 'Navigate' | 'Actions';
+  group: 'Navigate' | 'Actions' | 'Docs';
   icon: string;
   label: string;
   href: string;
@@ -15,6 +15,7 @@ export interface Command {
 export const COMMANDS: Command[] = [
   // Navigate
   { group: 'Navigate', icon: '◰', label: 'Dashboard', href: '/dashboard' },
+  { group: 'Navigate', icon: '⊞', label: 'Inbox', href: '/inbox', keywords: 'action centre tasks' },
   { group: 'Navigate', icon: '⚇', label: 'Members', href: '/members' },
   { group: 'Navigate', icon: '✚', label: 'Telemedicine', href: '/telemedicine' },
   { group: 'Navigate', icon: '✦', label: 'AI Health Assistant', href: '/assistant', keywords: 'triage symptom' },
@@ -37,6 +38,14 @@ export const COMMANDS: Command[] = [
   { group: 'Actions', icon: '⬇', label: 'Open analytics & export', href: '/analytics', keywords: 'csv export report' },
   { group: 'Actions', icon: '⛨', label: 'Set up two-factor authentication', href: '/settings/security', keywords: '2fa mfa' },
   { group: 'Actions', icon: '⧉', label: 'Create an API key', href: '/settings/developer', adminOnly: true },
+
+  // Docs
+  { group: 'Docs', icon: '▤', label: 'Quick start', href: '/docs?a=quickstart' },
+  { group: 'Docs', icon: '▤', label: 'Adding members', href: '/docs?a=members' },
+  { group: 'Docs', icon: '▤', label: 'Plans & enrolment', href: '/docs?a=plans' },
+  { group: 'Docs', icon: '▤', label: 'WhatsApp & USSD intake', href: '/docs?a=whatsapp' },
+  { group: 'Docs', icon: '▤', label: 'API authentication', href: '/docs?a=auth' },
+  { group: 'Docs', icon: '▤', label: 'Webhooks', href: '/docs?a=webhooks' },
 ];
 
 export interface HelpItem { label: string; href: string; }

@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import {
   listApiKeys, createApiKey, revokeApiKey,
   listEvents, listWebhooks, createWebhook, updateWebhook, deleteWebhook,
-  testWebhook, listDeliveries,
+  testWebhook, listDeliveries, consoleQuery,
 } from '../controllers/developer.controller';
 import { authenticate, requireRole } from '../middleware/auth';
 import { validate } from '../middleware/validate';
@@ -17,6 +17,9 @@ router.use(authenticate);
 const adminOnly = requireRole('admin');
 
 router.get('/events', listEvents);
+
+// API console — real org-scoped data in the public-API shape (admin).
+router.get('/console', adminOnly, asyncHandler(consoleQuery));
 
 // API keys
 router.get('/api-keys', adminOnly, asyncHandler(listApiKeys));

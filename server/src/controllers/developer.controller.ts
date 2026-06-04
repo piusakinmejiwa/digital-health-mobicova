@@ -8,6 +8,61 @@ import { generateWebhookSecret, WEBHOOK_EVENTS, sendPing } from '../lib/webhooks
 // endpoints. All handlers are scoped to the caller's organisation and sit behind
 // authenticate + requireRole('admin').
 
+// ── API console proxy ─────────────────────────────────────────────────────
+// Runs the same read-only queries as the public API (/api/public/v1/*) but
+// authenticated by the caller's session and scoped to their org — so the in-app
+// console shows real data in the real { data, pagination } shape without exposing
+// a raw key in the browser.
+export async function consoleQuery(req: Request, res: Response): Promise<void> {
+  const orgId = req.user!.orgId;
+  const endpoint = String(req.query.endpoint || 'members');
+  const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '50'), 10) || 50, 1), 200);
+  const offset = Math.max(parseInt(String(req.query.offset ?? '0'), 10) || 0, 0);
+
+  const count = async (table: string) =>
+    (await query(`SELECT COUNT(*)::int AS n FROM ${table} WHERE org_id = $1`, [orgId])).rows[0].n;
+
+  if (endpoint === 'enrolments') {
+    const r = await query(
+      `SELECT e.id, e.member_id, m.full_name AS member_name, e.plan_id, pl.name AS plan_name,
+              pl.monthly_premium, pl.currency, pl.underwriter, e.status, e.payment_status, e.enrolled_at
+       FROM enrolments e JOIN members m ON e.member_id = m.id JOIN insurance_plans pl ON e.plan_id = pl.id
+       WHERE e.org_id = $1 ORDER BY e.enrolled_at DESC LIMIT $2 OFFSET $3`,
+      [orgId, limit, offset]
+    );
+    res.json({ data: r.rows, pagination: { limit, offset, total: await count('enrolments') } });
+    return;
+  }
+  if (endpoint === 'claims') {
+    const r = await query(
+      `SELECT c.id, c.reference, c.member_id, m.full_name AS member_name, c.claim_type,
+              c.provider_name, c.amount, c.currency, c.status, c.submitted_via, c.created_at
+       FROM claims c JOIN members m ON c.member_id = m.id
+       WHERE c.org_id = $1 ORDER BY c.created_at DESC LIMIT $2 OFFSET $3`,
+      [orgId, limit, offset]
+    );
+    res.json({ data: r.rows, pagination: { limit, offset, total: await count('claims') } });
+    return;
+  }
+  if (endpoint === 'member') {
+    const r = await query(
+      `SELECT id, full_name, phone, email, gender, channel, blood_group, allergies,
+              chronic_conditions, status, created_at
+       FROM members WHERE org_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      [orgId]
+    );
+    res.json({ data: r.rows[0] ?? null });
+    return;
+  }
+  // default: members list
+  const r = await query(
+    `SELECT id, full_name, phone, email, channel, status, created_at
+     FROM members WHERE org_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+    [orgId, limit, offset]
+  );
+  res.json({ data: r.rows, pagination: { limit, offset, total: await count('members') } });
+}
+
 // ── API keys ────────────────────────────────────────────────────────────
 export async function listApiKeys(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;

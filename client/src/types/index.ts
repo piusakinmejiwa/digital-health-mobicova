@@ -224,6 +224,38 @@ export interface ClaimsResponse {
   storageEnabled: boolean;
 }
 
+// --- Inbox / Action centre (Phase 3) ---
+export interface InboxAction { label: string; href: string; }
+export interface InboxItem {
+  key: string;
+  group: 'urgent' | 'review' | 'system';
+  severity: 'crit' | 'urgent' | 'normal';
+  icon: 'amber' | 'teal' | 'red' | 'blue';
+  title: string;
+  meta: string;
+  actions: InboxAction[];
+  createdAt: string;
+  read: boolean;
+}
+export interface InboxDone { action: string; target_label: string | null; actor_email: string | null; created_at: string; }
+export interface InboxData {
+  items: InboxItem[];
+  done: InboxDone[];
+  counts: { urgent: number; review: number; system: number; doneToday: number };
+  unread: number;
+}
+
+// --- Analytics query builder (Phase 3) ---
+export interface AnalyticsQueryRow { label: string; value: number; }
+export interface AnalyticsQueryResult {
+  measure: string;
+  dimension: string;
+  money: boolean;
+  rows: AnalyticsQueryRow[];
+  total: number;
+}
+export interface AnalyticsMeasureOption { key: string; money: boolean; dimensions: string[]; }
+
 // --- Billing & subscription (Phase 2) ---
 export interface BillingTier {
   key: string;

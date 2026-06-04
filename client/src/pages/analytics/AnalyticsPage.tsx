@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
 } from 'recharts';
-import { getAnalytics } from '../../api/resources';
+import { getAnalytics, getAnalyticsQuery, getAnalyticsQueryOptions } from '../../api/resources';
 import { useAuth } from '../../context/AuthContext';
 import { naira, triageLabel } from '../../lib/format';
 import { downloadCsv } from '../../lib/download';
@@ -52,6 +52,9 @@ export default function AnalyticsPage() {
           <button className="btn btn-secondary" onClick={() => window.print()}>Print / Save as PDF</button>
         </div>
       </div>
+
+      {/* ---- Query builder ---- */}
+      <QueryBuilder months={months} />
 
       {/* ---- Headline KPIs ---- */}
       <div className="metric-grid">
@@ -205,6 +208,106 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub: string 
       <span className="metric-label">{label}</span>
       <span className="metric-value">{value}</span>
       <span className="metric-sub">{sub}</span>
+    </div>
+  );
+}
+
+// ---- Ad-hoc query builder (measure × dimension) ----
+const qbMoney = (n: number) => `₦${(n / 1e6).toFixed(2)}M`;
+
+function QueryBuilder({ months }: { months: number }) {
+  const { data: opts } = useQuery({ queryKey: ['analytics-q-options'], queryFn: getAnalyticsQueryOptions });
+  const [measure, setMeasure] = useState('Members');
+  const [dimension, setDimension] = useState('Channel');
+  const [view, setView] = useState<'chart' | 'table'>('chart');
+
+  const measures = opts?.measures || [];
+  const dims = measures.find((m) => m.key === measure)?.dimensions || ['Channel'];
+  const effectiveDim = dims.includes(dimension) ? dimension : dims[0];
+
+  const { data, isFetching } = useQuery({
+    queryKey: ['analytics-q', measure, effectiveDim, months],
+    queryFn: () => getAnalyticsQuery(measure, effectiveDim, months),
+  });
+
+  const fmt = (n: number) => (data?.money ? qbMoney(n) : Math.round(n).toLocaleString());
+  const max = data ? Math.max(...data.rows.map((r) => r.value), 0) : 0;
+
+  const exportCsv = () => {
+    if (!data) return;
+    downloadCsv(
+      `${measure}-by-${effectiveDim}.csv`,
+      data.rows as unknown as Record<string, unknown>[],
+      [{ key: 'label', label: effectiveDim }, { key: 'value', label: measure }]
+    );
+  };
+
+  return (
+    <div className="qb">
+      <div className="qb-config">
+        <div className="qc-lbl">Measure</div>
+        <select className="qb-select" value={measure} onChange={(e) => setMeasure(e.target.value)}>
+          {measures.map((m) => <option key={m.key} value={m.key}>{m.key === 'Premium' ? 'Premium (₦)' : m.key}</option>)}
+        </select>
+
+        <div className="qc-lbl">Group by</div>
+        <div className="chip-row">
+          {dims.map((d) => (
+            <span key={d} className={`qchip ${d === effectiveDim ? 'on' : ''}`} onClick={() => setDimension(d)}>{d}</span>
+          ))}
+        </div>
+
+        <div className="qc-lbl">Window</div>
+        <div className="muted small">Last {months} months (set above)</div>
+
+        <button className="btn btn-secondary btn-sm qb-export" onClick={exportCsv} disabled={!data}>Export CSV</button>
+      </div>
+
+      <div className="qb-result">
+        <div className="qb-result-head">
+          <h3>{measure === 'Premium' ? 'Premium (₦)' : measure} by {effectiveDim}</h3>
+          <span className="meta">
+            {data ? `${data.rows.length} groups · ${fmt(data.total)} total` : isFetching ? 'Running…' : ''}
+          </span>
+        </div>
+
+        <div className="qb-toggle">
+          <button className={view === 'chart' ? 'on' : ''} onClick={() => setView('chart')}>Chart</button>
+          <button className={view === 'table' ? 'on' : ''} onClick={() => setView('table')}>Table</button>
+        </div>
+
+        {!data || data.rows.length === 0 ? (
+          <p className="muted small">No data for this combination in the selected window.</p>
+        ) : view === 'chart' ? (
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={data.rows} margin={{ top: 16, right: 8, left: 0, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef3f3" />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={data.rows.length > 6 ? -20 : 0} textAnchor={data.rows.length > 6 ? 'end' : 'middle'} height={data.rows.length > 6 ? 50 : 24} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => (data.money ? `₦${(v / 1e6).toFixed(1)}M` : v)} />
+              <Tooltip formatter={(v: unknown) => fmt(Number(v))} />
+              <Bar dataKey="value" radius={[5, 5, 0, 0]}>
+                {data.rows.map((r) => (
+                  <Cell key={r.label} fill={r.value === max ? '#f4a23c' : '#0a7b7b'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <table className="table qb-table">
+            <thead><tr><th>{effectiveDim}</th><th>{measure}</th><th>% of total</th></tr></thead>
+            <tbody>
+              {data.rows.map((r) => (
+                <tr key={r.label}>
+                  <td>{r.label}</td>
+                  <td>{fmt(r.value)}</td>
+                  <td className="muted">{data.total ? ((r.value / data.total) * 100).toFixed(1) : '0'}%</td>
+                </tr>
+              ))}
+              <tr className="qb-total"><td>Total</td><td>{fmt(data.total)}</td><td>100%</td></tr>
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

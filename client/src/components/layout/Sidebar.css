@@ -1,3 +1,19 @@
+.sidebar-badge {
+  margin-left: auto;
+  background: var(--highlight);
+  color: #4a2e05;
+  font-size: 0.68rem;
+  font-weight: 800;
+  border-radius: 20px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 .sidebar {
   position: fixed;
   top: 0;

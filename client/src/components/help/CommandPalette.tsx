@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import type { Command } from './commands';
 import './Help.css';
 
-const GROUP_CLASS: Record<string, string> = { Navigate: 'nav', Actions: 'act' };
-const GROUP_META: Record<string, string> = { Navigate: 'go', Actions: 'run' };
+const GROUP_CLASS: Record<string, string> = { Navigate: 'nav', Actions: 'act', Docs: 'doc' };
+const GROUP_META: Record<string, string> = { Navigate: 'go', Actions: 'run', Docs: 'open doc' };
 
 export default function CommandPalette({
   open, onClose, commands,

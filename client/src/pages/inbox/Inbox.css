@@ -1,0 +1,35 @@
+.section-label { font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--gray-400); margin: 1.8rem 0 .8rem; }
+
+.ac-stats { display: flex; gap: .8rem; margin-bottom: 1.6rem; flex-wrap: wrap; }
+.ac-stat { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: .8rem 1.1rem; box-shadow: var(--shadow); min-width: 120px; }
+.ac-stat b { font-size: 1.5rem; font-weight: 800; color: var(--dark); line-height: 1; }
+.ac-stat.urgent b { color: var(--highlight); }
+.ac-stat span { font-size: .76rem; color: var(--gray-400); margin-top: .25rem; }
+
+.action-card {
+  display: flex; gap: 1rem; align-items: flex-start;
+  background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius);
+  padding: 1.1rem 1.2rem; box-shadow: var(--shadow); margin-bottom: .8rem; transition: box-shadow .15s;
+}
+.action-card:hover { box-shadow: var(--shadow-md); }
+.action-card.urgent { border-left: 4px solid var(--highlight); }
+.action-card.crit { border-left: 4px solid var(--danger); }
+.action-card.is-read { opacity: .6; }
+
+.ac-icon { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-size: 1.15rem; flex: none; background: var(--gray-100); color: var(--gray-600); font-weight: 700; }
+.ac-icon.amber { background: #fef3c7; color: #92400e; }
+.ac-icon.teal { background: #d6efef; color: #066; }
+.ac-icon.red { background: #fee2e2; color: #991b1b; }
+.ac-icon.blue { background: #dbeafe; color: #1e40af; }
+
+.ac-body { flex: 1; min-width: 0; }
+.ac-title { font-weight: 600; color: var(--dark); font-size: .95rem; }
+.ac-meta { font-size: .82rem; color: var(--gray-400); margin-top: .15rem; }
+.ac-actions { display: flex; gap: .5rem; margin-top: .75rem; flex-wrap: wrap; align-items: center; }
+.ac-time { font-size: .76rem; color: var(--gray-400); white-space: nowrap; align-self: flex-start; }
+
+.feed { list-style: none; display: flex; flex-direction: column; margin: 0; padding: 0; }
+.feed li { display: flex; gap: .8rem; padding: .65rem 0; border-bottom: 1px solid var(--gray-100); font-size: .86rem; color: var(--gray-600); }
+.feed li:last-child { border-bottom: none; }
+.feed .ft { width: 62px; flex: none; color: var(--gray-400); font-size: .8rem; }
+.feed b { color: var(--dark); font-weight: 600; }

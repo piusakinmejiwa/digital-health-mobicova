@@ -9,6 +9,8 @@ import SecuritySettingsPage from './pages/settings/SecuritySettingsPage';
 import DeveloperSettingsPage from './pages/settings/DeveloperSettingsPage';
 import BillingPage from './pages/settings/BillingPage';
 import BrandingPage from './pages/settings/BrandingPage';
+import DocsPage from './pages/docs/DocsPage';
+import InboxPage from './pages/inbox/InboxPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import MembersListPage from './pages/members/MembersListPage';
 import MemberCreatePage from './pages/members/MemberCreatePage';
@@ -82,6 +84,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
       { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'inbox', element: <InboxPage /> },
       { path: 'members', element: <MembersListPage /> },
       { path: 'members/new', element: <MemberCreatePage /> },
       { path: 'members/:id', element: <MemberDetailPage /> },
@@ -96,6 +99,7 @@ export const router = createBrowserRouter([
       { path: 'settings/developer', element: <DeveloperSettingsPage /> },
       { path: 'settings/billing', element: <BillingPage /> },
       { path: 'settings/branding', element: <BrandingPage /> },
+      { path: 'docs', element: <DocsPage /> },
       { path: 'partners', element: <PartnersPage /> },
       { path: 'admin', element: <AdminRoute><AdminPage /></AdminRoute> },
     ],

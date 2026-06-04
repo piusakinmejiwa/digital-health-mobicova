@@ -2,6 +2,38 @@
    Reuses the global .metric-grid/.metric-card, .card, .table, .btn classes;
    only the report-specific pieces live here. */
 
+/* ===== Query builder (Phase 3) ===== */
+.qb {
+  display: grid; grid-template-columns: 266px 1fr; gap: 0;
+  border: 1px solid var(--gray-200); border-radius: var(--radius);
+  overflow: hidden; box-shadow: var(--shadow); background: #fff; margin-bottom: 1.6rem;
+}
+.qb-config { background: var(--gray-50); border-right: 1px solid var(--gray-200); padding: 1.3rem; }
+.qb-config .qc-lbl { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--gray-400); margin: 1.1rem 0 .45rem; }
+.qb-config .qc-lbl:first-child { margin-top: 0; }
+.qb-select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-size: .86rem; background: var(--white); color: var(--dark); font-family: inherit; cursor: pointer; }
+.qb-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10, 123, 123, .12); }
+.chip-row { display: flex; flex-wrap: wrap; gap: .4rem; }
+.qchip { display: inline-flex; align-items: center; gap: .35rem; font-size: .78rem; font-weight: 600; border-radius: 20px; padding: 4px 10px; cursor: pointer; border: 1.5px solid var(--gray-200); background: #fff; color: var(--gray-600); transition: .12s; }
+.qchip:hover { border-color: var(--primary); }
+.qchip.on { background: #d6efef; border-color: var(--primary); color: #066; }
+.qb-export { margin-top: 1.3rem; width: 100%; }
+
+.qb-result { padding: 1.3rem 1.5rem; min-width: 0; }
+.qb-result-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .4rem; flex-wrap: wrap; gap: .6rem; }
+.qb-result-head h3 { font-size: 1.05rem; }
+.qb-result-head .meta { font-size: .78rem; color: var(--gray-400); }
+.qb-toggle { display: inline-flex; border: 1.5px solid var(--gray-200); border-radius: 8px; overflow: hidden; margin: .3rem 0 1rem; }
+.qb-toggle button { border: none; background: #fff; padding: 5px 14px; font-size: .8rem; font-weight: 600; color: var(--gray-600); cursor: pointer; font-family: inherit; }
+.qb-toggle button.on { background: var(--primary); color: #fff; }
+.qb-table .qb-total { font-weight: 700; }
+.qb-table .qb-total td { border-top: 2px solid var(--gray-200); }
+
+@media (max-width: 900px) {
+  .qb { grid-template-columns: 1fr; }
+}
+
+
 .report-header { align-items: flex-start; }
 .report-header p { color: var(--gray-400); font-size: 0.85rem; margin-top: 0.2rem; }
 .report-actions { display: flex; align-items: center; gap: 0.6rem; }

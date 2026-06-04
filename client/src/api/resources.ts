@@ -3,6 +3,7 @@ import type {
   Member, MemberDetail, Partner, Consultation, InsurancePlan, Enrolment,
   TriageSession, TriageSummary, DashboardData, AnalyticsReport,
   Claim, ClaimDetail, ClaimDocument, ClaimsResponse,
+  AnalyticsQueryResult, AnalyticsMeasureOption,
 } from '../types';
 
 // Dashboard
@@ -12,6 +13,14 @@ export async function getDashboard(): Promise<DashboardData> {
 
 export async function dismissOnboarding(): Promise<void> {
   await api.post('/dashboard/onboarding/dismiss', { dismissed: true });
+}
+
+export async function getAnalyticsQueryOptions(): Promise<{ measures: AnalyticsMeasureOption[] }> {
+  return (await api.get('/analytics/query/options')).data;
+}
+
+export async function getAnalyticsQuery(measure: string, dimension: string, months: number): Promise<AnalyticsQueryResult> {
+  return (await api.get('/analytics/query', { params: { measure, dimension, months } })).data;
 }
 
 // Analytics & reporting

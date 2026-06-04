@@ -16,6 +16,7 @@ import memberPortalRoutes from './memberPortal.routes';
 import developerRoutes from './developer.routes';
 import providerRoutes from './provider.routes';
 import settingsRoutes from './settings.routes';
+import inboxRoutes from './inbox.routes';
 
 const router = Router();
 
@@ -36,5 +37,6 @@ router.use('/member', memberPortalRoutes);
 router.use('/developer', developerRoutes);
 router.use('/provider', providerRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/inbox', inboxRoutes);
 
 export default router;

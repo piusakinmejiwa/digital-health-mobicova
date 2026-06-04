@@ -325,6 +325,37 @@ outbound webhooks. Org admins manage both from **API & webhooks** (`/settings/de
   Migration `017_create_public_api.sql` adds the `api_keys`, `webhook_endpoints`, and
   `webhook_deliveries` tables.
 
+## Inbox / Action centre
+
+The **Inbox** (`/inbox`, with an unread count in the sidebar) is a prioritised queue of everything
+that needs a decision. Items are **derived live** from business rules each request (never stored), so
+they can't go stale:
+
+- **Urgent** — claims open past the 5-day SLA; webhook endpoints with recent delivery failures.
+- **To review** — newly submitted claims; active enrolments with an unpaid premium.
+- **System** — failing webhooks.
+- **Done today** — a read-only activity feed from the audit log.
+
+Each card carries inline actions that deep-link into the right flow (Claims, Insurance, API &
+webhooks). "Mark all read" / "Dismiss" persist a per-tenant read flag (`inbox_reads`, migration
+`021_create_inbox_reads.sql`); `GET /inbox`, `POST /inbox/read`.
+
+## Analytics query builder
+
+The **Analytics** page leads with an ad-hoc **query builder**: pick a **measure** (Members,
+Enrolments, Consultations, Premium ₦, Claims) and **group by** a dimension (Plan, Month, Channel,
+Status), and it recomputes a Recharts bar chart (max bar highlighted amber) or a table with % of
+total — driven by a real server aggregation (`GET /analytics/query`, allow-listed SQL fragments) over
+the selected window, with CSV export. The full scheduled report sits below it as before.
+
+## Help & docs, API console
+
+- **Help & docs** (`/docs`) — a three-pane docs centre (guides nav · article · on-this-page) with
+  starter guides; deep-linkable (`/docs?a=auth`) and surfaced in the ⌘K palette.
+- **API console** — a **Console** tab on the **API & webhooks** page that calls your org's real
+  read-only data and renders it as syntax-highlighted JSON in the public-API `{ data, pagination }`
+  shape (`GET /developer/console`, session-authenticated so no raw key is exposed in the browser).
+
 ## Billing & subscription
 
 Org admins see their MobiCova subscription at **Billing & plan** (`/settings/billing`):

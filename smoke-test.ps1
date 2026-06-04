@@ -2,6 +2,7 @@
   MobiCova API smoke test — verifies the shipped features end-to-end:
     Q1 Audit log · Q2 Roles · Q4 2FA · Q5 Bulk import · Q6 Claims · Q7 Analytics
     Q3 SAML SSO · Q8 Public API · Q9 Provider portal · Q10 Member portal
+    SaaS Phases 1-4: onboarding · billing · branding · analytics builder · inbox · API console · marketing
 
   Usage (PowerShell, from the repo root):
     # against a local server (npm run dev in server/, after npm run migrate + npm run seed)
@@ -134,6 +135,11 @@ if ($otp.devCode) {
   $crossed = $null
   try { $crossed = Invoke-RestMethod -Uri "$BaseUrl/members" -Headers $MH } catch { $crossed = "blocked" }
   Check "member token rejected on staff API" { $crossed -eq "blocked" }
+  # Member app extras (Phase 1/2): branding on /me + AI symptom check.
+  Check "member /me carries branding"    { $null -ne $mme.branding.primaryColor }
+  $tri = Invoke-RestMethod -Method Post -Uri "$BaseUrl/member/triage" -Headers $MH `
+    -ContentType "application/json" -Body (@{ message = "I have a mild headache" } | ConvertTo-Json)
+  Check "member AI symptom check replies" { $tri.id -and $tri.messages.Count -ge 2 }
 }
 
 # --- Q8: public API + webhooks -------------------------------------------
@@ -187,6 +193,32 @@ try {
   Write-Host "  (skipped — run 'npm run seed' to create demo providers)" -ForegroundColor DarkGray
 }
 
+# --- Phases 1-4: SaaS features ------------------------------------------
+Write-Host "`nSaaS  Onboarding · Billing · Branding · Analytics QB · Inbox · API console · Marketing"
+$dash = Invoke-RestMethod -Uri "$BaseUrl/dashboard" -Headers $H
+Check "dashboard carries onboarding (6 steps)" { $null -ne $dash.onboarding -and $dash.onboarding.steps.Count -eq 6 }
+$bill = Invoke-RestMethod -Uri "$BaseUrl/billing/account" -Headers $H
+Check "billing: plan + usage + 4 tiers"  { $bill.plan.name -and $bill.usage.Count -ge 1 -and $bill.tiers.Count -eq 4 }
+$brand = Invoke-RestMethod -Uri "$BaseUrl/settings/branding" -Headers $H
+Check "branding returns colours"         { $brand.primaryColor -like "#*" }
+# Branding round-trip: change display name then restore it.
+$origName = $brand.displayName
+$putBrand = Invoke-RestMethod -Method Put -Uri "$BaseUrl/settings/branding" -Headers $H `
+  -ContentType "application/json" -Body (@{ displayName = "SMOKE TEST Brand"; primaryColor = $brand.primaryColor; accentColor = $brand.accentColor } | ConvertTo-Json)
+Check "branding update persists"         { $putBrand.displayName -eq "SMOKE TEST Brand" }
+Invoke-RestMethod -Method Put -Uri "$BaseUrl/settings/branding" -Headers $H -ContentType "application/json" `
+  -Body (@{ displayName = $origName } | ConvertTo-Json) | Out-Null
+$qb = Invoke-RestMethod -Uri "$BaseUrl/analytics/query?measure=Members&dimension=Channel&months=12" -Headers $H
+Check "analytics query: rows + total"    { $null -ne $qb.rows -and $null -ne $qb.total }
+$inbox = Invoke-RestMethod -Uri "$BaseUrl/inbox" -Headers $H
+Check "inbox: items + counts + unread"   { $null -ne $inbox.items -and $null -ne $inbox.counts }
+$console = Invoke-RestMethod -Uri "$BaseUrl/developer/console?endpoint=members&limit=3" -Headers $H
+Check "API console: data + pagination"   { $null -ne $console.data -and $null -ne $console.pagination }
+# Marketing lead capture (public, unauthenticated).
+$lead = Invoke-RestMethod -Method Post -Uri "$BaseUrl/leads" -ContentType "application/json" `
+  -Body (@{ email = "smoke.lead@test.demo"; company = "SMOKE TEST Co"; partnerType = "Insurer / underwriter" } | ConvertTo-Json)
+Check "marketing lead captured"          { $lead.received -eq $true }
+
 # --- Q1: audit log -------------------------------------------------------
 Write-Host "`nQ1  Audit log"
 $audit = Invoke-RestMethod -Uri "$BaseUrl/admin/audit" -Headers $H
@@ -205,5 +237,5 @@ Check "SP metadata XML is served"      { $meta.Content -like "*EntityDescriptor*
 # --- summary -------------------------------------------------------------
 Write-Host "`n----------------------------------------" -ForegroundColor Cyan
 Write-Host "  $pass passed, $fail failed" -ForegroundColor $(if ($fail) { "Red" } else { "Green" })
-Write-Host "  Reminder: delete the 'SMOKE TEST Aragon' member (Q5) and the 'SMOKE TEST Clinic' claim (Q6).`n" -ForegroundColor DarkGray
+Write-Host "  Reminder: delete the 'SMOKE TEST Aragon' member, 'SMOKE TEST Clinic' claim, and 'SMOKE TEST Co' demo lead.`n" -ForegroundColor DarkGray
 if ($fail) { exit 1 }

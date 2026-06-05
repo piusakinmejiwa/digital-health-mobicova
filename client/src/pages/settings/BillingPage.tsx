@@ -142,7 +142,7 @@ export default function BillingPage() {
                       <td>{inv.plan}</td>
                       <td>{naira(inv.amount)}</td>
                       <td><span className="badge badge-green">{inv.status}</span></td>
-                      <td><button className="link-sm" onClick={() => undefined} title="Demo">PDF</button></td>
+                      <td><span className="muted small" title="Invoice PDFs are generated in production">PDF —</span></td>
                     </tr>
                   ))}
                 </tbody>

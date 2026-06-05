@@ -36,6 +36,16 @@ const PRICING = [
   { name: 'Enterprise', price: 'Custom', features: ['Unlimited members', 'SSO + custom SLA', 'Dedicated CSM', 'On-prem option'], cta: 'Contact sales', cls: 'btn-primary' },
 ];
 
+// Real partner names from the ecosystem — shown as wordmarks (no logo files needed).
+const TRUST = ['AXA Mansard', 'Leadway', 'Hygeia HMO', 'MTN', 'HealthPlus'];
+
+// Footer columns. Each link scrolls to a section or navigates to a route — no dead links.
+const FOOT_COLS: { h: string; items: [string, string][] }[] = [
+  { h: 'Platform', items: [['Telemedicine', 'services'], ['AI Assistant', 'services'], ['Insurance', 'services'], ['Channels', 'services']] },
+  { h: 'Company', items: [['About', 'audiences'], ['Partners', 'audiences'], ['Careers', 'demo'], ['Contact', 'demo']] },
+  { h: 'Developers', items: [['API docs', '/login'], ['Webhooks', '/login'], ['Pricing', 'pricing'], ['Security', '/login']] },
+];
+
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -45,6 +55,9 @@ export default function MarketingPage() {
   const navigate = useNavigate();
   const [aud, setAud] = useState<AudKey>('insurer');
   const a = AUD[aud];
+
+  // Footer link target: a route ('/…') navigates, anything else scrolls to a section.
+  const footGo = (t: string) => (t.startsWith('/') ? navigate(t) : scrollTo(t));
 
   // Demo form
   const [form, setForm] = useState({ email: '', company: '', partnerType: '', memberBand: '' });
@@ -101,8 +114,7 @@ export default function MarketingPage() {
           <div className="trust">
             <div className="lb">Trusted by partners across the ecosystem</div>
             <div className="logos">
-              <div className="imgph">insurer logo</div><div className="imgph">HMO logo</div>
-              <div className="imgph">telco logo</div><div className="imgph">employer logo</div>
+              {TRUST.map((n) => <span key={n} className="logo-chip">{n}</span>)}
             </div>
           </div>
         </div>
@@ -127,7 +139,17 @@ export default function MarketingPage() {
               <ul>{a.li.map((x) => <li key={x}>{x}</li>)}</ul>
               <button className="btn btn-primary aud-cta" onClick={() => scrollTo('demo')}>Book a demo →</button>
             </div>
-            <div className="imgph aud-shot">{a.shot}</div>
+            <div className="aud-shot">
+              <div className="shot-bar"><i /><i /><i /></div>
+              <div className="shot-body">
+                <div className="shot-kpis"><span /><span /><span /></div>
+                <div className="shot-chart">
+                  <i style={{ height: '42%' }} /><i style={{ height: '68%' }} /><i style={{ height: '54%' }} />
+                  <i className="hi" style={{ height: '92%' }} /><i style={{ height: '63%' }} /><i style={{ height: '78%' }} />
+                </div>
+                <div className="shot-cap">{a.shot}</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -242,9 +264,14 @@ export default function MarketingPage() {
               <div className="brand"><span className="m">M</span> MobiCova</div>
               <p className="foot-blurb">Digital health infrastructure connecting Africans to care, on any phone.</p>
             </div>
-            <div><h5>Platform</h5><span>Telemedicine</span><span>AI Assistant</span><span>Insurance</span><span>Channels</span></div>
-            <div><h5>Company</h5><span>About</span><span>Partners</span><span>Careers</span><span>Contact</span></div>
-            <div><h5>Developers</h5><span>API docs</span><span>Webhooks</span><span>Status</span><span>Security</span></div>
+            {FOOT_COLS.map((col) => (
+              <div key={col.h}>
+                <h5>{col.h}</h5>
+                {col.items.map(([label, t]) => (
+                  <a key={label} onClick={() => footGo(t)}>{label}</a>
+                ))}
+              </div>
+            ))}
           </div>
           <div className="bottom">
             <span>© 2026 MobiCova. All rights reserved.</span>

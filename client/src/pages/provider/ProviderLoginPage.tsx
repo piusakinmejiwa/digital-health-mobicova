@@ -7,8 +7,8 @@ import './Provider.css';
 export default function ProviderLoginPage() {
   const { login } = useProviderAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('doctor@mobicova.demo');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -53,9 +53,6 @@ export default function ProviderLoginPage() {
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
-        <div className="demo-hint">
-          <strong>Demo:</strong> doctor@mobicova.demo · pharmacist@mobicova.demo / password123
-        </div>
       </div>
     </div>
   );

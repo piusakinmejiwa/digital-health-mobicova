@@ -25,7 +25,7 @@ const SSO_ERRORS: Record<string, string> = {
 
 export default function LoginPage() {
   const { register, handleSubmit } = useForm<FormValues>({
-    defaultValues: { email: 'admin@axamansard.demo', password: 'password123' },
+    defaultValues: { email: '', password: '' },
   });
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -182,9 +182,6 @@ export default function LoginPage() {
               <button className="btn btn-secondary btn-block" onClick={() => { setError(''); setSsoMode(true); }}>
                 Sign in with SSO
               </button>
-              <div className="demo-hint">
-                <strong>Demo:</strong> admin@axamansard.demo / password123
-              </div>
               <p className="auth-switch">
                 New partner? <Link to="/register">Create an organisation</Link>
               </p>

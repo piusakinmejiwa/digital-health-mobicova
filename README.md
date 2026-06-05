@@ -51,7 +51,7 @@ npm run dev               # http://localhost:5173
 ### Demo login (after seeding)
 
 - **Email:** `admin@axamansard.demo`
-- **Password:** `password123`
+- **Password:** `MobiCova!Demo-2026` (override with the `DEMO_SEED_PASSWORD` env var before seeding)
 
 ## Environment
 
@@ -289,7 +289,7 @@ deliver care. It's a third, isolated auth domain alongside staff and members.
   pharmacist: `GET /provider/prescriptions`, `PATCH /provider/prescriptions/:id/dispense`.
 
 **Demo providers** (after `npm run seed`): `doctor@mobicova.demo` and `pharmacist@mobicova.demo`,
-both `password123`. The seed also drops a consult into the doctor's queue and a prescription into the
+both `MobiCova!Demo-2026`. The seed also drops a consult into the doctor's queue and a prescription into the
 pharmacist's, so both portals have something to show immediately.
 
 ## Public API & webhooks

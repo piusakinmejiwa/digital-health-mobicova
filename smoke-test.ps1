@@ -17,7 +17,7 @@
 param(
   [string]$BaseUrl  = "http://localhost:4000/api/v1",
   [string]$Email    = "admin@axamansard.demo",
-  [string]$Password = "password123",
+  [string]$Password = "MobiCova!Demo-2026",
   [string]$Slug     = "axa-mansard-health",
   # Optional pre-minted admin bearer token. Supply this when the admin account
   # has 2FA enabled (password login then returns an MFA challenge, not a token).
@@ -169,7 +169,7 @@ Invoke-RestMethod -Method Delete -Uri "$BaseUrl/developer/api-keys/$($key.id)" -
 Write-Host "`nQ9  Provider portal"
 try {
   $doc = Invoke-RestMethod -Method Post -Uri "$BaseUrl/provider/auth/login" `
-    -ContentType "application/json" -Body (@{ email = "doctor@mobicova.demo"; password = "password123" } | ConvertTo-Json)
+    -ContentType "application/json" -Body (@{ email = "doctor@mobicova.demo"; password = "MobiCova!Demo-2026" } | ConvertTo-Json)
   Check "doctor signs in"                  { $doc.token -and $doc.provider.role -eq "doctor" }
   $DH = @{ Authorization = "Bearer $($doc.token)" }
   $consults = Invoke-RestMethod -Uri "$BaseUrl/provider/consultations" -Headers $DH
@@ -184,7 +184,7 @@ try {
   Check "provider token rejected on staff API" { $crossed -eq "blocked" }
 
   $pharm = Invoke-RestMethod -Method Post -Uri "$BaseUrl/provider/auth/login" `
-    -ContentType "application/json" -Body (@{ email = "pharmacist@mobicova.demo"; password = "password123" } | ConvertTo-Json)
+    -ContentType "application/json" -Body (@{ email = "pharmacist@mobicova.demo"; password = "MobiCova!Demo-2026" } | ConvertTo-Json)
   Check "pharmacist signs in"              { $pharm.token -and $pharm.provider.role -eq "pharmacist" }
   $PH = @{ Authorization = "Bearer $($pharm.token)" }
   $rx = Invoke-RestMethod -Uri "$BaseUrl/provider/prescriptions" -Headers $PH

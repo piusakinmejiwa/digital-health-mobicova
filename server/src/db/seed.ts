@@ -1,6 +1,11 @@
 import bcrypt from 'bcryptjs';
 import { pool, query } from '../config/database';
 
+// Password for the demo accounts (admin + providers). Override per-deployment
+// with DEMO_SEED_PASSWORD so the real value never needs to live in the repo.
+// Deliberately NOT 'password123' — that was previously exposed on the login page.
+const DEMO_PASSWORD = process.env.DEMO_SEED_PASSWORD || 'MobiCova!Demo-2026';
+
 const partners = [
   // Telemedicine providers
   ['Helium Health', 'telemedicine', 'Licensed physicians, clinical protocols, specialist networks', 'National', 'MDCN-registered network'],
@@ -92,7 +97,7 @@ async function seed() {
       ['AXA Mansard Health', 'axa-mansard-health', 'insurer', 'growth']
     );
     const orgId = org.rows[0].id;
-    const passwordHash = await bcrypt.hash('password123', 12);
+    const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
     await query(
       `INSERT INTO users (org_id, email, password_hash, full_name, role, is_platform_admin)
        VALUES ($1, $2, $3, $4, 'admin', true)`,
@@ -115,8 +120,9 @@ async function seed() {
       );
     }
   } else {
-    console.log('Demo organisation already exists — ensuring platform-admin access.');
-    await query('UPDATE users SET is_platform_admin = true WHERE email = $1', [demoEmail]);
+    console.log('Demo organisation already exists — ensuring platform-admin access + rotating password.');
+    const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+    await query('UPDATE users SET is_platform_admin = true, password_hash = $2 WHERE email = $1', [demoEmail, passwordHash]);
   }
 
   await seedProviders();
@@ -130,7 +136,7 @@ async function seed() {
 // re-run against an already-seeded database.
 async function seedProviders() {
   console.log('Seeding demo providers...');
-  const passwordHash = await bcrypt.hash('password123', 12);
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
 
   const telco = await query(`SELECT id FROM partners WHERE name = 'Helium Health' LIMIT 1`);
   const pharma = await query(`SELECT id FROM partners WHERE name = 'HealthPlus' LIMIT 1`);
@@ -143,7 +149,10 @@ async function seedProviders() {
 
   async function upsertProvider(email: string, fullName: string, role: string, specialty: string, partnerId: string) {
     const exists = await query('SELECT id FROM providers WHERE email = $1', [email]);
-    if (exists.rows.length > 0) return exists.rows[0].id;
+    if (exists.rows.length > 0) {
+      await query('UPDATE providers SET password_hash = $1 WHERE id = $2', [passwordHash, exists.rows[0].id]);
+      return exists.rows[0].id;
+    }
     const r = await query(
       `INSERT INTO providers (partner_id, full_name, email, password_hash, role, specialty)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,

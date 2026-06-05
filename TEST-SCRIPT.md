@@ -34,9 +34,9 @@ This single document covers everything in two parts:
 ### Logins
 | Role | Email | Password |
 |------|-------|----------|
-| Partner **admin** | `admin@axamansard.demo` | `password123` |
-| Provider — **doctor** | `doctor@mobicova.demo` | `password123` |
-| Provider — **pharmacist** | `pharmacist@mobicova.demo` | `password123` |
+| Partner **admin** | `admin@axamansard.demo` | `MobiCova!Demo-2026` |
+| Provider — **doctor** | `doctor@mobicova.demo` | `MobiCova!Demo-2026` |
+| Provider — **pharmacist** | `pharmacist@mobicova.demo` | `MobiCova!Demo-2026` |
 | **Member** (portal) | `amaka.obi@member.demo` | *no password — uses a one-time code* |
 
 > 🔐 **Important — the admin account has two-factor authentication (2FA) switched on.**

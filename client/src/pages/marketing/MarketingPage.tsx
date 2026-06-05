@@ -14,7 +14,7 @@ const AUD: Record<AudKey, { tab: string; h: string; p: string; li: string[]; sho
     h: 'Distribute & service micro-insurance at scale.',
     p: 'Reach the informal market over USSD, enrol in seconds, and reconcile premiums & commission automatically.',
     li: ['NAICOM-ready reporting & returns', 'Premium & commission reconciliation', 'Claims workflow + public API'],
-    shot: 'Reaching the informal market, on any phone',
+    shot: 'Enrolment, premiums & claims — in real time',
     photo: '/images/insurer.jpg',
   },
   employer: {
@@ -22,7 +22,7 @@ const AUD: Record<AudKey, { tab: string; h: string; p: string; li: string[]; sho
     h: 'Give every employee health cover that actually gets used.',
     p: 'Onboard your whole roster from a spreadsheet, then let staff book doctors and submit claims from their phone.',
     li: ['Bulk CSV member import', 'Telemedicine & AI triage for staff', 'Utilisation & engagement analytics'],
-    shot: 'Cover your whole team, wherever they are',
+    shot: 'Connected care, from sign-up to the pharmacy counter',
     photo: '/images/employer.jpg',
   },
   telco: {
@@ -30,7 +30,7 @@ const AUD: Record<AudKey, { tab: string; h: string; p: string; li: string[]; sho
     h: 'Turn your subscriber base into a health distribution channel.',
     p: 'Bundle cover and teleconsults with airtime, enrol over USSD, and attribute every member to your network.',
     li: ['USSD-native enrolment', 'Per-partner join codes & attribution', 'White-label member experience'],
-    shot: 'Health, bundled with the network they already use',
+    shot: 'Reaching every member, on any phone',
     photo: '/images/telco.jpg',
   },
 };

@@ -4,30 +4,41 @@ import { useAuth } from '../../context/AuthContext';
 import { submitLead } from '../../api/marketing';
 import './Marketing.css';
 
+// Self-hosted photos (royalty-free, Pexels License) — files live in public/images/.
+const HERO_PHOTO = '/images/hero.jpg';
+
 type AudKey = 'insurer' | 'employer' | 'telco';
-const AUD: Record<AudKey, { tab: string; h: string; p: string; li: string[]; shot: string }> = {
+const AUD: Record<AudKey, { tab: string; h: string; p: string; li: string[]; shot: string; photo: string }> = {
   insurer: {
     tab: 'Insurers',
     h: 'Distribute & service micro-insurance at scale.',
     p: 'Reach the informal market over USSD, enrol in seconds, and reconcile premiums & commission automatically.',
     li: ['NAICOM-ready reporting & returns', 'Premium & commission reconciliation', 'Claims workflow + public API'],
-    shot: 'insurer dashboard — enrolments & commission',
+    shot: 'Reaching the informal market, on any phone',
+    photo: '/images/insurer.jpg',
   },
   employer: {
     tab: 'Employers',
     h: 'Give every employee health cover that actually gets used.',
     p: 'Onboard your whole roster from a spreadsheet, then let staff book doctors and submit claims from their phone.',
     li: ['Bulk CSV member import', 'Telemedicine & AI triage for staff', 'Utilisation & engagement analytics'],
-    shot: 'employer view — roster & utilisation',
+    shot: 'Cover your whole team, wherever they are',
+    photo: '/images/employer.jpg',
   },
   telco: {
     tab: 'Telcos',
     h: 'Turn your subscriber base into a health distribution channel.',
     p: 'Bundle cover and teleconsults with airtime, enrol over USSD, and attribute every member to your network.',
     li: ['USSD-native enrolment', 'Per-partner join codes & attribution', 'White-label member experience'],
-    shot: 'telco view — USSD funnel & attribution',
+    shot: 'Health, bundled with the network they already use',
+    photo: '/images/telco.jpg',
   },
 };
+
+// Hide a missing photo so the parent's gradient fallback shows (never a broken icon).
+function hideImg(e: React.SyntheticEvent<HTMLImageElement>) {
+  e.currentTarget.style.display = 'none';
+}
 
 const PRICING = [
   { name: 'Starter', price: '₦60k', features: ['Up to 2,000 members', 'All 3 services', 'WhatsApp + USSD', 'Email support'], cta: 'Start free trial', cls: 'btn-secondary' },
@@ -104,12 +115,19 @@ export default function MarketingPage() {
       {/* Hero */}
       <section className="hero">
         <div className="mk-wrap">
-          <span className="eyebrow">Health Platform · Distributor · Infrastructure</span>
-          <h1>Health cover, telemedicine &amp; AI triage for <em>every African</em>, on any phone.</h1>
-          <p>One platform for insurers, employers and telcos to enrol members and deliver care — over an app, WhatsApp or USSD.</p>
-          <div className="cta">
-            <button className="btn btn-amber btn-lg" onClick={() => scrollTo('demo')}>Book a demo →</button>
-            <button className="btn btn-outline btn-lg" onClick={() => scrollTo('services')}>See how it works</button>
+          <div className="hero-grid">
+            <div className="hero-copy">
+              <span className="eyebrow">Health Platform · Distributor · Infrastructure</span>
+              <h1>Health cover, telemedicine &amp; AI triage for <em>every African</em>, on any phone.</h1>
+              <p>One platform for insurers, employers and telcos to enrol members and deliver care — over an app, WhatsApp or USSD.</p>
+              <div className="cta">
+                <button className="btn btn-amber btn-lg" onClick={() => scrollTo('demo')}>Book a demo →</button>
+                <button className="btn btn-outline btn-lg" onClick={() => scrollTo('services')}>See how it works</button>
+              </div>
+            </div>
+            <div className="hero-media">
+              <img src={HERO_PHOTO} alt="A MobiCova member accessing health care in a Nigerian clinic" onError={hideImg} />
+            </div>
           </div>
           <div className="trust">
             <div className="lb">Trusted by partners across the ecosystem</div>
@@ -140,15 +158,8 @@ export default function MarketingPage() {
               <button className="btn btn-primary aud-cta" onClick={() => scrollTo('demo')}>Book a demo →</button>
             </div>
             <div className="aud-shot">
-              <div className="shot-bar"><i /><i /><i /></div>
-              <div className="shot-body">
-                <div className="shot-kpis"><span /><span /><span /></div>
-                <div className="shot-chart">
-                  <i style={{ height: '42%' }} /><i style={{ height: '68%' }} /><i style={{ height: '54%' }} />
-                  <i className="hi" style={{ height: '92%' }} /><i style={{ height: '63%' }} /><i style={{ height: '78%' }} />
-                </div>
-                <div className="shot-cap">{a.shot}</div>
-              </div>
+              <img src={a.photo} alt={`${a.tab} — MobiCova members`} onError={hideImg} />
+              <div className="shot-cap">{a.shot}</div>
             </div>
           </div>
         </div>

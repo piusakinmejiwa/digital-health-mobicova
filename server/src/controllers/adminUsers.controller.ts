@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import { passwordIssue } from '../lib/password';
+import { randomPlaceholderSecret } from '../lib/invites';
+import { sendAdminWelcome } from '../lib/onboarding';
 import { recordAudit } from '../lib/audit';
 
 // Platform-admin management of the dashboard users that belong to partner
@@ -36,13 +38,16 @@ export async function adminCreateUser(req: Request, res: Response): Promise<void
     res.status(400).json({ error: 'orgId, email and fullName are required' });
     return;
   }
-  const pwIssue = passwordIssue(password);
-  if (pwIssue) {
-    res.status(400).json({ error: pwIssue });
-    return;
+  // Password is OPTIONAL: omit it to send a "set your password" activation email.
+  if (password) {
+    const pwIssue = passwordIssue(password);
+    if (pwIssue) {
+      res.status(400).json({ error: pwIssue });
+      return;
+    }
   }
 
-  const org = await query('SELECT 1 FROM organisations WHERE id = $1', [orgId]);
+  const org = await query('SELECT name, slug FROM organisations WHERE id = $1', [orgId]);
   if (org.rows.length === 0) {
     res.status(404).json({ error: 'Organisation not found' });
     return;
@@ -54,7 +59,8 @@ export async function adminCreateUser(req: Request, res: Response): Promise<void
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const needsActivation = !password;
+  const passwordHash = await bcrypt.hash(password || randomPlaceholderSecret(), 12);
   const result = await query(
     `INSERT INTO users (org_id, email, password_hash, full_name, role, is_platform_admin)
      VALUES ($1, $2, $3, $4, $5, $6)
@@ -62,6 +68,10 @@ export async function adminCreateUser(req: Request, res: Response): Promise<void
     [orgId, email, passwordHash, fullName, role, Boolean(isPlatformAdmin)]
   );
   const created = result.rows[0];
+  await sendAdminWelcome({
+    userId: created.id, email, fullName,
+    orgName: org.rows[0].name, orgSlug: org.rows[0].slug, needsActivation,
+  });
   await recordAudit(req, {
     action: 'user.create',
     targetType: 'user',

@@ -215,8 +215,8 @@ export default function OrgsAdmin() {
                 <input value={creating.adminEmail} onChange={(e) => setCreating({ ...creating, adminEmail: e.target.value })} placeholder="admin@partner.com" />
               </div>
               <div className="form-group form-span-2">
-                <label>Admin password {creating.adminEmail.trim() ? '(min 8 characters)' : ''}</label>
-                <input type="text" value={creating.adminPassword} onChange={(e) => setCreating({ ...creating, adminPassword: e.target.value })} placeholder="Set a temporary password" disabled={!creating.adminEmail.trim()} />
+                <label>Admin password {creating.adminEmail.trim() ? '(optional — min 8 characters)' : ''}</label>
+                <input type="text" value={creating.adminPassword} onChange={(e) => setCreating({ ...creating, adminPassword: e.target.value })} placeholder="Leave blank to email a set-password link" disabled={!creating.adminEmail.trim()} />
               </div>
             </div>
             <div className="modal-actions">
@@ -279,7 +279,7 @@ export default function OrgsAdmin() {
             <ul className="provisioned-summary">
               <li>Join code: <code>{provisioned.org.join_code}</code> — members type this on WhatsApp/USSD to enrol.</li>
               {provisioned.admin
-                ? <li>Admin login: <code>{provisioned.admin.email}</code> — share the password you set so they can sign in.</li>
+                ? <li>Admin login: <code>{provisioned.admin.email}</code> — they’ll get a welcome email with their branded sign-in link (and a “set your password” link if you left the password blank).</li>
                 : <li className="muted">No admin user was created. Add one from the Users tab when ready.</li>}
             </ul>
             <div className="modal-actions">

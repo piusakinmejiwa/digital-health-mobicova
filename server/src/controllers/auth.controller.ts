@@ -7,6 +7,7 @@ import { JwtPayload } from '../middleware/auth';
 import { isPlatformAdmin } from '../middleware/platformAdmin';
 import { generateJoinCode } from '../lib/org';
 import { orgClass } from '../lib/orgTypes';
+import { hashToken } from '../lib/invites';
 import { passwordIssue } from '../lib/password';
 import {
   generateTotpSecret,
@@ -356,4 +357,37 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     mfaEnabled: user.totp_enabled,
     isPlatformAdmin: await isPlatformAdmin(req.user.userId),
   });
+}
+
+// POST /auth/activate { token, password } — an invited admin sets their password
+// via the link in their welcome email. Public; the token is the credential.
+export async function activateAccount(req: Request, res: Response): Promise<void> {
+  const token = String(req.body?.token || '');
+  const password = String(req.body?.password || '');
+  if (!token) {
+    res.status(400).json({ error: 'Invalid activation link.' });
+    return;
+  }
+  const issue = passwordIssue(password);
+  if (issue) {
+    res.status(400).json({ error: issue });
+    return;
+  }
+  const result = await query(
+    `SELECT id, email FROM users
+      WHERE activation_token_hash = $1 AND activation_expires > NOW()`,
+    [hashToken(token)]
+  );
+  if (result.rows.length === 0) {
+    res.status(400).json({ error: 'This activation link is invalid or has expired. Ask your administrator to resend it.' });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(password, 12);
+  await query(
+    `UPDATE users
+        SET password_hash = $2, activation_token_hash = NULL, activation_expires = NULL, updated_at = NOW()
+      WHERE id = $1`,
+    [result.rows[0].id, passwordHash]
+  );
+  res.json({ ok: true, email: result.rows[0].email });
 }

@@ -38,6 +38,12 @@ export const env = {
   // the flow is testable without an SMS/WhatsApp gateway. Turn OFF in a real
   // deployment that has a delivery channel wired up.
   otpDevMode: process.env.OTP_DEV_MODE === 'true',
+  // Transactional email (welcome / activation messages). When RESEND_API_KEY is
+  // unset, email is in "demo mode": messages are logged, not sent — nothing
+  // breaks (same graceful-degradation pattern as Stripe/WhatsApp). Set the key +
+  // a verified EMAIL_FROM to switch on real delivery via Resend.
+  resendApiKey: process.env.RESEND_API_KEY || '',
+  emailFrom: process.env.EMAIL_FROM || 'MobiCova <onboarding@mobicova.com>',
   // Comma-separated emails granted platform-admin access to the catalog Admin UI.
   platformAdminEmails: (process.env.PLATFORM_ADMIN_EMAILS || '')
     .split(',')

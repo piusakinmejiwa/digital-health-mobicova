@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import { generateJoinCode, uniqueSlug } from '../lib/org';
 import { passwordIssue } from '../lib/password';
+import { randomPlaceholderSecret } from '../lib/invites';
+import { sendAdminWelcome } from '../lib/onboarding';
 import { recordAudit } from '../lib/audit';
 
 // Platform-admin management of partner organisations (tenants). Behind
@@ -34,11 +36,15 @@ export async function adminCreateOrg(req: Request, res: Response): Promise<void>
   }
 
   // If provisioning an admin alongside the org, validate before creating anything.
+  // Password is OPTIONAL: omit it to send a "set your password" activation email
+  // instead of setting/sharing a password manually.
   if (adminEmail) {
-    const pwIssue = passwordIssue(adminPassword);
-    if (pwIssue) {
-      res.status(400).json({ error: `Admin ${pwIssue.charAt(0).toLowerCase()}${pwIssue.slice(1)}` });
-      return;
+    if (adminPassword) {
+      const pwIssue = passwordIssue(adminPassword);
+      if (pwIssue) {
+        res.status(400).json({ error: `Admin ${pwIssue.charAt(0).toLowerCase()}${pwIssue.slice(1)}` });
+        return;
+      }
     }
     const clash = await query('SELECT 1 FROM users WHERE email = $1', [adminEmail]);
     if (clash.rows.length > 0) {
@@ -58,7 +64,8 @@ export async function adminCreateOrg(req: Request, res: Response): Promise<void>
 
   let adminUser = null;
   if (adminEmail) {
-    const passwordHash = await bcrypt.hash(adminPassword, 12);
+    const needsActivation = !adminPassword;
+    const passwordHash = await bcrypt.hash(adminPassword || randomPlaceholderSecret(), 12);
     const userResult = await query(
       `INSERT INTO users (org_id, email, password_hash, full_name, role)
        VALUES ($1, $2, $3, $4, 'admin')
@@ -66,6 +73,11 @@ export async function adminCreateOrg(req: Request, res: Response): Promise<void>
       [org.id, adminEmail, passwordHash, adminFullName || 'Admin']
     );
     adminUser = userResult.rows[0];
+    // Best-effort welcome email (activation link if no password was set).
+    await sendAdminWelcome({
+      userId: adminUser.id, email: adminEmail, fullName: adminFullName || 'Admin',
+      orgName: org.name, orgSlug: org.slug, needsActivation,
+    });
   }
 
   await recordAudit(req, {

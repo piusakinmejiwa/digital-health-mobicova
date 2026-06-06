@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { query, pool } from '../config/database';
+import { sendMemberWelcome } from '../lib/onboarding';
 
 export async function listMembers(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
@@ -71,7 +72,18 @@ export async function createMember(req: Request, res: Response): Promise<void> {
       channel || 'app', bloodGroup || '', allergies || [], chronicConditions || [], currentMedications || [],
     ]
   );
-  res.status(201).json(result.rows[0]);
+  const member = result.rows[0];
+
+  // Best-effort welcome email with portal access instructions (if they have one).
+  if (member.email) {
+    const org = await query('SELECT name, join_code FROM organisations WHERE id = $1', [orgId]);
+    await sendMemberWelcome({
+      email: member.email, fullName: member.full_name,
+      orgName: org.rows[0]?.name || 'MobiCova', joinCode: org.rows[0]?.join_code || '',
+    });
+  }
+
+  res.status(201).json(member);
 }
 
 // Bulk member import. Accepts a `members` array (parsed from a CSV upload on

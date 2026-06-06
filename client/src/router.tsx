@@ -4,6 +4,7 @@ import MarketingPage from './pages/marketing/MarketingPage';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import ActivatePage from './pages/auth/ActivatePage';
 import SsoCallbackPage from './pages/auth/SsoCallbackPage';
 import SsoSettingsPage from './pages/settings/SsoSettingsPage';
 import SecuritySettingsPage from './pages/settings/SecuritySettingsPage';
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
   // Branded per-organisation login (themed to the org's white-label branding).
   { path: '/o/:slug/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/activate', element: <ActivatePage /> },
   { path: '/sso/callback', element: <SsoCallbackPage /> },
 
   // --- Member self-service portal (separate auth domain) ---

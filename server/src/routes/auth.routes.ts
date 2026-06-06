@@ -4,6 +4,7 @@ import {
   register,
   login,
   getMe,
+  activateAccount,
   mfaChallenge,
   mfaSetup,
   mfaEnable,
@@ -37,6 +38,14 @@ router.post(
 );
 
 router.get('/me', authenticate, asyncHandler(getMe));
+
+// Account activation — an invited admin sets their password (public; token-gated).
+router.post(
+  '/activate',
+  [body('token').notEmpty(), body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')],
+  validate,
+  asyncHandler(activateAccount)
+);
 
 // --- Multi-factor authentication (TOTP) ---
 // Second login step: exchange the pending token + a code for a session (public,

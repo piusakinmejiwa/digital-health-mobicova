@@ -352,3 +352,36 @@ A branded entry point per organisation, themed to its white-label branding:
 
 ### Still optional (not built)
 - **Subdomain-based** `<slug>.digitalhealth.mobicova.com` — needs wildcard DNS + cert. Say the word.
+
+---
+
+## 15. Onboarding emails — automation (BUILT ✅)
+
+Real transactional email with **graceful degradation** (provider: **Resend**, HTTP API, no new npm
+dependency). With no API key set, emails are **logged not sent** — nothing breaks; set the key to go live.
+
+**What sends, automatically:**
+- **New org admin** (Admin Console → onboard org with an admin, or Users → add user): a **welcome
+  email** with the org's **branded login URL** (`/o/<slug>/login`). If you leave the password blank,
+  it instead contains a secure **"Set your password"** activation link (no plaintext passwords).
+- **New member** (Members → add, with an email): a **welcome email** with the **member portal link**
+  + how to sign in (one-time code, no password) + the org's WhatsApp/USSD **join code**.
+
+**New pieces:**
+- `lib/email.ts` (Resend + fallback), `lib/emailTemplates.ts`, `lib/invites.ts` (activation tokens,
+  SHA-256 hashed), `lib/onboarding.ts` (best-effort orchestration — never breaks account creation).
+- Migration **030**: `users.activation_token_hash` + `activation_expires`.
+- `POST /auth/activate` + client `/activate` page (set password from the email link).
+- Admin create flows: **password is now optional** (blank ⇒ activation email).
+
+**You must provision (one-time) to switch on real sending:**
+1. Create a **Resend** account, **verify your sending domain** (e.g. `mobicova.com`).
+2. On Render (API service) set env vars:
+   - `RESEND_API_KEY=<key>`
+   - `EMAIL_FROM=MobiCova <onboarding@yourdomain>`
+   - (optional) confirm `CLIENT_URL` is your real client origin — links are built from it.
+3. Run `npm run migrate` (applies 030).
+
+Until those are set, onboarding still works exactly as before; the would-be emails are just logged.
+A future enhancement could batch-email members on **bulk CSV import** (currently single-add only,
+to avoid accidental mass-sends).

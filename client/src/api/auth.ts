@@ -28,6 +28,12 @@ export async function getMe(): Promise<User> {
   return res.data;
 }
 
+// Invited admin sets their password from the welcome-email activation link.
+export async function activateAccount(data: { token: string; password: string }): Promise<{ ok: boolean; email: string }> {
+  const res = await api.post('/auth/activate', data);
+  return res.data;
+}
+
 // --- MFA self-service (Security settings) ---
 export async function getMfaStatus(): Promise<MfaStatus> {
   const res = await api.get('/auth/mfa/status');

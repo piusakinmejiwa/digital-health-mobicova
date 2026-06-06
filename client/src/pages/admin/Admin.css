@@ -4,6 +4,17 @@
   justify-content: space-between;
   padding: 0.5rem 0.25rem 1rem;
 }
+.admin-filter {
+  border: 1px solid var(--gray-200, #e2ebf0);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--gray-800, #1e2f30);
+  cursor: pointer;
+}
+.admin-filter:focus { outline: none; border-color: var(--primary, #0a7b7b); }
 
 .admin-actions {
   display: flex;

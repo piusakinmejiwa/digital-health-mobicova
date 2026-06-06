@@ -9,11 +9,8 @@ import {
 import type { SsoConfigInput } from '../../api/sso';
 import SsoConfigEditor from '../../components/sso/SsoConfigEditor';
 import { useAuth } from '../../context/AuthContext';
+import { ORG_TYPES, orgTypeLabel, orgClassBadge, orgClassOf } from '../../lib/orgTypes';
 
-const ORG_TYPES = [
-  'company', 'underwriter', 'telco', 'fintech', 'cooperative',
-  'clinic', 'pharmacy', 'diagnostics', 'ehr', 'distribution',
-];
 const PLAN_TIERS = ['starter', 'growth', 'scale', 'enterprise'];
 
 function errMessage(err: unknown, fallback: string): string {
@@ -36,6 +33,15 @@ export default function OrgsAdmin() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | { org: Organisation; admin?: AdminUser }>(null);
+  const [typeFilter, setTypeFilter] = useState('');
+
+  const allOrgs = orgs ?? [];
+  const filtered = typeFilter ? allOrgs.filter((o) => o.type === typeFilter) : allOrgs;
+  // Count organisations per type, for the filter dropdown + summary.
+  const countsByType = allOrgs.reduce<Record<string, number>>((acc, o) => {
+    acc[o.type] = (acc[o.type] || 0) + 1;
+    return acc;
+  }, {});
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['admin-orgs'] });
@@ -104,7 +110,22 @@ export default function OrgsAdmin() {
   return (
     <div className="card">
       <div className="admin-toolbar">
-        <span className="muted small">{orgs?.length ?? 0} organisations</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="muted small">
+            {filtered.length} of {allOrgs.length} organisation{allOrgs.length === 1 ? '' : 's'}
+          </span>
+          <select
+            className="admin-filter"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            aria-label="Filter by type"
+          >
+            <option value="">All types</option>
+            {ORG_TYPES.filter((t) => countsByType[t]).map((t) => (
+              <option key={t} value={t}>{orgTypeLabel(t)} ({countsByType[t]})</option>
+            ))}
+          </select>
+        </div>
         <button className="btn btn-primary btn-sm" onClick={openNew}>+ Onboard organisation</button>
       </div>
       <table className="table">
@@ -112,10 +133,13 @@ export default function OrgsAdmin() {
           <tr><th>Name</th><th>Type</th><th>Tier</th><th>Join code</th><th>Members</th><th>Users</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
-          {orgs?.map((o) => (
+          {filtered.map((o) => (
             <tr key={o.id} className={o.is_active ? '' : 'row-inactive'}>
               <td><strong>{o.name}</strong><div className="muted small">{o.slug}</div></td>
-              <td className="muted small">{o.type}</td>
+              <td>
+                <span className={`badge ${orgClassBadge(o.type)}`}>{orgTypeLabel(o.type)}</span>
+                <div className="muted small">{orgClassOf(o.type)}</div>
+              </td>
               <td className="muted small">{o.plan_tier}</td>
               <td><code>{o.join_code}</code></td>
               <td className="muted small">{o.member_count}</td>
@@ -145,14 +169,17 @@ export default function OrgsAdmin() {
           ))}
         </tbody>
       </table>
-      {(!orgs || orgs.length === 0) && <p className="empty-state">No organisations yet. Onboard one to get started.</p>}
+      {allOrgs.length === 0 && <p className="empty-state">No organisations yet. Onboard one to get started.</p>}
+      {allOrgs.length > 0 && filtered.length === 0 && (
+        <p className="empty-state">No {orgTypeLabel(typeFilter).toLowerCase()} organisations yet.</p>
+      )}
 
       {/* ---- Onboard (create) modal ---- */}
       {creating && (
         <div className="drawer-overlay" onClick={() => setCreating(null)}>
           <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
             <h3>Onboard organisation</h3>
-            <p className="muted small">Create a partner tenant and, optionally, its first admin user in one step.</p>
+            <p className="muted small">Create any organisation — underwriter, company, telco, clinic or pharmacy — and, optionally, its first admin user in one step.</p>
             {error && <div className="notice notice-error">{error}</div>}
             <div className="form-grid">
               <div className="form-group">
@@ -166,7 +193,7 @@ export default function OrgsAdmin() {
               <div className="form-group">
                 <label>Organisation type</label>
                 <select value={creating.type} onChange={(e) => setCreating({ ...creating, type: e.target.value })}>
-                  {ORG_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {ORG_TYPES.map((t) => <option key={t} value={t}>{orgTypeLabel(t)}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -220,7 +247,7 @@ export default function OrgsAdmin() {
               <div className="form-group">
                 <label>Organisation type</label>
                 <select value={editing.type} onChange={(e) => setEditing({ ...editing, type: e.target.value })}>
-                  {ORG_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {ORG_TYPES.map((t) => <option key={t} value={t}>{orgTypeLabel(t)}</option>)}
                 </select>
               </div>
               <div className="form-group">

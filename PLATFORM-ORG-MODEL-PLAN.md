@@ -54,6 +54,19 @@
 
 **Deliberately staged to Phase 3/4 (not a gap):** the org-type *capability middleware* (route gating) and the *member-care projection* enforcement land **with** the supply-org dashboards that consume them. Data isolation for supply orgs is **already enforced today** by the universal `org_id` WHERE-clauses, so deferring the gating changes UX, not security.
 
+### Phase 3 — DONE (unified Admin Console; client-only, build green)
+
+- **`client/src/lib/orgTypes.ts`** — client mirror of the server org-type metadata (labels, class, class→badge colour).
+- **Organisations tab upgrade** (platform admin):
+  - **Filter by type** (dropdown showing each type with its count).
+  - **Friendly type labels + a class badge** (demand / supply / integration) per row.
+  - "X of Y organisations" count; type-aware empty state.
+  - Create/Edit type dropdowns use the full 10-type set with friendly labels; onboarding copy reframed from "partner tenant" to any organisation type.
+- Creating a supply org **with its first admin** already works via the existing onboarding flow (admin = a `users` row scoped to that org → inherits isolation).
+- **No schema / no server change** → nothing to migrate; just deploy.
+
+**Deferred to Phase 4 (with reason):** "create a clinic/pharmacy *with its first clinician*" in the same flow needs the **provider login to move off its `partner_id` key onto the org model** — doing it now would create non-functional provider logins. It lands in Phase 4 alongside the supply-org dashboards + capability gating.
+
 ---
 
 ## 1. Goal

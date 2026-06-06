@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CallScreen, { type CallProvider } from '../../components/member/CallScreen';
-import { logMemberConsultation, getMemberDoctors } from '../../api/member';
+import PrescriptionTracker from '../../components/member/PrescriptionTracker';
+import { logMemberConsultation, getMemberDoctors, getMemberOverview } from '../../api/member';
 import './Member.css';
 import './Call.css';
 
@@ -13,6 +14,8 @@ export default function MemberCarePage() {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ['member-doctors'], queryFn: getMemberDoctors });
   const doctors = data?.doctors ?? [];
+  const { data: overview } = useQuery({ queryKey: ['member-overview'], queryFn: getMemberOverview });
+  const prescriptions = overview?.prescriptions ?? [];
   const [call, setCall] = useState<{ mode: 'video' | 'voice'; provider: CallProvider } | null>(null);
 
   // When a call ends, log it as a consultation (shows in Recent care + the partner dashboard).
@@ -57,6 +60,20 @@ export default function MemberCarePage() {
         })}
         {doctors.length === 0 && <p className="m-muted">No doctors are available right now — please check back shortly.</p>}
         <p className="m-muted">Connect instantly with a licensed doctor — consultations are delivered through MobiCova’s provider partners.</p>
+
+        {/* Your prescriptions — choose pickup/delivery and track fulfilment */}
+        {prescriptions.length > 0 && (
+          <>
+            <div className="m-sec-h">Your prescriptions</div>
+            {prescriptions.map((rx) => (
+              <PrescriptionTracker
+                key={rx.id}
+                rx={rx}
+                onUpdated={() => qc.invalidateQueries({ queryKey: ['member-overview'] })}
+              />
+            ))}
+          </>
+        )}
 
         {/* AI symptom check */}
         <div className="m-sec-h">Not sure? Check a symptom first</div>

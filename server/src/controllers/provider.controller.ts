@@ -220,7 +220,9 @@ export async function addProviderPrescription(req: Request, res: Response): Prom
 const RX_SELECT = `
   SELECT rx.id, rx.consultation_id, rx.member_id, m.full_name AS member_name,
          rx.medication, rx.dosage, rx.instructions, rx.pharmacy_partner,
-         rx.fulfilment_status, rx.dispensed_at, rx.created_at,
+         rx.fulfilment_status, rx.fulfilment_method, rx.delivery_address,
+         rx.courier_name, rx.tracking_ref, rx.dispensed_at, rx.ready_at,
+         rx.dispatched_at, rx.completed_at, rx.created_at,
          c.diagnosis, c.doctor_name
   FROM prescriptions rx
   JOIN members m ON rx.member_id = m.id
@@ -253,23 +255,49 @@ export async function listProviderPrescriptions(req: Request, res: Response): Pr
   res.json({ prescriptions: result.rows, counts: counts.rows });
 }
 
-// PATCH /provider/prescriptions/:id/dispense — mark a prescription dispensed.
-export async function dispensePrescription(req: Request, res: Response): Promise<void> {
+// Fulfilment state machine. Pickup: pending → ready → collected.
+// Delivery: pending → ready → out_for_delivery → delivered.
+// (legacy 'dispensed' rows can still be closed out.)
+const RX_TRANSITIONS: Record<string, string[]> = {
+  pending: ['ready'],
+  ready: ['out_for_delivery', 'collected'],
+  out_for_delivery: ['delivered'],
+  dispensed: ['out_for_delivery', 'collected', 'delivered'],
+};
+
+// PATCH /provider/prescriptions/:id/advance — move a prescription to the next
+// fulfilment status (pharmacist), stamping the relevant time + courier details.
+export async function advancePrescription(req: Request, res: Response): Promise<void> {
   const partnerId = req.provider!.partnerId;
   const id = String(req.params.id);
+  const status = String(req.body?.status || '');
   const partner = await query('SELECT name FROM partners WHERE id = $1', [partnerId]);
   const partnerName = partner.rows[0]?.name || '';
 
-  const result = await query(
-    `UPDATE prescriptions rx
-        SET fulfilment_status = 'dispensed', dispensed_at = NOW()
-      WHERE rx.id = $3 AND ${RX_MATCH} AND rx.fulfilment_status <> 'dispensed'
-      RETURNING *`,
-    [partnerId, partnerName, id]
-  );
-  if (result.rows.length === 0) {
-    res.status(409).json({ error: 'This prescription is not available to dispense.' });
+  const cur = await query(`SELECT rx.* FROM prescriptions rx WHERE rx.id = $3 AND ${RX_MATCH}`, [partnerId, partnerName, id]);
+  if (cur.rows.length === 0) {
+    res.status(404).json({ error: 'Prescription not found for your pharmacy.' });
     return;
   }
+  const allowed = RX_TRANSITIONS[cur.rows[0].fulfilment_status] || [];
+  if (!allowed.includes(status)) {
+    res.status(409).json({ error: `Cannot move from ${cur.rows[0].fulfilment_status} to ${status}.` });
+    return;
+  }
+
+  const sets = ['fulfilment_status = $2'];
+  const params: unknown[] = [id, status];
+  if (status === 'ready') sets.push('ready_at = NOW()', 'dispensed_at = COALESCE(dispensed_at, NOW())');
+  if (status === 'out_for_delivery') {
+    sets.push('dispatched_at = NOW()');
+    params.push(String(req.body?.courierName || 'MobiCova Rider').slice(0, 160));
+    sets.push(`courier_name = $${params.length}`);
+    const ref = String(req.body?.trackingRef || `TRK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`).slice(0, 60);
+    params.push(ref);
+    sets.push(`tracking_ref = $${params.length}`);
+  }
+  if (status === 'collected' || status === 'delivered') sets.push('completed_at = NOW()');
+
+  const result = await query(`UPDATE prescriptions SET ${sets.join(', ')} WHERE id = $1 RETURNING *`, params as any[]);
   res.json(result.rows[0]);
 }

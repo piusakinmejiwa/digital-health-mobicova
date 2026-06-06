@@ -4,7 +4,7 @@ import {
   providerLogin, getProviderMe,
   listProviderConsultations, getProviderConsultation, acceptConsultation,
   updateProviderConsultation, addProviderPrescription, listPharmacies,
-  listProviderPrescriptions, dispensePrescription,
+  listProviderPrescriptions, advancePrescription,
 } from '../controllers/provider.controller';
 import { authenticateProvider, requireProviderRole } from '../middleware/providerAuth';
 import { validate } from '../middleware/validate';
@@ -40,6 +40,6 @@ router.post(
 // Pharmacist — dispensary.
 const pharmacistOnly = [authenticateProvider, requireProviderRole('pharmacist')];
 router.get('/prescriptions', pharmacistOnly, asyncHandler(listProviderPrescriptions));
-router.patch('/prescriptions/:id/dispense', pharmacistOnly, asyncHandler(dispensePrescription));
+router.patch('/prescriptions/:id/advance', pharmacistOnly, [body('status').trim().notEmpty()], validate, asyncHandler(advancePrescription));
 
 export default router;

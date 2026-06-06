@@ -78,3 +78,14 @@ export async function getMemberDoctors(): Promise<{ doctors: import('../types').
   const res = await memberApi.get('/member/doctors');
   return res.data;
 }
+
+// Choose how a prescription reaches the member: pickup at the pharmacy or
+// courier delivery to an address. Returns the updated prescription row.
+export async function setPrescriptionFulfilment(
+  id: string,
+  method: 'pickup' | 'delivery',
+  address?: string
+): Promise<import('../types').Prescription> {
+  const res = await memberApi.post(`/member/prescriptions/${id}/fulfilment`, { method, address });
+  return res.data;
+}

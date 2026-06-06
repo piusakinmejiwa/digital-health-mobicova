@@ -185,6 +185,40 @@ export async function getMemberMe(req: Request, res: Response): Promise<void> {
   res.json({ ...result.rows[0], counts: counts.rows[0], branding });
 }
 
+// POST /member/prescriptions/:id/fulfilment — the member chooses pickup or
+// courier delivery (with an address) for one of their prescriptions.
+export async function setPrescriptionFulfilment(req: Request, res: Response): Promise<void> {
+  const memberId = req.member!.memberId;
+  const id = String(req.params.id);
+  const method = String(req.body?.method || '');
+  const address = String(req.body?.address || '').slice(0, 400);
+
+  if (!['pickup', 'delivery'].includes(method)) {
+    res.status(400).json({ error: 'Choose pickup or delivery.' });
+    return;
+  }
+  if (method === 'delivery' && !address.trim()) {
+    res.status(400).json({ error: 'A delivery address is required.' });
+    return;
+  }
+
+  const cur = await query('SELECT fulfilment_status FROM prescriptions WHERE id = $1 AND member_id = $2', [id, memberId]);
+  if (cur.rows.length === 0) {
+    res.status(404).json({ error: 'Prescription not found' });
+    return;
+  }
+  if (['collected', 'delivered'].includes(cur.rows[0].fulfilment_status)) {
+    res.status(409).json({ error: 'This prescription has already been fulfilled.' });
+    return;
+  }
+
+  const result = await query(
+    `UPDATE prescriptions SET fulfilment_method = $2, delivery_address = $3 WHERE id = $1 RETURNING *`,
+    [id, method, method === 'delivery' ? address : '']
+  );
+  res.json(result.rows[0]);
+}
+
 // GET /member/doctors — active doctors a member can call (telemedicine providers).
 export async function getMemberDoctors(_req: Request, res: Response): Promise<void> {
   const result = await query(

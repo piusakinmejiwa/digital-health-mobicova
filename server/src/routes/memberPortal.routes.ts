@@ -4,7 +4,7 @@ import { body } from 'express-validator';
 import {
   requestOtp, verifyOtp, getMemberMe, getMemberOverview,
   listMemberClaims, getMemberClaim, createMemberClaim, memberTriage, createMemberConsultation,
-  getMemberDoctors,
+  getMemberDoctors, setPrescriptionFulfilment,
 } from '../controllers/memberPortal.controller';
 import { authenticateMember } from '../middleware/memberAuth';
 import { validate } from '../middleware/validate';
@@ -35,5 +35,6 @@ router.get('/claims/:id', authenticateMember, asyncHandler(getMemberClaim));
 router.post('/claims', authenticateMember, [body('amount').notEmpty()], validate, asyncHandler(createMemberClaim));
 router.post('/triage', authenticateMember, [body('message').trim().notEmpty()], validate, asyncHandler(memberTriage));
 router.post('/consultations', authenticateMember, asyncHandler(createMemberConsultation));
+router.post('/prescriptions/:id/fulfilment', authenticateMember, [body('method').trim().notEmpty()], validate, asyncHandler(setPrescriptionFulfilment));
 
 export default router;

@@ -47,9 +47,27 @@ const statusClass: Record<string, string> = {
   under_review: 'badge-amber',
   approved: 'badge-green',
   rejected: 'badge-red',
+  // Prescription fulfilment statuses
+  ready: 'badge-amber',
+  dispensed: 'badge-green',
+  out_for_delivery: 'badge-blue',
+  collected: 'badge-green',
+  delivered: 'badge-green',
 };
 export function badgeClass(status: string): string {
   return statusClass[status] || 'badge-gray';
+}
+
+const fulfilmentLabels: Record<string, string> = {
+  pending: 'Awaiting pharmacy',
+  ready: 'Ready for you',
+  dispensed: 'Dispensed',
+  out_for_delivery: 'Out for delivery',
+  collected: 'Collected',
+  delivered: 'Delivered',
+};
+export function fulfilmentLabel(status: string): string {
+  return fulfilmentLabels[status] || status || 'Awaiting pharmacy';
 }
 
 const claimStatusLabels: Record<string, string> = {

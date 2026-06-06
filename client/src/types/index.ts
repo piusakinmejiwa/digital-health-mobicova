@@ -140,6 +140,13 @@ export interface Prescription {
   instructions: string;
   pharmacy_partner: string;
   fulfilment_status: string;
+  fulfilment_method?: string;   // '' | pickup | delivery
+  delivery_address?: string;
+  courier_name?: string;
+  tracking_ref?: string;
+  ready_at?: string | null;
+  dispatched_at?: string | null;
+  completed_at?: string | null;
   created_at: string;
 }
 
@@ -367,7 +374,14 @@ export interface ProviderPrescription {
   instructions: string;
   pharmacy_partner: string;
   fulfilment_status: string;
+  fulfilment_method: string;   // '' | pickup | delivery
+  delivery_address: string;
+  courier_name: string;
+  tracking_ref: string;
   dispensed_at: string | null;
+  ready_at: string | null;
+  dispatched_at: string | null;
+  completed_at: string | null;
   created_at: string;
   diagnosis: string;
   doctor_name: string;

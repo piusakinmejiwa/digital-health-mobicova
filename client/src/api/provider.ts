@@ -60,6 +60,15 @@ export async function getProviderPrescriptions(status?: string): Promise<Provide
   return res.data;
 }
 
-export async function dispensePrescription(id: string): Promise<void> {
-  await providerApi.patch(`/provider/prescriptions/${id}/dispense`);
+// Advance a prescription through its fulfilment state machine:
+//   pending → ready → (collected | out_for_delivery → delivered)
+// On 'out_for_delivery' the pharmacist can attach a courier + tracking ref;
+// otherwise the server auto-generates a tracking reference.
+export async function advancePrescription(
+  id: string,
+  status: 'ready' | 'out_for_delivery' | 'collected' | 'delivered',
+  data?: { courierName?: string; trackingRef?: string }
+): Promise<import('../types').ProviderPrescription> {
+  const res = await providerApi.patch(`/provider/prescriptions/${id}/advance`, { status, ...data });
+  return res.data;
 }

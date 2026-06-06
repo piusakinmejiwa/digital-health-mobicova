@@ -81,6 +81,9 @@
 }
 .prov-rx-row-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .prov-rx-row-meta { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.prov-rx-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.prov-rx-courier-in { width: 130px; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--border, #e2e8f0); border-radius: 8px; font-family: inherit; }
+.prov-rx-courier-in:focus { outline: none; border-color: var(--primary); }
 
 /* Drawer */
 .prov-drawer-backdrop {

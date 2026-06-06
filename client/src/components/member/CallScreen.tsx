@@ -15,11 +15,12 @@ type Phase = 'connecting' | 'connected' | 'ended';
 // "doctor" tile is the provider's photo/avatar. Falls back gracefully if the
 // browser blocks or lacks a camera/mic.
 export default function CallScreen({
-  mode, provider, onEnd,
+  mode, provider, onEnd, endNote,
 }: {
   mode: 'video' | 'voice';
   provider: CallProvider;
-  onEnd: () => void;
+  onEnd: (seconds: number) => void;
+  endNote?: string;
 }) {
   const [phase, setPhase] = useState<Phase>('connecting');
   const [seconds, setSeconds] = useState(0);
@@ -76,10 +77,11 @@ export default function CallScreen({
     streamRef.current?.getVideoTracks().forEach((t) => { t.enabled = !next; });
   };
   const end = () => {
+    const finalSecs = seconds;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     window.clearInterval(timerRef.current);
     setPhase('ended');
-    window.setTimeout(onEnd, 1700);
+    window.setTimeout(() => onEnd(finalSecs), 1700);
   };
 
   return (
@@ -128,7 +130,7 @@ export default function CallScreen({
         <div className="call-ended">
           <div className="call-ended-check">✓</div>
           <div className="call-ended-t">Consultation ended</div>
-          <div className="call-ended-s">{fmt(seconds)} · summary added to your records</div>
+          <div className="call-ended-s">{fmt(seconds)} · {endNote ?? 'summary added to your records'}</div>
         </div>
       )}
 

@@ -63,3 +63,12 @@ export async function sendMemberTriage(message: string, sessionId?: string): Pro
   const res = await memberApi.post('/member/triage', { message, sessionId });
   return res.data;
 }
+
+// Log a completed telemedicine call as a consultation (shows in recent care + dashboard).
+export async function logMemberConsultation(data: {
+  mode: 'video' | 'voice';
+  doctorName: string;
+  durationSeconds: number;
+}): Promise<void> {
+  await memberApi.post('/member/consultations', data);
+}

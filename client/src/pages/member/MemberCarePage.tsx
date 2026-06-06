@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import CallScreen, { type CallProvider } from '../../components/member/CallScreen';
+import { logMemberConsultation } from '../../api/member';
 import './Member.css';
 import './Call.css';
 
@@ -16,7 +18,21 @@ const initials = (n: string) => n.replace(/^Dr\.?\s*/i, '').split(' ').map((w) =
 
 export default function MemberCarePage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [call, setCall] = useState<{ mode: 'video' | 'voice'; provider: CallProvider } | null>(null);
+
+  // When a call ends, log it as a consultation (shows in Recent care + the partner dashboard).
+  const endCall = (seconds: number) => {
+    if (call) {
+      logMemberConsultation({ mode: call.mode, doctorName: call.provider.name, durationSeconds: seconds })
+        .then(() => {
+          qc.invalidateQueries({ queryKey: ['member-overview'] });
+          qc.invalidateQueries({ queryKey: ['member-me'] });
+        })
+        .catch(() => { /* best-effort; don't block the UI */ });
+    }
+    setCall(null);
+  };
 
   return (
     <div className="m-screen">
@@ -60,7 +76,7 @@ export default function MemberCarePage() {
       </div>
 
       {call && (
-        <CallScreen mode={call.mode} provider={call.provider} onEnd={() => setCall(null)} />
+        <CallScreen mode={call.mode} provider={call.provider} onEnd={endCall} />
       )}
     </div>
   );

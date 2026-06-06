@@ -381,3 +381,40 @@ export async function memberTriage(req: Request, res: Response): Promise<void> {
   );
   res.json(updated.rows[0]);
 }
+
+// POST /member/consultations — log a completed telemedicine call as a consultation
+// so it appears in the member's "recent care" and the partner's dashboard. Tries to
+// attribute it to the called doctor's provider + partner; falls back to the first
+// telemedicine partner otherwise.
+export async function createMemberConsultation(req: Request, res: Response): Promise<void> {
+  const memberId = req.member!.memberId;
+  const orgId = req.member!.orgId;
+  const { mode, doctorName, durationSeconds } = req.body;
+
+  const m = ['video', 'voice'].includes(String(mode)) ? String(mode) : 'video';
+  const name = (doctorName ? String(doctorName) : 'MobiCova Doctor').slice(0, 255);
+
+  let partnerId: string | null = null;
+  let providerId: string | null = null;
+  const prov = await query('SELECT id, partner_id FROM providers WHERE full_name = $1 LIMIT 1', [name]);
+  if (prov.rows.length > 0) {
+    providerId = prov.rows[0].id;
+    partnerId = prov.rows[0].partner_id;
+  }
+  if (!partnerId) {
+    const p = await query(`SELECT id FROM partners WHERE category = 'telemedicine' ORDER BY name LIMIT 1`);
+    partnerId = p.rows[0]?.id ?? null;
+  }
+
+  const secs = Math.max(0, Math.floor(Number(durationSeconds) || 0));
+  const notes = `${m === 'voice' ? 'Voice' : 'Video'} consultation · ${Math.floor(secs / 60)}m ${secs % 60}s`;
+
+  const result = await query(
+    `INSERT INTO consultations
+       (org_id, member_id, partner_id, provider_id, mode, channel, reason, scheduled_at, status, doctor_name, notes)
+     VALUES ($1, $2, $3, $4, $5, 'app', 'Telemedicine consultation', NOW(), 'completed', $6, $7)
+     RETURNING *`,
+    [orgId, memberId, partnerId, providerId, m, name, notes]
+  );
+  res.status(201).json(result.rows[0]);
+}

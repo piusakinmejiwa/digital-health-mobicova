@@ -5,6 +5,7 @@ import {
   updateConsultation, addPrescription,
 } from '../../api/provider';
 import { formatDateTime, badgeClass, age } from '../../lib/format';
+import CallScreen from '../../components/member/CallScreen';
 import './Provider.css';
 
 const STATUS_TABS = [
@@ -82,6 +83,7 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [rx, setRx] = useState({ medication: '', dosage: '', instructions: '', pharmacyPartner: '' });
+  const [call, setCall] = useState<'video' | 'voice' | null>(null);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['prov-consult', id] });
@@ -131,6 +133,13 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               <div><span className="prov-label">Allergies</span>{c.allergies?.length ? c.allergies.join(', ') : 'None recorded'}</div>
               <div><span className="prov-label">Chronic conditions</span>{c.chronic_conditions?.length ? c.chronic_conditions.join(', ') : 'None recorded'}</div>
             </div>
+
+            {c.status !== 'completed' && (
+              <div className="prov-callbar">
+                <button className="btn btn-primary" onClick={() => setCall('video')}>📹 Join video call</button>
+                <button className="btn btn-secondary" onClick={() => setCall('voice')}>📞 Voice call</button>
+              </div>
+            )}
 
             {c.status === 'scheduled' ? (
               <button className="btn btn-primary btn-block" onClick={accept} disabled={busy}>
@@ -187,6 +196,15 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   )}
                 </div>
               </>
+            )}
+
+            {call && (
+              <CallScreen
+                mode={call}
+                provider={{ name: c.member_name, role: 'Patient' }}
+                endNote="add your notes and complete the consult"
+                onEnd={() => setCall(null)}
+              />
             )}
           </>
         )}

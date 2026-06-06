@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { body } from 'express-validator';
 import {
   requestOtp, verifyOtp, getMemberMe, getMemberOverview,
-  listMemberClaims, getMemberClaim, createMemberClaim, memberTriage,
+  listMemberClaims, getMemberClaim, createMemberClaim, memberTriage, createMemberConsultation,
 } from '../controllers/memberPortal.controller';
 import { authenticateMember } from '../middleware/memberAuth';
 import { validate } from '../middleware/validate';
@@ -32,5 +32,6 @@ router.get('/claims', authenticateMember, asyncHandler(listMemberClaims));
 router.get('/claims/:id', authenticateMember, asyncHandler(getMemberClaim));
 router.post('/claims', authenticateMember, [body('amount').notEmpty()], validate, asyncHandler(createMemberClaim));
 router.post('/triage', authenticateMember, [body('message').trim().notEmpty()], validate, asyncHandler(memberTriage));
+router.post('/consultations', authenticateMember, asyncHandler(createMemberConsultation));
 
 export default router;

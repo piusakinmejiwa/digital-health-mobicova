@@ -16,7 +16,7 @@ export async function getOrgBranding(orgId: string): Promise<OrgBranding> {
     query('SELECT * FROM org_branding WHERE org_id = $1', [orgId]),
     query('SELECT name FROM organisations WHERE id = $1', [orgId]),
   ]);
-  const orgName: string = org.rows[0]?.name || 'MobiCova';
+  const orgName: string = org.rows[0]?.name || 'MobiCova Health';
   const row = b.rows[0];
   return {
     displayName: row?.display_name || orgName,

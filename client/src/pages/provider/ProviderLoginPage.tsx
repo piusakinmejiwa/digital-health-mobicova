@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { providerLogin } from '../../api/provider';
 import { useProviderAuth } from '../../context/ProviderAuthContext';
+import BrandLogo from '../../components/common/BrandLogo';
 import './Provider.css';
 
 export default function ProviderLoginPage() {
@@ -31,11 +32,8 @@ export default function ProviderLoginPage() {
     <div className="prov-auth-wrap">
       <div className="prov-auth-card">
         <div className="prov-auth-brand">
-          <span className="logo-mark">M</span>
-          <div>
-            <strong>MobiCova</strong>
-            <span className="prov-auth-sub">Provider portal</span>
-          </div>
+          <BrandLogo chip />
+          <span className="prov-auth-sub">Provider portal</span>
         </div>
         <h2>Provider sign in</h2>
         <p className="muted">For clinicians and pharmacists at MobiCova partner organisations.</p>

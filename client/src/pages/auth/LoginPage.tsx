@@ -6,6 +6,7 @@ import { loginUser, mfaChallenge } from '../../api/auth';
 import { ssoStatus, beginSso } from '../../api/sso';
 import { getOrgBrandingBySlug, type OrgBrandingPublic } from '../../api/publicOrg';
 import { useAuth } from '../../context/AuthContext';
+import BrandLogo from '../../components/common/BrandLogo';
 import './Auth.css';
 
 interface FormValues {
@@ -131,7 +132,8 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap" style={brandStyle}>
       <div className="auth-hero">
-        <div className="logo-mark">{branding?.logoLetter || 'M'}</div>
+        <BrandLogo chip />
+
         <h1>The health platform behind Nigeria&rsquo;s insurers, employers &amp; telcos.</h1>
         <p>
           MobiCova connects your members to telemedicine, AI health guidance, and health-linked

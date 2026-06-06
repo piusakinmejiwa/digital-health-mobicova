@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { registerUser } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
+import BrandLogo from '../../components/common/BrandLogo';
 import './Auth.css';
 
 interface FormValues {
@@ -39,7 +40,8 @@ export default function RegisterPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-hero">
-        <div className="logo-mark">M</div>
+        <BrandLogo chip />
+
         <h1>Bring digital health to your members.</h1>
         <p>
           Onboard your organisation and start distributing telemedicine, AI health assistance,

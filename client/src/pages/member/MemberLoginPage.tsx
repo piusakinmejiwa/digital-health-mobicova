@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requestMemberOtp, verifyMemberOtp } from '../../api/member';
 import { useMemberAuth } from '../../context/MemberAuthContext';
+import BrandLogo from '../../components/common/BrandLogo';
 import './Member.css';
 
 // Passwordless sign-in: enter phone/email → receive a code → verify. In dev/demo
@@ -62,11 +63,8 @@ export default function MemberLoginPage() {
     <div className="member-auth-wrap">
       <div className="member-auth-card">
         <div className="member-auth-brand">
-          <span className="logo-mark">M</span>
-          <div>
-            <strong>MobiCova</strong>
-            <span className="member-auth-sub">Member portal</span>
-          </div>
+          <BrandLogo chip />
+          <span className="member-auth-sub">Member portal</span>
         </div>
 
         {step === 'identify' ? (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { activateAccount } from '../../api/auth';
+import BrandLogo from '../../components/common/BrandLogo';
 import './Auth.css';
 
 // Invited-admin activation: set a password using the token from the welcome
@@ -33,7 +34,8 @@ export default function ActivatePage() {
   return (
     <div className="auth-wrap">
       <div className="auth-hero">
-        <div className="logo-mark">M</div>
+        <BrandLogo chip />
+
         <h1>Set up your MobiCova account</h1>
         <p>Choose a password to activate your administrator access.</p>
       </div>

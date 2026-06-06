@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProviderAuth } from '../../context/ProviderAuthContext';
 import { PROVIDER_ORG_KEY } from '../../api/providerClient';
+import BrandLogo from '../common/BrandLogo';
 import '../../pages/provider/Provider.css';
 
 // Chrome for the clinician / pharmacist portal. A focused top bar — the role
@@ -37,11 +38,8 @@ export default function ProviderShell() {
     <div className="prov-app">
       <header className="prov-topbar">
         <div className="prov-brand">
-          <span className="logo-mark">M</span>
-          <div className="prov-brand-text">
-            <strong>MobiCova</strong>
-            <span>{roleLabel} portal</span>
-          </div>
+          <BrandLogo chip />
+          <span className="prov-brand-role">{roleLabel} portal</span>
         </div>
         <div className="prov-account">
           {orgs.length > 1 && (

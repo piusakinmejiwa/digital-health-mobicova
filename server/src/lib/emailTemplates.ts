@@ -8,12 +8,12 @@ const BRAND = '#0a7b7b';
 function shell(title: string, body: string): string {
   return `<!doctype html><html><body style="margin:0;background:#f6f9f9;font-family:Arial,Helvetica,sans-serif;color:#0d2a2a">
   <div style="max-width:560px;margin:0 auto;padding:24px">
-    <div style="font-size:20px;font-weight:800;color:${BRAND};margin-bottom:16px">MobiCova</div>
+    <div style="font-size:20px;font-weight:800;color:${BRAND};margin-bottom:16px">MobiCova Health</div>
     <div style="background:#fff;border:1px solid #e2ebf0;border-radius:14px;padding:24px">
       <h1 style="font-size:18px;margin:0 0 12px">${title}</h1>
       ${body}
     </div>
-    <p style="font-size:12px;color:#94a8ad;margin-top:16px">MobiCova Digital Health · This is an automated message.</p>
+    <p style="font-size:12px;color:#94a8ad;margin-top:16px">MobiCova Health · This is an automated message.</p>
   </div></body></html>`;
 }
 

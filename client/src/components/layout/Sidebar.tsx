@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { getInbox } from '../../api/inbox';
+import BrandLogo from '../common/BrandLogo';
 import './Sidebar.css';
 
 // Demand-side orgs (underwriters, companies, telcos) manage members & cover.
@@ -57,11 +58,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <span className="logo-mark">M</span>
-        <div className="logo-text">
-          <span className="logo-name">MobiCova</span>
-          <span className="logo-sub">Digital Health</span>
-        </div>
+        <BrandLogo chip />
       </div>
 
       <nav className="sidebar-nav">

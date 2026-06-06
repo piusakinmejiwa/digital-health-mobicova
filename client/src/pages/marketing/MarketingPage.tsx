@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { submitLead } from '../../api/marketing';
+import BrandLogo from '../../components/common/BrandLogo';
 import './Marketing.css';
 
 // Self-hosted photos (royalty-free, Pexels License) — files live in public/images/.
@@ -95,7 +96,7 @@ export default function MarketingPage() {
       {/* Nav */}
       <header className="mk-nav">
         <div className="mk-wrap in">
-          <div className="brand"><span className="m">M</span> MobiCova</div>
+          <div className="brand"><BrandLogo chip /></div>
           <nav className="links">
             <a onClick={() => scrollTo('services')}>Platform</a>
             <a onClick={() => scrollTo('audiences')}>Who it’s for</a>
@@ -272,7 +273,7 @@ export default function MarketingPage() {
         <div className="mk-wrap">
           <div className="cols">
             <div>
-              <div className="brand"><span className="m">M</span> MobiCova</div>
+              <div className="brand"><BrandLogo chip /></div>
               <p className="foot-blurb">Digital health infrastructure connecting Africans to care, on any phone.</p>
             </div>
             {FOOT_COLS.map((col) => (
@@ -285,7 +286,7 @@ export default function MarketingPage() {
             ))}
           </div>
           <div className="bottom">
-            <span>© 2026 MobiCova. All rights reserved.</span>
+            <span>© 2026 MobiCova Health. All rights reserved.</span>
             <span>Privacy · Terms · NDPR</span>
           </div>
         </div>

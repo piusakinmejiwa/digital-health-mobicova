@@ -174,7 +174,7 @@ export default function MarketingPage() {
         </div>
         <div className="mk-wrap">
           <div className="svc-grid">
-            <div className="svc"><div className="ic teal">✚</div><h3>Telemedicine</h3><p>Book and manage consultations with licensed-provider partners, with e-prescriptions fulfilled by pharmacy partners.</p></div>
+            <div className="svc"><div className="ic teal">✚</div><h3>Telemedicine</h3><p>Talk to licensed doctors over secure <b>video or voice calls</b>, with e-prescriptions fulfilled by pharmacy partners.</p></div>
             <div className="svc"><div className="ic amber">✦</div><h3>AI Health Assistant</h3><p>Symptom triage and health guidance powered by Claude, with a rule-based fallback so it always responds.</p></div>
             <div className="svc"><div className="ic blue">◎</div><h3>Health-linked Insurance</h3><p>Plan catalog, member enrolment and NGN-native premium checkout, with claims and commission reconciliation built in.</p></div>
           </div>

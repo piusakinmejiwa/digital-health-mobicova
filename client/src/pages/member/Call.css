@@ -1,0 +1,124 @@
+/* Telemedicine call screen — full-screen overlay (covers the member tab bar). */
+.call {
+  position: fixed; inset: 0; z-index: 1000;
+  background: #08201f; color: #fff; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+/* Remote (doctor) feed fills the screen */
+.call-remote { position: absolute; inset: 0; }
+.call-remote-vid { width: 100%; height: 100%; object-fit: cover; }
+.call-remote-grad {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8,32,31,.55) 0%, transparent 22% 60%, rgba(8,32,31,.85) 100%);
+}
+.call-voice .call-remote { background: radial-gradient(700px 400px at 50% 30%, #0a5a5a, #08201f 70%); }
+
+.call-bigavatar {
+  position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+  width: 120px; height: 120px; border-radius: 50%;
+  background: linear-gradient(140deg, #0a7b7b, #12a3a3);
+  display: grid; place-items: center; font-size: 2.6rem; font-weight: 800; color: #fff;
+}
+.call-bigavatar.lg { position: static; transform: none; width: 110px; height: 110px; }
+
+/* Top bar */
+.call-top {
+  position: relative; z-index: 3;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 1.4rem 1.2rem 0;
+}
+.call-who { display: flex; flex-direction: column; line-height: 1.25; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+.call-who b { font-size: 1.15rem; }
+.call-who span { font-size: .82rem; color: #cfe7e7; }
+.call-timer { display: flex; align-items: center; gap: .4rem; font-size: .9rem; font-weight: 600; background: rgba(0,0,0,.35); padding: 5px 11px; border-radius: 20px; }
+.call-rec { width: 8px; height: 8px; border-radius: 50%; background: #ff5d5d; animation: callpulse 1.4s infinite; }
+.call-enc { position: relative; z-index: 3; text-align: center; font-size: .72rem; color: #9fd3d3; margin-top: .4rem; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+
+/* Connecting overlay */
+.call-connecting {
+  position: absolute; inset: 0; z-index: 4;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem;
+  background: radial-gradient(700px 420px at 50% 38%, #0a5a5a, #08201f 72%);
+}
+.call-ring { position: relative; margin-bottom: 1rem; border-radius: 50%; }
+.call-ring::before, .call-ring::after {
+  content: ""; position: absolute; inset: -14px; border-radius: 50%;
+  border: 2px solid rgba(18,163,163,.6); animation: callring 2s infinite;
+}
+.call-ring::after { animation-delay: 1s; }
+.call-conn-name { font-size: 1.3rem; font-weight: 700; }
+.call-conn-sub { font-size: .85rem; color: #9fd3d3; }
+
+/* Self-view picture-in-picture */
+.call-self {
+  position: absolute; z-index: 5; right: 14px; bottom: 120px;
+  width: 104px; height: 150px; border-radius: 14px; overflow: hidden;
+  border: 2px solid rgba(255,255,255,.25); box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  background: #0d2a2a;
+}
+.call-self video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.call-self.off video { display: none; }
+.call-self-lbl { position: absolute; inset: 0; display: grid; place-items: center; font-size: .74rem; color: #9fd3d3; }
+
+/* Controls */
+.call-controls {
+  position: relative; z-index: 6; margin-top: auto;
+  display: flex; justify-content: center; gap: 1.4rem;
+  padding: 1.2rem 1rem calc(1.6rem + env(safe-area-inset-bottom, 0px));
+}
+.call-ctl {
+  display: flex; flex-direction: column; align-items: center; gap: .35rem;
+  background: none; border: none; color: #fff; font-family: inherit; font-size: .72rem; cursor: pointer;
+}
+.call-ico {
+  width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255,255,255,.16); font-size: 1.4rem; transition: background .15s;
+}
+.call-ctl:hover .call-ico { background: rgba(255,255,255,.26); }
+.call-ctl.active .call-ico { background: #fff; }
+.call-ctl.end .call-ico { background: #e5484d; }
+.call-ctl.end:hover .call-ico { background: #d33b40; }
+
+/* Ended overlay */
+.call-ended {
+  position: absolute; inset: 0; z-index: 7;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem;
+  background: radial-gradient(700px 420px at 50% 40%, #0a5a5a, #08201f 72%);
+}
+.call-ended-check {
+  width: 70px; height: 70px; border-radius: 50%; background: #16a34a;
+  display: grid; place-items: center; font-size: 2rem; margin-bottom: .6rem;
+}
+.call-ended-t { font-size: 1.2rem; font-weight: 700; }
+.call-ended-s { font-size: .85rem; color: #9fd3d3; }
+
+@keyframes callpulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes callring { 0% { transform: scale(.85); opacity: .8; } 100% { transform: scale(1.5); opacity: 0; } }
+
+/* ===== Care page — "talk to a doctor now" cards ===== */
+.m-doc {
+  background: #fff; border: 1px solid var(--border, #e2e8f0); border-radius: 14px;
+  padding: .9rem 1rem; margin-bottom: .8rem; box-shadow: var(--shadow, 0 1px 3px rgba(13,42,42,.08));
+}
+.m-doc-top { display: flex; align-items: center; gap: .8rem; }
+.m-doc-av { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; flex: none; }
+.m-doc-av-ph {
+  display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.1rem;
+  background: linear-gradient(140deg, var(--brand, #0a7b7b), var(--brand-2, #12a3a3));
+}
+.m-doc-info { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.m-doc-info b { font-size: .98rem; color: var(--dark, #0d2a2a); }
+.m-doc-info small { font-size: .8rem; color: var(--gray-400, #94a8ad); }
+.m-doc-status { font-size: .74rem; color: var(--gray-400, #94a8ad); margin-top: .15rem; }
+.m-doc-status.on { color: #16a34a; font-weight: 600; }
+.m-doc-actions { display: flex; gap: .6rem; margin-top: .85rem; }
+.m-doc-btn {
+  flex: 1; padding: .6rem; border-radius: 10px; font-family: inherit; font-size: .85rem; font-weight: 600;
+  cursor: pointer; border: 1.5px solid var(--brand, #0a7b7b); transition: .12s;
+}
+.m-doc-btn.video { background: var(--brand, #0a7b7b); color: #fff; }
+.m-doc-btn.video:hover:not(:disabled) { filter: brightness(1.06); }
+.m-doc-btn.voice { background: #fff; color: var(--brand, #0a7b7b); }
+.m-doc-btn.voice:hover:not(:disabled) { background: #f0f9f9; }
+.m-doc-btn:disabled { opacity: .45; cursor: not-allowed; }

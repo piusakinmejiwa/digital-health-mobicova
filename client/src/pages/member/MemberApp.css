@@ -102,6 +102,8 @@
 .m-btn.ghost { background: #fff; color: var(--primary, #0a7b7b); border: 1.5px solid var(--gray-200, #e2ebf0); }
 .m-btn.ghost:disabled { opacity: .6; cursor: not-allowed; }
 .m-btn.sm { width: auto; padding: .55rem .9rem; font-size: .8rem; border-radius: 10px; }
+.m-actions2 { display: flex; gap: .6rem; }
+.m-actions2 .m-btn { flex: 1; margin-top: 0; }
 .m-signout { color: #dc2626; border-color: #f3c5c5; }
 
 /* Form bits */

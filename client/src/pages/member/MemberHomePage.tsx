@@ -58,9 +58,14 @@ export default function MemberHomePage() {
           </div>
         </div>
 
-        <button className="m-btn primary m-mt" onClick={() => navigate('/member/claims')}>
-          ＋ Submit a claim
-        </button>
+        <div className="m-actions2 m-mt">
+          <button className="m-btn primary" onClick={() => navigate('/member/care')}>
+            📹 Talk to a doctor
+          </button>
+          <button className="m-btn ghost" onClick={() => navigate('/member/claims')}>
+            ＋ Submit a claim
+          </button>
+        </div>
 
         {/* Recent care */}
         <div className="m-sec-h">Recent care</div>

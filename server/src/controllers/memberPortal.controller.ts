@@ -165,7 +165,7 @@ export async function getMemberMe(req: Request, res: Response): Promise<void> {
   const result = await query(
     `SELECT m.id, m.full_name, m.phone, m.email, m.date_of_birth, m.gender, m.channel,
             m.blood_group, m.allergies, m.chronic_conditions, m.current_medications,
-            m.status, m.created_at, o.name AS org_name, o.partner_type
+            m.status, m.created_at, o.name AS org_name, o.type AS partner_type
      FROM members m JOIN organisations o ON m.org_id = o.id
      WHERE m.id = $1`,
     [memberId]

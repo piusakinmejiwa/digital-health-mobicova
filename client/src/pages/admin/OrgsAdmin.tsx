@@ -10,7 +10,10 @@ import type { SsoConfigInput } from '../../api/sso';
 import SsoConfigEditor from '../../components/sso/SsoConfigEditor';
 import { useAuth } from '../../context/AuthContext';
 
-const PARTNER_TYPES = ['employer', 'insurer', 'telco', 'fintech', 'cooperative', 'hmo'];
+const ORG_TYPES = [
+  'company', 'underwriter', 'telco', 'fintech', 'cooperative',
+  'clinic', 'pharmacy', 'diagnostics', 'ehr', 'distribution',
+];
 const PLAN_TIERS = ['starter', 'growth', 'scale', 'enterprise'];
 
 function errMessage(err: unknown, fallback: string): string {
@@ -19,7 +22,7 @@ function errMessage(err: unknown, fallback: string): string {
 }
 
 const emptyOrg = {
-  name: '', partnerType: 'employer', planTier: 'starter', country: 'Nigeria',
+  name: '', type: 'company', planTier: 'starter', country: 'Nigeria',
   adminEmail: '', adminFullName: '', adminPassword: '',
 };
 
@@ -45,7 +48,7 @@ export default function OrgsAdmin() {
     if (!creating) return;
     setBusy(true); setError('');
     const payload: Record<string, unknown> = {
-      name: creating.name, partnerType: creating.partnerType,
+      name: creating.name, type: creating.type,
       planTier: creating.planTier, country: creating.country,
     };
     // Only send admin fields when an email is provided (provisioning the first user).
@@ -69,7 +72,7 @@ export default function OrgsAdmin() {
     setBusy(true); setError('');
     try {
       await adminUpdateOrg(editing.id, {
-        name: editing.name, partner_type: editing.partner_type,
+        name: editing.name, type: editing.type,
         plan_tier: editing.plan_tier, country: editing.country,
       });
       setEditing(null);
@@ -112,7 +115,7 @@ export default function OrgsAdmin() {
           {orgs?.map((o) => (
             <tr key={o.id} className={o.is_active ? '' : 'row-inactive'}>
               <td><strong>{o.name}</strong><div className="muted small">{o.slug}</div></td>
-              <td className="muted small">{o.partner_type}</td>
+              <td className="muted small">{o.type}</td>
               <td className="muted small">{o.plan_tier}</td>
               <td><code>{o.join_code}</code></td>
               <td className="muted small">{o.member_count}</td>
@@ -161,9 +164,9 @@ export default function OrgsAdmin() {
                 <input value={creating.country} onChange={(e) => setCreating({ ...creating, country: e.target.value })} />
               </div>
               <div className="form-group">
-                <label>Partner type</label>
-                <select value={creating.partnerType} onChange={(e) => setCreating({ ...creating, partnerType: e.target.value })}>
-                  {PARTNER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                <label>Organisation type</label>
+                <select value={creating.type} onChange={(e) => setCreating({ ...creating, type: e.target.value })}>
+                  {ORG_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -215,9 +218,9 @@ export default function OrgsAdmin() {
                 <input value={editing.country} onChange={(e) => setEditing({ ...editing, country: e.target.value })} />
               </div>
               <div className="form-group">
-                <label>Partner type</label>
-                <select value={editing.partner_type} onChange={(e) => setEditing({ ...editing, partner_type: e.target.value })}>
-                  {PARTNER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                <label>Organisation type</label>
+                <select value={editing.type} onChange={(e) => setEditing({ ...editing, type: e.target.value })}>
+                  {ORG_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div className="form-group">

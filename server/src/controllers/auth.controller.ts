@@ -78,7 +78,7 @@ export async function register(req: Request, res: Response): Promise<void> {
 
   const joinCode = await generateJoinCode();
   const orgResult = await query(
-    `INSERT INTO organisations (name, slug, partner_type, join_code) VALUES ($1, $2, $3, $4) RETURNING id`,
+    `INSERT INTO organisations (name, slug, type, join_code) VALUES ($1, $2, $3, $4) RETURNING id`,
     [orgName, slug, partnerType || 'employer', joinCode]
   );
   const orgId = orgResult.rows[0].id;
@@ -103,7 +103,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
   const result = await query(
     `SELECT u.id, u.org_id, u.email, u.password_hash, u.full_name, u.role, u.totp_enabled,
-            o.name as org_name, o.partner_type, o.is_active AS org_active
+            o.name as org_name, o.type AS partner_type, o.is_active AS org_active
      FROM users u JOIN organisations o ON u.org_id = o.id
      WHERE u.email = $1 AND u.is_active = true`,
     [email]
@@ -150,7 +150,7 @@ export async function mfaChallenge(req: Request, res: Response): Promise<void> {
 
   const result = await query(
     `SELECT u.id, u.org_id, u.email, u.full_name, u.role, u.totp_secret, u.totp_backup_codes,
-            o.name as org_name, o.partner_type, o.is_active AS org_active
+            o.name as org_name, o.type AS partner_type, o.is_active AS org_active
      FROM users u JOIN organisations o ON u.org_id = o.id
      WHERE u.id = $1 AND u.is_active = true`,
     [userId]
@@ -328,7 +328,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
 
   const result = await query(
     `SELECT u.id, u.email, u.full_name, u.role, u.org_id, u.totp_enabled,
-            o.name as org_name, o.partner_type, o.plan_tier, o.join_code
+            o.name as org_name, o.type AS partner_type, o.plan_tier, o.join_code
      FROM users u JOIN organisations o ON u.org_id = o.id
      WHERE u.id = $1`,
     [req.user.userId]

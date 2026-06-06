@@ -10,7 +10,7 @@ import { recordAudit } from '../lib/audit';
 
 export async function adminListOrgs(_req: Request, res: Response): Promise<void> {
   const result = await query(
-    `SELECT o.id, o.name, o.slug, o.partner_type, o.country, o.plan_tier,
+    `SELECT o.id, o.name, o.slug, o.type, o.country, o.plan_tier,
             o.join_code, o.is_active, o.created_at,
             (SELECT COUNT(*)::int FROM members m WHERE m.org_id = o.id) AS member_count,
             (SELECT COUNT(*)::int FROM users u WHERE u.org_id = o.id) AS user_count
@@ -24,7 +24,7 @@ export async function adminListOrgs(_req: Request, res: Response): Promise<void>
 // the live-onboarding flow. Slug and join code are generated automatically.
 export async function adminCreateOrg(req: Request, res: Response): Promise<void> {
   const {
-    name, partnerType = 'employer', planTier = 'starter', country = 'Nigeria',
+    name, type = 'company', planTier = 'starter', country = 'Nigeria',
     adminEmail, adminPassword, adminFullName,
   } = req.body;
 
@@ -50,9 +50,9 @@ export async function adminCreateOrg(req: Request, res: Response): Promise<void>
   const slug = await uniqueSlug(name);
   const joinCode = await generateJoinCode();
   const orgResult = await query(
-    `INSERT INTO organisations (name, slug, partner_type, plan_tier, country, join_code)
+    `INSERT INTO organisations (name, slug, type, plan_tier, country, join_code)
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [name, slug, partnerType, planTier, country, joinCode]
+    [name, slug, type, planTier, country, joinCode]
   );
   const org = orgResult.rows[0];
 
@@ -74,7 +74,7 @@ export async function adminCreateOrg(req: Request, res: Response): Promise<void>
     targetId: org.id,
     targetLabel: org.name,
     orgId: org.id,
-    metadata: { partnerType, planTier, provisionedAdmin: Boolean(adminUser) },
+    metadata: { type, planTier, provisionedAdmin: Boolean(adminUser) },
   });
 
   res.status(201).json({
@@ -103,13 +103,13 @@ export async function adminUpdateOrg(req: Request, res: Response): Promise<void>
 
   const result = await query(
     `UPDATE organisations
-        SET name = $2, partner_type = $3, plan_tier = $4, country = $5, is_active = $6,
+        SET name = $2, type = $3, plan_tier = $4, country = $5, is_active = $6,
             updated_at = NOW()
       WHERE id = $1 RETURNING *`,
     [
       id,
       b.name ?? cur.name,
-      b.partner_type ?? cur.partner_type,
+      b.type ?? cur.type,
       b.plan_tier ?? cur.plan_tier,
       b.country ?? cur.country,
       b.is_active ?? cur.is_active,

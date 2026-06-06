@@ -92,9 +92,9 @@ async function seed() {
   if (existing.rows.length === 0) {
     console.log('Seeding demo organisation + admin...');
     const org = await query(
-      `INSERT INTO organisations (name, slug, partner_type, plan_tier)
+      `INSERT INTO organisations (name, slug, type, plan_tier)
        VALUES ($1, $2, $3, $4) RETURNING id`,
-      ['AXA Mansard Health', 'axa-mansard-health', 'insurer', 'growth']
+      ['AXA Mansard Health', 'axa-mansard-health', 'underwriter', 'growth']
     );
     const orgId = org.rows[0].id;
     const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);

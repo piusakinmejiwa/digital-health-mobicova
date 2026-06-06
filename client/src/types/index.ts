@@ -77,7 +77,7 @@ export interface Organisation {
   id: string;
   name: string;
   slug: string;
-  partner_type: string;
+  type: string;
   country: string;
   plan_tier: string;
   join_code: string;

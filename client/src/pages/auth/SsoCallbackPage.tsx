@@ -32,7 +32,7 @@ export default function SsoCallbackPage() {
     getMe()
       .then((user) => {
         login(token, user);
-        navigate('/dashboard', { replace: true });
+        navigate(user.isPlatformAdmin ? '/admin' : '/dashboard', { replace: true });
       })
       .catch(() => {
         localStorage.removeItem('mobicova_token');

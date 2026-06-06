@@ -79,7 +79,8 @@ export default function LoginPage() {
       }
       if (res.token && res.user) {
         login(res.token, res.user);
-        navigate('/dashboard');
+        // Platform admins land on the Admin Console; everyone else on their dashboard.
+        navigate(res.user.isPlatformAdmin ? '/admin' : '/dashboard');
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
@@ -96,7 +97,7 @@ export default function LoginPage() {
     try {
       const res = await mfaChallenge({ mfaToken, code });
       login(res.token, res.user);
-      navigate('/dashboard');
+      navigate(res.user.isPlatformAdmin ? '/admin' : '/dashboard');
     } catch (err: any) {
       setMfaError(err.response?.data?.error || 'Verification failed');
     } finally {

@@ -30,6 +30,18 @@
 - **Rename code sweep:** admin Org API + Admin Console now speak `type` (org-type dropdown extended to all 10 types); `auth`/member APIs keep their existing field names mapped from `type` via SQL alias (no churn into those contexts). `demo_leads.partner_type` left untouched (different concept).
 - Migration **must be run by you** (`npm run migrate`) — code is shipped but the live DB still has the old column until then. Note: code now writes the `type` column, so **migrate before deploying** the new server, or logins/org reads will error on the missing column.
 
+### Phase 1 — DONE (data migration + demo seed; server typechecks green)
+
+- **`server/src/db/migrateOrgModel.ts`** + npm script **`npm run migrate:org-model`** — idempotent one-off backfill:
+  - normalises legacy type values (`employer`→`company`, `insurer`→`underwriter`);
+  - creates one org per partner, deduping insurers onto the existing underwriter org (no duplicate AXA Mansard);
+  - links providers→orgs (many-to-many);
+  - backfills `consultations.provider_org_id`, `prescriptions.pharmacy_org_id`, `insurance_plans.underwriter_org_id`.
+- **Seed** (`npm run seed`) now provisions a demo **clinic org** (Helium Health, admin `clinic@mobicova.demo`) and **pharmacy org** (HealthPlus, admin `pharmacy@mobicova.demo`), links the demo doctor/pharmacist to them, and routes the seeded queue rows. Both orgs carry `legacy_partner_id` so the data migration treats them as already-migrated.
+- **Run order (after deploying this):** `npm run migrate` (already done) → `npm run migrate:org-model` → optionally `npm run seed` for the demo orgs/admins.
+
+> Note: Phase 1 backfills data but does **not** change any read paths yet — the app still reads via the legacy partner columns, so nothing breaks. Switching reads to the org columns + the privacy slice is **Phase 2**.
+
 ---
 
 ## 1. Goal

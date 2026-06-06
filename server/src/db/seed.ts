@@ -161,8 +161,62 @@ async function seedProviders() {
     return r.rows[0].id;
   }
 
-  await upsertProvider('doctor@mobicova.demo', 'Dr. Adaeze Okonkwo', 'doctor', 'General Practice', telePartnerId, '/images/doctor.jpg');
-  await upsertProvider('pharmacist@mobicova.demo', 'Pharm. Bode Adesina', 'pharmacist', '', pharmacyPartnerId);
+  const doctorId = await upsertProvider('doctor@mobicova.demo', 'Dr. Adaeze Okonkwo', 'doctor', 'General Practice', telePartnerId, '/images/doctor.jpg');
+  const pharmacistId = await upsertProvider('pharmacist@mobicova.demo', 'Pharm. Bode Adesina', 'pharmacist', '', pharmacyPartnerId);
+
+  // Unified org model: a demo clinic org + pharmacy org, each with its own admin,
+  // so the platform shows supply-side organisations managed individually. The
+  // orgs carry legacy_partner_id so the general data migration treats them as
+  // already-migrated (no duplicates).
+  async function ensureSupplyOrg(
+    partnerId: string, name: string, slug: string, type: string,
+    adminEmail: string, adminName: string
+  ): Promise<string> {
+    const found = await query('SELECT id FROM organisations WHERE legacy_partner_id = $1 LIMIT 1', [partnerId]);
+    let orgId: string;
+    if (found.rows.length > 0) {
+      orgId = found.rows[0].id;
+    } else {
+      const r = await query(
+        `INSERT INTO organisations (name, slug, type, country, join_code, legacy_partner_id)
+         VALUES ($1, $2, $3, 'Nigeria', '', $4) RETURNING id`,
+        [name, slug, type, partnerId]
+      );
+      orgId = r.rows[0].id;
+    }
+    const u = await query('SELECT id FROM users WHERE email = $1', [adminEmail]);
+    if (u.rows.length === 0) {
+      await query(
+        `INSERT INTO users (org_id, email, password_hash, full_name, role)
+         VALUES ($1, $2, $3, $4, 'admin')`,
+        [orgId, adminEmail, passwordHash, adminName]
+      );
+    } else {
+      await query('UPDATE users SET org_id = $2, password_hash = $3 WHERE email = $1', [adminEmail, orgId, passwordHash]);
+    }
+    return orgId;
+  }
+
+  const clinicOrgId = await ensureSupplyOrg(
+    telePartnerId, 'Helium Health', 'helium-health', 'clinic',
+    'clinic@mobicova.demo', 'Clinic Admin'
+  );
+  const pharmacyOrgId = await ensureSupplyOrg(
+    pharmacyPartnerId, 'HealthPlus', 'healthplus', 'pharmacy',
+    'pharmacy@mobicova.demo', 'Pharmacy Admin'
+  );
+
+  // Link the demo providers to their organisation (many-to-many).
+  await query(
+    `INSERT INTO provider_organisations (provider_id, org_id, is_primary)
+     VALUES ($1, $2, true) ON CONFLICT (provider_id, org_id) DO NOTHING`,
+    [doctorId, clinicOrgId]
+  );
+  await query(
+    `INSERT INTO provider_organisations (provider_id, org_id, is_primary)
+     VALUES ($1, $2, true) ON CONFLICT (provider_id, org_id) DO NOTHING`,
+    [pharmacistId, pharmacyOrgId]
+  );
 
   // Find the demo org + a member to attach queue data to.
   const org = await query(`SELECT id FROM organisations WHERE slug = 'axa-mansard-health' LIMIT 1`);
@@ -202,6 +256,16 @@ async function seedProviders() {
       [c.rows[0].id, memberId]
     );
   }
+
+  // Route the seeded queue rows to the new supply orgs (idempotent).
+  await query(
+    `UPDATE consultations SET provider_org_id = $1 WHERE partner_id = $2 AND provider_org_id IS NULL`,
+    [clinicOrgId, telePartnerId]
+  );
+  await query(
+    `UPDATE prescriptions SET pharmacy_org_id = $1 WHERE pharmacy_partner = 'HealthPlus' AND pharmacy_org_id IS NULL`,
+    [pharmacyOrgId]
+  );
 }
 
 seed().catch((err) => {

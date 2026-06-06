@@ -43,9 +43,15 @@ export async function updateConsultation(
 
 export async function addPrescription(
   id: string,
-  data: { medication: string; dosage?: string; instructions?: string; pharmacyPartner?: string }
+  data: { medication: string; dosage?: string; instructions?: string; pharmacyPartnerId?: string }
 ): Promise<void> {
   await providerApi.post(`/provider/consultations/${id}/prescriptions`, data);
+}
+
+// Pharmacy partners a doctor can route a prescription to.
+export async function getPharmacies(): Promise<{ pharmacies: { id: string; name: string }[] }> {
+  const res = await providerApi.get('/provider/pharmacies');
+  return res.data;
 }
 
 // --- Pharmacist: dispensary ---

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getProviderConsultations, getProviderConsultation, acceptConsultation,
-  updateConsultation, addPrescription,
+  updateConsultation, addPrescription, getPharmacies,
 } from '../../api/provider';
 import { formatDateTime, badgeClass, age } from '../../lib/format';
 import CallScreen from '../../components/member/CallScreen';
@@ -82,8 +82,10 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const [diagnosis, setDiagnosis] = useState('');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
-  const [rx, setRx] = useState({ medication: '', dosage: '', instructions: '', pharmacyPartner: '' });
+  const [rx, setRx] = useState({ medication: '', dosage: '', instructions: '', pharmacyPartnerId: '' });
   const [call, setCall] = useState<'video' | 'voice' | null>(null);
+  const { data: pharmaciesData } = useQuery({ queryKey: ['provider-pharmacies'], queryFn: getPharmacies });
+  const pharmacies = pharmaciesData?.pharmacies ?? [];
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['prov-consult', id] });
@@ -107,7 +109,7 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
     setBusy(true);
     try {
       await addPrescription(id, rx);
-      setRx({ medication: '', dosage: '', instructions: '', pharmacyPartner: '' });
+      setRx({ medication: '', dosage: '', instructions: '', pharmacyPartnerId: '' });
       refresh();
     } finally { setBusy(false); }
   };
@@ -188,7 +190,14 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                       <input placeholder="Medication (e.g. Amoxicillin 500mg)" value={rx.medication} onChange={(e) => setRx({ ...rx, medication: e.target.value })} />
                       <div className="form-row">
                         <input placeholder="Dosage (e.g. 1 tab 3×/day)" value={rx.dosage} onChange={(e) => setRx({ ...rx, dosage: e.target.value })} />
-                        <input placeholder="Pharmacy (optional)" value={rx.pharmacyPartner} onChange={(e) => setRx({ ...rx, pharmacyPartner: e.target.value })} />
+                        <select
+                          value={rx.pharmacyPartnerId || pharmacies[0]?.id || ''}
+                          onChange={(e) => setRx({ ...rx, pharmacyPartnerId: e.target.value })}
+                          title="Fulfilling pharmacy"
+                        >
+                          {pharmacies.length === 0 && <option value="">No pharmacies available</option>}
+                          {pharmacies.map((ph) => <option key={ph.id} value={ph.id}>{ph.name}</option>)}
+                        </select>
                       </div>
                       <input placeholder="Instructions" value={rx.instructions} onChange={(e) => setRx({ ...rx, instructions: e.target.value })} />
                       <button className="btn btn-primary" onClick={prescribe} disabled={busy || !rx.medication.trim()}>Add prescription</button>

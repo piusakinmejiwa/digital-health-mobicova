@@ -167,11 +167,19 @@ export async function updateProviderConsultation(req: Request, res: Response): P
   res.json(result.rows[0]);
 }
 
+// GET /provider/pharmacies — the pharmacy partners a doctor can route a script to.
+export async function listPharmacies(_req: Request, res: Response): Promise<void> {
+  const result = await query(
+    `SELECT id, name FROM partners WHERE category = 'pharmacy' AND status = 'active' ORDER BY name`
+  );
+  res.json({ pharmacies: result.rows });
+}
+
 // POST /provider/consultations/:id/prescriptions — issue an e-prescription.
 export async function addProviderPrescription(req: Request, res: Response): Promise<void> {
   const partnerId = req.provider!.partnerId;
   const id = String(req.params.id);
-  const { medication, dosage, instructions, pharmacyPartner } = req.body;
+  const { medication, dosage, instructions, pharmacyPartnerId } = req.body;
 
   if (!medication || !String(medication).trim()) {
     res.status(400).json({ error: 'Medication is required.' });
@@ -187,17 +195,21 @@ export async function addProviderPrescription(req: Request, res: Response): Prom
     return;
   }
 
-  // Default to the first pharmacy partner if none named.
-  let pharmacy = pharmacyPartner ? String(pharmacyPartner) : '';
-  if (!pharmacy) {
-    const p = await query(`SELECT name FROM partners WHERE category = 'pharmacy' ORDER BY name LIMIT 1`);
-    pharmacy = p.rows[0]?.name || '';
+  // Resolve the chosen pharmacy partner (by id), falling back to the first one.
+  let pharmacy = await query(
+    `SELECT id, name FROM partners WHERE category = 'pharmacy' AND id = $1`,
+    [pharmacyPartnerId || null]
+  );
+  if (pharmacy.rows.length === 0) {
+    pharmacy = await query(`SELECT id, name FROM partners WHERE category = 'pharmacy' ORDER BY name LIMIT 1`);
   }
+  const pharmacyRow = pharmacy.rows[0] || { id: null, name: '' };
 
   const result = await query(
-    `INSERT INTO prescriptions (consultation_id, member_id, medication, dosage, instructions, pharmacy_partner)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [id, consult.rows[0].member_id, String(medication).slice(0, 255), String(dosage || ''), String(instructions || ''), pharmacy]
+    `INSERT INTO prescriptions
+       (consultation_id, member_id, medication, dosage, instructions, pharmacy_partner, pharmacy_partner_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [id, consult.rows[0].member_id, String(medication).slice(0, 255), String(dosage || ''), String(instructions || ''), pharmacyRow.name, pharmacyRow.id]
   );
   res.status(201).json(result.rows[0]);
 }
@@ -215,6 +227,10 @@ const RX_SELECT = `
   JOIN consultations c ON rx.consultation_id = c.id
 `;
 
+// Match prescriptions to a pharmacy by stable partner id, OR (for legacy rows
+// with no id) by the partner name carried on the prescription.
+const RX_MATCH = `(rx.pharmacy_partner_id = $1 OR (rx.pharmacy_partner_id IS NULL AND rx.pharmacy_partner = $2))`;
+
 // GET /provider/prescriptions?status=
 export async function listProviderPrescriptions(req: Request, res: Response): Promise<void> {
   const partnerId = req.provider!.partnerId;
@@ -222,8 +238,8 @@ export async function listProviderPrescriptions(req: Request, res: Response): Pr
   const partnerName = partner.rows[0]?.name || '';
   const status = req.query.status ? String(req.query.status) : null;
 
-  const params: unknown[] = [partnerName];
-  let where = 'WHERE rx.pharmacy_partner = $1';
+  const params: unknown[] = [partnerId, partnerName];
+  let where = `WHERE ${RX_MATCH}`;
   if (status) {
     params.push(status);
     where += ` AND rx.fulfilment_status = $${params.length}`;
@@ -231,8 +247,8 @@ export async function listProviderPrescriptions(req: Request, res: Response): Pr
   const result = await query(`${RX_SELECT} ${where} ORDER BY rx.created_at DESC`, params as any[]);
   const counts = await query(
     `SELECT fulfilment_status AS status, COUNT(*)::int AS count
-     FROM prescriptions WHERE pharmacy_partner = $1 GROUP BY fulfilment_status`,
-    [partnerName]
+     FROM prescriptions rx WHERE ${RX_MATCH} GROUP BY fulfilment_status`,
+    [partnerId, partnerName]
   );
   res.json({ prescriptions: result.rows, counts: counts.rows });
 }
@@ -245,11 +261,11 @@ export async function dispensePrescription(req: Request, res: Response): Promise
   const partnerName = partner.rows[0]?.name || '';
 
   const result = await query(
-    `UPDATE prescriptions
+    `UPDATE prescriptions rx
         SET fulfilment_status = 'dispensed', dispensed_at = NOW()
-      WHERE id = $1 AND pharmacy_partner = $2 AND fulfilment_status <> 'dispensed'
+      WHERE rx.id = $3 AND ${RX_MATCH} AND rx.fulfilment_status <> 'dispensed'
       RETURNING *`,
-    [id, partnerName]
+    [partnerId, partnerName, id]
   );
   if (result.rows.length === 0) {
     res.status(409).json({ error: 'This prescription is not available to dispense.' });

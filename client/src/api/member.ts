@@ -72,3 +72,9 @@ export async function logMemberConsultation(data: {
 }): Promise<void> {
   await memberApi.post('/member/consultations', data);
 }
+
+// Doctors a member can call (live from the providers directory).
+export async function getMemberDoctors(): Promise<{ doctors: import('../types').MemberDoctor[] }> {
+  const res = await memberApi.get('/member/doctors');
+  return res.data;
+}

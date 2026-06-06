@@ -15,6 +15,10 @@ import {
 } from '../controllers/adminUsers.controller';
 import { adminListAudit } from '../controllers/adminAudit.controller';
 import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller';
+import {
+  adminListProviders, adminCreateProvider, adminUpdateProvider,
+  adminResetProviderPassword, adminDeleteProvider,
+} from '../controllers/adminProviders.controller';
 
 const router = Router();
 
@@ -43,6 +47,13 @@ router.get('/partners', asyncHandler(adminListPartners));
 router.post('/partners', asyncHandler(adminCreatePartner));
 router.patch('/partners/:id', asyncHandler(adminUpdatePartner));
 router.delete('/partners/:id', asyncHandler(adminDeletePartner));
+
+// Providers (clinicians & pharmacists)
+router.get('/providers', asyncHandler(adminListProviders));
+router.post('/providers', asyncHandler(adminCreateProvider));
+router.patch('/providers/:id', asyncHandler(adminUpdateProvider));
+router.post('/providers/:id/reset-password', asyncHandler(adminResetProviderPassword));
+router.delete('/providers/:id', asyncHandler(adminDeleteProvider));
 
 // Insurance plans
 router.get('/plans', asyncHandler(adminListPlans));

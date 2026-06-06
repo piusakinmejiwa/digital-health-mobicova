@@ -1,10 +1,27 @@
 import api from './client';
-import type { Partner, InsurancePlan, Organisation, AdminUser, AuditEntry, SsoConfig } from '../types';
+import type { Partner, InsurancePlan, Organisation, AdminUser, AuditEntry, SsoConfig, AdminProvider } from '../types';
 import type { SsoConfigInput } from './sso';
 
 // Platform-admin catalog management. All endpoints require platform-admin
 // privileges (enforced server-side); the Admin page is only reachable when
 // user.isPlatformAdmin is true.
+
+// Providers (clinicians & pharmacists)
+export async function adminListProviders(): Promise<AdminProvider[]> {
+  return (await api.get('/admin/providers')).data;
+}
+export async function adminCreateProvider(data: Record<string, unknown>): Promise<AdminProvider> {
+  return (await api.post('/admin/providers', data)).data;
+}
+export async function adminUpdateProvider(id: string, data: Record<string, unknown>): Promise<AdminProvider> {
+  return (await api.patch(`/admin/providers/${id}`, data)).data;
+}
+export async function adminResetProviderPassword(id: string, password: string): Promise<void> {
+  await api.post(`/admin/providers/${id}/reset-password`, { password });
+}
+export async function adminDeleteProvider(id: string): Promise<void> {
+  await api.delete(`/admin/providers/${id}`);
+}
 
 // Partners
 export async function adminListPartners(): Promise<Partner[]> {

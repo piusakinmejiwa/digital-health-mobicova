@@ -291,6 +291,30 @@ export interface BillingAccount {
   invoices: BillingInvoice[];
 }
 
+// --- Provider admin (Add a Doctor) ---
+export interface AdminProvider {
+  id: string;
+  partner_id: string;
+  partner_name?: string;
+  partner_category?: string;
+  full_name: string;
+  email: string;
+  role: 'doctor' | 'pharmacist';
+  specialty: string;
+  photo_url: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+// A doctor shown in the member "talk to a doctor" list.
+export interface MemberDoctor {
+  id: string;
+  full_name: string;
+  specialty: string;
+  photo_url: string;
+  partner_name: string;
+}
+
 // --- Provider portal (Q9) ---
 export type ProviderRole = 'doctor' | 'pharmacist';
 

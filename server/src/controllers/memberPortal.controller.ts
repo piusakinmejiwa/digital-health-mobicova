@@ -185,6 +185,17 @@ export async function getMemberMe(req: Request, res: Response): Promise<void> {
   res.json({ ...result.rows[0], counts: counts.rows[0], branding });
 }
 
+// GET /member/doctors — active doctors a member can call (telemedicine providers).
+export async function getMemberDoctors(_req: Request, res: Response): Promise<void> {
+  const result = await query(
+    `SELECT pr.id, pr.full_name, pr.specialty, pr.photo_url, p.name AS partner_name
+       FROM providers pr JOIN partners p ON pr.partner_id = p.id
+      WHERE pr.role = 'doctor' AND pr.is_active = true
+      ORDER BY pr.full_name`
+  );
+  res.json({ doctors: result.rows });
+}
+
 // GET /member/overview — cover + care history in one round trip.
 export async function getMemberOverview(req: Request, res: Response): Promise<void> {
   const memberId = req.member!.memberId;

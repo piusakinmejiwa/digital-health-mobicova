@@ -147,21 +147,21 @@ async function seedProviders() {
     return;
   }
 
-  async function upsertProvider(email: string, fullName: string, role: string, specialty: string, partnerId: string) {
+  async function upsertProvider(email: string, fullName: string, role: string, specialty: string, partnerId: string, photoUrl = '') {
     const exists = await query('SELECT id FROM providers WHERE email = $1', [email]);
     if (exists.rows.length > 0) {
-      await query('UPDATE providers SET password_hash = $1 WHERE id = $2', [passwordHash, exists.rows[0].id]);
+      await query('UPDATE providers SET password_hash = $1, photo_url = $2 WHERE id = $3', [passwordHash, photoUrl, exists.rows[0].id]);
       return exists.rows[0].id;
     }
     const r = await query(
-      `INSERT INTO providers (partner_id, full_name, email, password_hash, role, specialty)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [partnerId, fullName, email, passwordHash, role, specialty]
+      `INSERT INTO providers (partner_id, full_name, email, password_hash, role, specialty, photo_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [partnerId, fullName, email, passwordHash, role, specialty, photoUrl]
     );
     return r.rows[0].id;
   }
 
-  await upsertProvider('doctor@mobicova.demo', 'Dr. Adaeze Okonkwo', 'doctor', 'General Practice', telePartnerId);
+  await upsertProvider('doctor@mobicova.demo', 'Dr. Adaeze Okonkwo', 'doctor', 'General Practice', telePartnerId, '/images/doctor.jpg');
   await upsertProvider('pharmacist@mobicova.demo', 'Pharm. Bode Adesina', 'pharmacist', '', pharmacyPartnerId);
 
   // Find the demo org + a member to attach queue data to.

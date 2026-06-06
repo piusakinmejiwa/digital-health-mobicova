@@ -9,6 +9,7 @@ import {
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
+import ProvidersAdmin from './ProvidersAdmin';
 import AuditAdmin from './AuditAdmin';
 import './Admin.css';
 
@@ -20,7 +21,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'plans' | 'partners' | 'audit';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'audit';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
@@ -37,6 +38,7 @@ export default function AdminPage() {
       <div className="tabs">
         <button className={`tab ${tab === 'organisations' ? 'active' : ''}`} onClick={() => setTab('organisations')}>Organisations</button>
         <button className={`tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Users</button>
+        <button className={`tab ${tab === 'providers' ? 'active' : ''}`} onClick={() => setTab('providers')}>Providers</button>
         <button className={`tab ${tab === 'plans' ? 'active' : ''}`} onClick={() => setTab('plans')}>Insurance plans</button>
         <button className={`tab ${tab === 'partners' ? 'active' : ''}`} onClick={() => setTab('partners')}>Partners</button>
         <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
@@ -44,6 +46,7 @@ export default function AdminPage() {
 
       {tab === 'organisations' && <OrgsAdmin />}
       {tab === 'users' && <UsersAdmin />}
+      {tab === 'providers' && <ProvidersAdmin />}
       {tab === 'plans' && <PlansAdmin />}
       {tab === 'partners' && <PartnersAdmin />}
       {tab === 'audit' && <AuditAdmin />}

@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getInbox } from '../../api/inbox';
 import './Sidebar.css';
 
+// Demand-side orgs (underwriters, companies, telcos) manage members & cover.
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '◰' },
   { to: '/inbox', label: 'Inbox', icon: '⊞' },
@@ -15,6 +16,13 @@ const navItems = [
   { to: '/analytics', label: 'Analytics & reporting', icon: '▤' },
   { to: '/channels', label: 'WhatsApp & USSD', icon: '☷' },
   { to: '/partners', label: 'Partner Ecosystem', icon: '⌬' },
+];
+
+// Supply-side orgs (clinics, pharmacies) get a focused workspace: their routed
+// queue + their own staff. They never see member-management workspaces.
+const supplyNavItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: '◰' },
+  { to: '/staff', label: 'Staff', icon: '⚇' },
 ];
 
 // Shown only to org admins — subscription, usage & invoices.
@@ -37,11 +45,12 @@ export default function Sidebar() {
   // Lightweight poll for the unread action-centre count (shared cache with /inbox).
   const { data: inbox } = useQuery({ queryKey: ['inbox'], queryFn: getInbox, refetchInterval: 60000 });
   const unread = inbox?.unread || 0;
+  const isSupply = user?.orgClass === 'supply';
   const items = [
-    ...navItems,
+    ...(isSupply ? supplyNavItems : navItems),
     docsNavItem,
     securityNavItem,
-    ...(user?.role === 'admin' ? [billingNavItem, brandingNavItem, ssoNavItem, developerNavItem] : []),
+    ...(user?.role === 'admin' ? [brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
     ...(user?.isPlatformAdmin ? [adminNavItem] : []),
   ];
 

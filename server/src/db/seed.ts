@@ -218,6 +218,21 @@ async function seedProviders() {
     [pharmacistId, pharmacyOrgId]
   );
 
+  // A second clinic so the demo doctor can demonstrate the multi-clinic switcher.
+  const tele2 = await query(`SELECT id FROM partners WHERE name = 'DrConsult' LIMIT 1`);
+  const tele2PartnerId = tele2.rows[0]?.id;
+  if (tele2PartnerId) {
+    const clinic2OrgId = await ensureSupplyOrg(
+      tele2PartnerId, 'DrConsult', 'drconsult', 'clinic',
+      'clinic2@mobicova.demo', 'Clinic Admin (DrConsult)'
+    );
+    await query(
+      `INSERT INTO provider_organisations (provider_id, org_id, is_primary)
+       VALUES ($1, $2, false) ON CONFLICT (provider_id, org_id) DO NOTHING`,
+      [doctorId, clinic2OrgId]
+    );
+  }
+
   // Find the demo org + a member to attach queue data to.
   const org = await query(`SELECT id FROM organisations WHERE slug = 'axa-mansard-health' LIMIT 1`);
   const orgId = org.rows[0]?.id;

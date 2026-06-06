@@ -84,10 +84,18 @@
 - **Capability middleware** (`middleware/orgCapability.ts`) — `requireOrgClass(...)`; applied to `/supply/*` now, demand-route gating in 4E.
 - **Run:** `npm run migrate` (applies 029) after deploy. No data migration needed.
 
-#### 4C–4E — PENDING (post-checkpoint)
-- 4C: supply-org dashboards + clinic switcher UI (client).
-- 4D: create clinic/pharmacy + first clinician (Admin Console) + supply-org self-service staff management.
-- 4E: turn on demand-route capability gating, nav polish, verify slice, tidy legacy partner refs.
+#### 4C–4E — DONE (client + staff mgmt; both builds green) ✅
+
+- **4C — Supply-org dashboards + clinic switcher:**
+  - `/dashboard` routes by org class (`DashboardHome`): supply orgs get `SupplyDashboard` (overview cards + the queue routed to them, branched clinic vs pharmacy); demand orgs unchanged.
+  - **Sidebar adapts by class** — supply orgs see a focused menu (Dashboard, Staff, Help, Security, Branding) and never the member-management workspaces.
+  - **Clinic switcher** in the Provider portal top bar (shown when a clinician belongs to >1 org): selecting an org writes `PROVIDER_ORG_KEY`; the provider Axios client injects `?orgId=` on every request and queries refetch, so the whole portal re-scopes to the chosen clinic.
+- **4D — Self-service staff:** `SupplyStaffPage` lists the org's clinicians and lets a supply-org admin **add** one (role inferred from org type) and **activate/deactivate** them. Backed by `POST/PATCH /supply/staff` (creates a partner-less provider + `provider_organisations` link). Seed now links the demo doctor to a **second clinic** (DrConsult) so the switcher is demoable.
+- **4E — gating/polish:** supply routes gated by `requireOrgClass('supply')`; nav hides demand workspaces from supply orgs. **Hard demand-route gating left OFF deliberately** — isolation is already enforced (org-scoped queries + a supply org owns no members, so demand endpoints return nothing) and blocking them adds breakage risk for no security gain. Can be switched on later as defense-in-depth.
+
+**Demo logins (after `npm run seed`):** `clinic@mobicova.demo` (Helium Health), `pharmacy@mobicova.demo` (HealthPlus), `clinic2@mobicova.demo` (DrConsult) — all with the demo password. The demo doctor (`doctor@mobicova.demo`) now spans Helium Health + DrConsult → switcher visible.
+
+**Phase 4 complete.** No new migration this turn (029 shipped at the checkpoint); re-run `npm run seed` for the switcher demo data.
 
 ---
 
@@ -288,3 +296,51 @@ Each phase is independently shippable and reversible; nothing breaks live data b
 - Phase 5: small, later.
 
 Recommend doing **Phase 0 + 1 together first** (safe, reversible, unlocks everything) and reviewing before Phase 2.
+
+---
+
+## 14. Access model & URLs (how people sign in)
+
+**MobiCova is one application on one domain — multi-tenant *by login*, not by URL.** There is no
+separate site or subdomain per organisation. Which organisation you see is determined by the account
+you sign in with (every user/member/provider record carries its `org_id`); the server scopes every
+query to it.
+
+### The three login pages (one shared domain)
+
+Base domain: `https://mobicova-client.onrender.com` (custom domain `https://digitalhealth.mobicova.com`
+once DNS is live).
+
+| Who | Login URL | Lands on |
+|-----|-----------|----------|
+| **Staff / org admins** — incl. underwriters, companies, telcos **and** clinic/pharmacy admins | `/login` | `/dashboard` (demand orgs) or the supply dashboard (clinic/pharmacy) |
+| **Platform admins** (MobiCova staff) | **same `/login`** | `/dashboard` + an extra **Admin Console** at `/admin` |
+| **Clinicians** (doctors / pharmacists) | `/provider/login` | Consults or Dispensary (+ clinic switcher) |
+| **Members** | `/member/login` | Member app (OTP, no password) |
+
+- **There is NO separate "Platform Admin Console" login page.** A platform admin signs in at the
+  normal `/login`; because their account has the `is_platform_admin` flag, they additionally see the
+  **Admin Console** nav item → `/admin`. (Gated client-side by `AdminRoute`, server-side by
+  `requirePlatformAdmin`.)
+- A **supply-org admin** (e.g. `clinic@mobicova.demo`) signs in at the **same `/login`** as everyone
+  else and is routed to their supply dashboard by org class.
+
+### Do organisations have their own URLs?
+
+**No.** Each org has a `slug` (e.g. `axa-mansard-health`, `healthplus`) but it is an internal
+identifier only — it is **not** a routable URL or subdomain today. All orgs share `/login`; isolation
+is enforced by the account + `org_id` scoping, not by the address.
+
+### When you create a new organisation, do you get a new URL?
+
+**No.** Creating an org (Admin Console → Organisations → Onboard) creates the org + optionally its
+first admin user. That admin signs in at the **same `/login`**. No new URL is provisioned.
+
+### Optional future enhancement (not built)
+
+If per-org URLs are wanted later, two standard patterns fit the existing `slug`:
+- **Path-based:** `…/o/<slug>/login` — pre-fills/locks branding to that org on the login screen.
+- **Subdomain-based:** `<slug>.digitalhealth.mobicova.com` — needs wildcard DNS + cert.
+
+Neither is required for isolation (already enforced); they're cosmetic/branding conveniences. Say the
+word to add the path-based version.

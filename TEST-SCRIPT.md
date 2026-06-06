@@ -4,11 +4,14 @@ A click-by-click script for a tester to verify the live MobiCova platform end to
 knowledge needed — just a web browser. Work top to bottom; some later tests rely on data created in
 earlier ones.
 
-This single document covers everything in two parts:
+This single document covers everything in three parts:
 - **Part A — Core platform** (Tests 1–20): dashboard, members, telemedicine, insurance, claims,
   analytics, channels, admin, 2FA, SSO, API keys, member & provider portals, security isolation.
 - **Part B — SaaS features** (Tests 21–31): public marketing site, onboarding, command palette &
   help, docs, inbox, analytics query builder, API console, billing, white-label branding, member app.
+- **Part C — Unified organisation model** (Tests 32–39): organisations by type in the Platform Admin
+  Console, supply-org (clinic/pharmacy) dashboards, self-service staff, cross-org isolation, and the
+  clinician multi-clinic switcher.
 
 - **Estimated time:** ~90–120 minutes for the full pass (or run a part at a time).
 - **How to record results:** for each step, mark the **Result** column **Pass** or **Fail**. If it
@@ -19,25 +22,44 @@ This single document covers everything in two parts:
 ## 1. Before you start
 
 ### Test environment
+The whole platform runs on **one domain** — there is no separate website per organisation. Base URL:
+`https://mobicova-client.onrender.com` (custom domain `https://digitalhealth.mobicova.com` once DNS
+is live). There are **three login pages**:
+
 | What | Where |
 |------|-------|
 | Public marketing site | https://mobicova-client.onrender.com/ (the **root** URL) |
-| Partner dashboard | **Sign in** from the site, or go to `/login` → lands on `/dashboard` |
+| Dashboard / org admins / **platform admin** | **Sign in** from the site, or go to `/login` → lands on `/dashboard` |
 | Member portal | https://mobicova-client.onrender.com/member/login |
-| Provider portal | https://mobicova-client.onrender.com/provider/login |
+| Provider portal (clinicians) | https://mobicova-client.onrender.com/provider/login |
 
 > 🆕 **The root URL `/` is the public marketing site**, not the dashboard. Use **Sign in** (top
 > right) to reach the app.
 >
+> 🔑 **One login for all staff.** Underwriters, companies, telcos **and** clinic/pharmacy admins all
+> sign in at the same `/login` — which organisation they see is decided by their account, not the URL.
+> The **Platform Admin Console** is *not* a separate login: a platform-admin account signs in at
+> `/login` and gets an extra **Admin Console** item in the sidebar (→ `/admin`).
+>
+> 🌐 **Organisations do not have their own URLs.** Creating a new organisation does **not** create a
+> new web address — its admin signs in at the same `/login`.
+>
 > ⏳ **First load may take ~30 seconds.** The server sleeps when idle and wakes on the first request.
 
 ### Logins
-| Role | Email | Password |
-|------|-------|----------|
-| Partner **admin** | `admin@axamansard.demo` | `MobiCova!Demo-2026` |
-| Provider — **doctor** | `doctor@mobicova.demo` | `MobiCova!Demo-2026` |
-| Provider — **pharmacist** | `pharmacist@mobicova.demo` | `MobiCova!Demo-2026` |
-| **Member** (portal) | `amaka.obi@member.demo` | *no password — uses a one-time code* |
+| Role | Email | Password | Signs in at |
+|------|-------|----------|-------------|
+| **Platform admin** (also the underwriter org admin) | `admin@axamansard.demo` | `MobiCova!Demo-2026` | `/login` |
+| **Clinic** org admin (Helium Health) | `clinic@mobicova.demo` | `MobiCova!Demo-2026` | `/login` |
+| **Clinic** org admin (DrConsult) | `clinic2@mobicova.demo` | `MobiCova!Demo-2026` | `/login` |
+| **Pharmacy** org admin (HealthPlus) | `pharmacy@mobicova.demo` | `MobiCova!Demo-2026` | `/login` |
+| Provider — **doctor** (spans 2 clinics) | `doctor@mobicova.demo` | `MobiCova!Demo-2026` | `/provider/login` |
+| Provider — **pharmacist** | `pharmacist@mobicova.demo` | `MobiCova!Demo-2026` | `/provider/login` |
+| **Member** (portal) | `amaka.obi@member.demo` | *no password — uses a one-time code* | `/member/login` |
+
+> The clinic/pharmacy admins above only exist after the org-model seed has been run (`npm run seed`).
+> They are **supply-side** org admins — they get a focused dashboard (their queue + their staff) and
+> cannot see members, claims or other organisations.
 
 > 🔐 **Important — the admin account has two-factor authentication (2FA) switched on.**
 > When you sign in as the admin you'll be asked for a 6-digit code after the password.
@@ -346,14 +368,87 @@ are marked paid without a card, plan changes apply instantly). This is expected.
 
 ---
 
-## 12. Tester sign-off
+# Part C — Unified organisation model (underwriters, companies, telcos, clinics, pharmacies)
+
+These tests verify that **every business is an Organisation of a type**, all managed from one Platform
+Admin Console, each administered individually with no cross-org visibility — and that care still flows
+across orgs. Sign in as the **platform admin** (`admin@axamansard.demo`) unless a step says otherwise.
+
+> Run `npm run seed` first so the demo clinic/pharmacy orgs + their admins exist.
+
+## 13. Platform Admin Console — organisations by type
+
+### Test 32 — Browse all organisations by type
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|32.1| Sign in as the platform admin → **Admin Console** → **Organisations** | A table of **all** organisations across the platform | ☐ | |
+|32.2| Look at the **Type** column | Each org shows a friendly type label + a colour badge for its class (**demand** / **supply** / **integration**) | ☐ | |
+|32.3| Use the **type filter** dropdown (top left), choose **Pharmacy** | The list narrows to pharmacy orgs only; the count updates ("X of Y") | ☐ | |
+|32.4| Choose **All types** again | Full list returns | ☐ | |
+
+### Test 33 — Onboard a new organisation
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|33.1| Click **+ Onboard organisation** | A dialog opens with name, country, **Organisation type** (all 10 types), plan tier, optional first admin | ☐ | |
+|33.2| Create one of type **Pharmacy** (e.g. "Test Pharmacy"), add a first admin email + password | "Organisation created" confirmation; it appears in the list as a **supply** org | ☐ | |
+|33.3| Note the absence of any new web address | There is **no new URL** — the new org's admin signs in at the same `/login` | ☐ | |
+
+## 14. Supply-org admin — clinic & pharmacy dashboards
+
+### Test 34 — Clinic admin dashboard
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|34.1| Sign out, then sign in at `/login` as `clinic@mobicova.demo` | You land on a **focused dashboard** for Helium Health | ☐ | |
+|34.2| Look at the sidebar | Only supply items: **Dashboard, Staff, Help & docs, Security, Branding**. **No** Members/Claims/Insurance/Analytics | ☐ | |
+|34.3| Read the dashboard | Cards show open **consultations** + doctor count, and a **consultation queue** routed to this clinic | ☐ | |
+|34.4| Confirm the queue only shows this clinic's work | You see members' names + clinical context, but **no** claims/plan/billing data | ☐ | |
+
+### Test 35 — Pharmacy admin dashboard
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|35.1| Sign out, sign in as `pharmacy@mobicova.demo` | Focused dashboard for HealthPlus | ☐ | |
+|35.2| Read the dashboard | Cards show open **prescriptions** + pharmacist count, and a **prescription queue** routed to this pharmacy (medication, member, method, status) | ☐ | |
+
+### Test 36 — Supply-org self-service staff
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|36.1| As the clinic admin, open **Staff** | A list of the clinic's doctors | ☐ | |
+|36.2| Click **+ Add doctor**, fill name + email + password, save | The new doctor appears in the list as **active** | ☐ | |
+|36.3| Click **Deactivate** on a doctor, then **Reactivate** | Status toggles between active/inactive | ☐ | |
+|36.4| (Optional) Sign in at `/provider/login` as the doctor you just created | They can sign in to the Provider portal | ☐ | |
+
+### Test 37 — Isolation check (no cross-org visibility)
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|37.1| While signed in as the clinic admin, there is no Members/Claims menu | Supply orgs cannot reach member-management workspaces | ☐ | |
+|37.2| The queue/staff shown belong only to **this** organisation | No data from AXA Mansard, other clinics, or other pharmacies is visible | ☐ | |
+
+## 15. Provider portal — multi-clinic switcher & org routing
+
+### Test 38 — Clinic switcher (doctor in two clinics)
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|38.1| Sign in at `/provider/login` as `doctor@mobicova.demo` | The clinician portal loads | ☐ | |
+|38.2| Look at the top bar | A **dropdown** shows the clinics the doctor belongs to (Helium Health, DrConsult) | ☐ | |
+|38.3| Switch the dropdown to the other clinic | The consultation queue **refetches** and now reflects the selected clinic | ☐ | |
+
+### Test 39 — Prescription routing on the org model
+| # | Step | Expected result | Result | Notes |
+|---|------|-----------------|:------:|-------|
+|39.1| As the doctor, open a consult and **prescribe** a medicine; the **pharmacy** dropdown lists pharmacy **organisations** | You can pick e.g. HealthPlus | ☐ | |
+|39.2| Sign out; sign in at `/provider/login` as `pharmacist@mobicova.demo` (HealthPlus) | The dispensary shows the prescription routed to HealthPlus | ☐ | |
+|39.3| Sign in as the **member** (`amaka.obi@member.demo`) → **Care** | The prescription appears with pickup/delivery + tracking (from earlier fulfilment tests) | ☐ | |
+
+---
+
+## 16. Tester sign-off
 
 | Item | Value |
 |------|-------|
 | Tester name | |
 | Date | |
 | Browser / device | |
-| Total tests passed | ___ / 31 |
+| Total tests passed | ___ / 39 |
 | Overall result (Pass / Pass with issues / Fail) | |
 
 **Summary of any issues found** (list the test number and what went wrong; attach screenshots where

@@ -1,0 +1,20 @@
+.supply-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.supply-stat {
+  background: #fff;
+  border: 1px solid var(--gray-200, #e2ebf0);
+  border-radius: 14px;
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+}
+.supply-stat-v { font-size: 1.9rem; font-weight: 800; color: var(--primary, #0a7b7b); }
+.supply-stat-l { font-size: 0.82rem; color: var(--gray-600, #4a5d61); margin-top: 4px; }
+.supply-stat-link { display: block; transition: border-color 0.15s; }
+.supply-stat-link:hover { border-color: var(--primary, #0a7b7b); }
+.supply-sec { margin: 0 0 12px; font-size: 1rem; }
+.supply-note { margin-top: 14px; }

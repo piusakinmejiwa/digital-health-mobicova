@@ -12,7 +12,8 @@ import BillingPage from './pages/settings/BillingPage';
 import BrandingPage from './pages/settings/BrandingPage';
 import DocsPage from './pages/docs/DocsPage';
 import InboxPage from './pages/inbox/InboxPage';
-import DashboardPage from './pages/dashboard/DashboardPage';
+import DashboardHome from './pages/dashboard/DashboardHome';
+import SupplyStaffPage from './pages/supply/SupplyStaffPage';
 import MembersListPage from './pages/members/MembersListPage';
 import MemberCreatePage from './pages/members/MemberCreatePage';
 import MemberDetailPage from './pages/members/MemberDetailPage';
@@ -88,7 +89,8 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'dashboard', element: <DashboardHome /> },
+      { path: 'staff', element: <SupplyStaffPage /> },
       { path: 'inbox', element: <InboxPage /> },
       { path: 'members', element: <MembersListPage /> },
       { path: 'members/new', element: <MemberCreatePage /> },

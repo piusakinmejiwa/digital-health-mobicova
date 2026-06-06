@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import { orgClass } from '../lib/orgTypes';
+import { passwordIssue } from '../lib/password';
+import { recordAudit } from '../lib/audit';
 import { CLINIC_MEMBER_FIELDS, PHARMACY_MEMBER_FIELDS } from '../lib/memberProjection';
 
 // Endpoints for a SUPPLY-side organisation's ADMIN (a `users` row scoped to a
@@ -93,4 +96,73 @@ export async function listSupplyStaff(req: Request, res: Response): Promise<void
     [orgId]
   )).rows;
   res.json({ staff: rows });
+}
+
+// POST /supply/staff — a supply-org admin adds a clinician to their own org.
+// Role is inferred from the org type (clinic → doctor, pharmacy → pharmacist).
+export async function addSupplyStaff(req: Request, res: Response): Promise<void> {
+  const orgId = req.user!.orgId;
+  const org = await orgInfo(orgId);
+  if (!org) {
+    res.status(404).json({ error: 'Organisation not found' });
+    return;
+  }
+  const role = org.type === 'pharmacy' ? 'pharmacist' : 'doctor';
+  const { fullName, email, password, specialty } = req.body;
+
+  if (!fullName || !String(fullName).trim() || !email) {
+    res.status(400).json({ error: 'Name and email are required.' });
+    return;
+  }
+  const pwIssue = passwordIssue(password);
+  if (pwIssue) {
+    res.status(400).json({ error: pwIssue });
+    return;
+  }
+  const clash = await query('SELECT 1 FROM providers WHERE email = $1', [email]);
+  if (clash.rows.length > 0) {
+    res.status(409).json({ error: 'A clinician with that email already exists.' });
+    return;
+  }
+
+  const hash = await bcrypt.hash(String(password), 12);
+  const r = await query(
+    `INSERT INTO providers (partner_id, full_name, email, password_hash, role, specialty)
+     VALUES (NULL, $1, $2, $3, $4, $5)
+     RETURNING id, full_name, email, role, specialty, is_active`,
+    [String(fullName).slice(0, 255), email, hash, role, String(specialty || '')]
+  );
+  await query(
+    `INSERT INTO provider_organisations (provider_id, org_id, is_primary)
+     VALUES ($1, $2, true) ON CONFLICT (provider_id, org_id) DO NOTHING`,
+    [r.rows[0].id, orgId]
+  );
+
+  await recordAudit(req, {
+    action: 'provider.create', targetType: 'provider', targetId: r.rows[0].id,
+    targetLabel: r.rows[0].full_name, orgId, metadata: { role, via: 'supply_admin' },
+  });
+
+  res.status(201).json({ ...r.rows[0], is_primary: true });
+}
+
+// PATCH /supply/staff/:id — activate / deactivate one of the org's own clinicians.
+export async function setSupplyStaffActive(req: Request, res: Response): Promise<void> {
+  const orgId = req.user!.orgId;
+  const id = String(req.params.id);
+  const isActive = Boolean(req.body?.isActive);
+
+  const belongs = await query(
+    'SELECT 1 FROM provider_organisations WHERE provider_id = $1 AND org_id = $2',
+    [id, orgId]
+  );
+  if (belongs.rows.length === 0) {
+    res.status(404).json({ error: 'Clinician not found in your organisation.' });
+    return;
+  }
+  const r = await query(
+    'UPDATE providers SET is_active = $2 WHERE id = $1 RETURNING id, is_active',
+    [id, isActive]
+  );
+  res.json(r.rows[0]);
 }

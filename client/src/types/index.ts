@@ -326,6 +326,13 @@ export interface MemberDoctor {
 // --- Provider portal (Q9) ---
 export type ProviderRole = 'doctor' | 'pharmacist';
 
+export interface ProviderOrg {
+  id: string;
+  name: string;
+  type: string;
+  is_primary: boolean;
+}
+
 export interface ProviderSession {
   id: string;
   fullName: string;
@@ -334,6 +341,8 @@ export interface ProviderSession {
   specialty: string;
   partnerName: string;
   partnerCategory: string;
+  organisations?: ProviderOrg[];
+  activeOrgId?: string | null;
 }
 
 export interface ProviderConsultation {

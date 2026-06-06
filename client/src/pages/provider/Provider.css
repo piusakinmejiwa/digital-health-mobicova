@@ -81,6 +81,11 @@
 }
 .prov-rx-row-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .prov-rx-row-meta { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+.prov-org-switch {
+  background: rgba(255, 255, 255, 0.12); color: #fff; border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px; padding: 6px 10px; font-size: 0.82rem; font-family: inherit; cursor: pointer; margin-right: 12px;
+}
+.prov-org-switch option { color: #0d2a2a; }
 .prov-rx-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .prov-rx-courier-in { width: 130px; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--border, #e2e8f0); border-radius: 8px; font-family: inherit; }
 .prov-rx-courier-in:focus { outline: none; border-color: var(--primary); }

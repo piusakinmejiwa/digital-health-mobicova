@@ -67,6 +67,28 @@
 
 **Deferred to Phase 4 (with reason):** "create a clinic/pharmacy *with its first clinician*" in the same flow needs the **provider login to move off its `partner_id` key onto the org model** — doing it now would create non-functional provider logins. It lands in Phase 4 alongside the supply-org dashboards + capability gating.
 
+### Phase 4 — IN PROGRESS
+
+**Decisions:** clinician multi-clinic = **org switcher now**; build cadence = **checkpoint after backend**.
+
+#### 4A + 4B — DONE (backend; server typechecks green) ✅
+
+- **Migration 029** — `providers.partner_id` made **nullable** (a clinician can belong to an org with no legacy partner).
+- **Provider auth → org model** (`providerAuth` token `partnerId` now nullable; login/`me` queries `LEFT JOIN partners`):
+  - `getProviderOrgs()` + `resolveActiveOrgId()` — a provider's org memberships + the org they're acting as.
+  - `login` / `me` now return `organisations[]` + `activeOrgId` (powers the Phase 4C switcher).
+  - Consultation reads/accept/update + prescription add/queue/advance are **org-switcher-aware**: match by `provider_org_id`/`pharmacy_org_id` for the active org **OR** the legacy partner (no regressions). Accept stamps `provider_org_id`.
+- **Supply-org admin endpoints** (`/supply/*`, behind `authenticate` + `requireOrgClass('supply')`):
+  - `GET /supply/overview` (queue + staff counts), `GET /supply/queue` (consults for clinics / prescriptions for pharmacies), `GET /supply/staff` (clinicians).
+  - Reads use the **member-care privacy slice** (`lib/memberProjection.ts`).
+- **Capability middleware** (`middleware/orgCapability.ts`) — `requireOrgClass(...)`; applied to `/supply/*` now, demand-route gating in 4E.
+- **Run:** `npm run migrate` (applies 029) after deploy. No data migration needed.
+
+#### 4C–4E — PENDING (post-checkpoint)
+- 4C: supply-org dashboards + clinic switcher UI (client).
+- 4D: create clinic/pharmacy + first clinician (Admin Console) + supply-org self-service staff management.
+- 4E: turn on demand-route capability gating, nav polish, verify slice, tidy legacy partner refs.
+
 ---
 
 ## 1. Goal

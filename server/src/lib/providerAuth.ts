@@ -9,13 +9,13 @@ export type ProviderRole = 'doctor' | 'pharmacist';
 
 export interface ProviderJwtPayload {
   providerId: string;
-  partnerId: string;
+  partnerId: string | null; // legacy link; may be null for org-native providers
   role: ProviderRole;
   scope: 'provider';
 }
 
-export function signProviderToken(providerId: string, partnerId: string, role: ProviderRole): string {
-  const payload: ProviderJwtPayload = { providerId, partnerId, role, scope: 'provider' };
+export function signProviderToken(providerId: string, partnerId: string | null, role: ProviderRole): string {
+  const payload: ProviderJwtPayload = { providerId, partnerId: partnerId ?? null, role, scope: 'provider' };
   return jwt.sign(payload, env.jwtSecret, { expiresIn: '7d' });
 }
 

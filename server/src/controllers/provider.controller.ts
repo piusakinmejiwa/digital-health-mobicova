@@ -3,6 +3,30 @@ import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import { signProviderToken } from '../lib/providerAuth';
 
+// ── Provider org context (unified model; a clinician may span several orgs) ──
+export interface ProviderOrg { id: string; name: string; type: string; is_primary: boolean }
+
+async function getProviderOrgs(providerId: string): Promise<ProviderOrg[]> {
+  const r = await query(
+    `SELECT o.id, o.name, o.type, po.is_primary
+       FROM provider_organisations po
+       JOIN organisations o ON po.org_id = o.id
+      WHERE po.provider_id = $1
+      ORDER BY po.is_primary DESC, o.name`,
+    [providerId]
+  );
+  return r.rows;
+}
+
+// The org a clinician is acting as for this request: the requested org if they
+// belong to it, else their primary (first) org, else null (legacy partner-only).
+async function resolveActiveOrgId(providerId: string, requested?: string | null): Promise<string | null> {
+  const orgs = await getProviderOrgs(providerId);
+  if (orgs.length === 0) return null;
+  if (requested && orgs.some((o) => o.id === requested)) return requested;
+  return orgs[0].id;
+}
+
 // ── Auth ────────────────────────────────────────────────────────────────
 // POST /provider/auth/login { email, password }
 export async function providerLogin(req: Request, res: Response): Promise<void> {
@@ -11,7 +35,7 @@ export async function providerLogin(req: Request, res: Response): Promise<void> 
   const result = await query(
     `SELECT pr.id, pr.partner_id, pr.full_name, pr.email, pr.password_hash, pr.role, pr.specialty,
             p.name AS partner_name, p.category AS partner_category
-     FROM providers pr JOIN partners p ON pr.partner_id = p.id
+     FROM providers pr LEFT JOIN partners p ON pr.partner_id = p.id
      WHERE pr.email = $1 AND pr.is_active = true`,
     [email]
   );
@@ -27,6 +51,7 @@ export async function providerLogin(req: Request, res: Response): Promise<void> 
   }
 
   const token = signProviderToken(provider.id, provider.partner_id, provider.role);
+  const organisations = await getProviderOrgs(provider.id);
   res.json({
     token,
     provider: {
@@ -37,6 +62,8 @@ export async function providerLogin(req: Request, res: Response): Promise<void> 
       specialty: provider.specialty,
       partnerName: provider.partner_name,
       partnerCategory: provider.partner_category,
+      organisations,
+      activeOrgId: organisations[0]?.id ?? null,
     },
   });
 }
@@ -46,7 +73,7 @@ export async function getProviderMe(req: Request, res: Response): Promise<void> 
   const result = await query(
     `SELECT pr.id, pr.full_name, pr.email, pr.role, pr.specialty,
             p.name AS partner_name, p.category AS partner_category
-     FROM providers pr JOIN partners p ON pr.partner_id = p.id
+     FROM providers pr LEFT JOIN partners p ON pr.partner_id = p.id
      WHERE pr.id = $1`,
     [req.provider!.providerId]
   );
@@ -55,6 +82,7 @@ export async function getProviderMe(req: Request, res: Response): Promise<void> 
     return;
   }
   const r = result.rows[0];
+  const organisations = await getProviderOrgs(r.id);
   res.json({
     id: r.id,
     fullName: r.full_name,
@@ -63,6 +91,8 @@ export async function getProviderMe(req: Request, res: Response): Promise<void> 
     specialty: r.specialty,
     partnerName: r.partner_name,
     partnerCategory: r.partner_category,
+    organisations,
+    activeOrgId: organisations[0]?.id ?? null,
   });
 }
 
@@ -79,29 +109,33 @@ const CONSULT_SELECT = `
   JOIN organisations o ON c.org_id = o.id
 `;
 
-// GET /provider/consultations?status=
+// GET /provider/consultations?status=&orgId=
 export async function listProviderConsultations(req: Request, res: Response): Promise<void> {
   const partnerId = req.provider!.partnerId;
+  const activeOrgId = await resolveActiveOrgId(req.provider!.providerId, req.query.orgId ? String(req.query.orgId) : null);
   const status = req.query.status ? String(req.query.status) : null;
-  const params: unknown[] = [partnerId];
-  let where = 'WHERE c.partner_id = $1';
+  // $1 = active org id (nullable), $2 = legacy partner id.
+  const params: unknown[] = [activeOrgId, partnerId];
+  let where = 'WHERE (c.provider_org_id = $1::uuid OR c.partner_id = $2)';
   if (status) {
     params.push(status);
     where += ` AND c.status = $${params.length}`;
   }
   const result = await query(`${CONSULT_SELECT} ${where} ORDER BY c.scheduled_at ASC NULLS LAST, c.created_at DESC`, params as any[]);
   const counts = await query(
-    `SELECT status, COUNT(*)::int AS count FROM consultations WHERE partner_id = $1 GROUP BY status`,
-    [partnerId]
+    `SELECT status, COUNT(*)::int AS count FROM consultations c
+      WHERE (c.provider_org_id = $1::uuid OR c.partner_id = $2) GROUP BY status`,
+    [activeOrgId, partnerId]
   );
   res.json({ consultations: result.rows, counts: counts.rows });
 }
 
-// GET /provider/consultations/:id
+// GET /provider/consultations/:id?orgId=
 export async function getProviderConsultation(req: Request, res: Response): Promise<void> {
   const partnerId = req.provider!.partnerId;
+  const activeOrgId = await resolveActiveOrgId(req.provider!.providerId, req.query.orgId ? String(req.query.orgId) : null);
   const id = String(req.params.id);
-  const result = await query(`${CONSULT_SELECT} WHERE c.id = $1 AND c.partner_id = $2`, [id, partnerId]);
+  const result = await query(`${CONSULT_SELECT} WHERE c.id = $1 AND (c.provider_org_id = $2::uuid OR c.partner_id = $3)`, [id, activeOrgId, partnerId]);
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'Consultation not found' });
     return;
@@ -122,13 +156,17 @@ export async function acceptConsultation(req: Request, res: Response): Promise<v
 
   const me = await query('SELECT full_name FROM providers WHERE id = $1', [providerId]);
   const name = me.rows[0]?.full_name || '';
+  const requestedOrg = req.body?.orgId || req.query.orgId;
+  const activeOrgId = await resolveActiveOrgId(providerId, requestedOrg ? String(requestedOrg) : null);
 
+  // Accepting stamps the consult with the clinic the doctor is acting as.
   const result = await query(
     `UPDATE consultations
-        SET status = 'in_progress', provider_id = $3, doctor_name = $4, updated_at = NOW()
-      WHERE id = $1 AND partner_id = $2 AND status = 'scheduled'
+        SET status = 'in_progress', provider_id = $3, doctor_name = $4,
+            provider_org_id = COALESCE(provider_org_id, $5::uuid), updated_at = NOW()
+      WHERE id = $1 AND (provider_org_id = $5::uuid OR partner_id = $2) AND status = 'scheduled'
       RETURNING id`,
-    [id, partnerId, providerId, name]
+    [id, partnerId, providerId, name, activeOrgId]
   );
   if (result.rows.length === 0) {
     res.status(409).json({ error: 'This consultation can no longer be accepted.' });
@@ -143,6 +181,8 @@ export async function updateProviderConsultation(req: Request, res: Response): P
   const partnerId = req.provider!.partnerId;
   const id = String(req.params.id);
   const { status, notes, diagnosis } = req.body;
+  const requestedOrg = req.body?.orgId || req.query.orgId;
+  const activeOrgId = await resolveActiveOrgId(req.provider!.providerId, requestedOrg ? String(requestedOrg) : null);
 
   const allowed = ['in_progress', 'completed', 'cancelled'];
   if (status !== undefined && !allowed.includes(String(status))) {
@@ -156,9 +196,9 @@ export async function updateProviderConsultation(req: Request, res: Response): P
             notes = COALESCE($4, notes),
             diagnosis = COALESCE($5, diagnosis),
             updated_at = NOW()
-      WHERE id = $1 AND partner_id = $2 AND status <> 'completed'
+      WHERE id = $1 AND (provider_org_id = $6::uuid OR partner_id = $2) AND status <> 'completed'
       RETURNING *`,
-    [id, partnerId, status ?? null, notes ?? null, diagnosis ?? null]
+    [id, partnerId, status ?? null, notes ?? null, diagnosis ?? null, activeOrgId]
   );
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'Consultation not found or already completed.' });
@@ -198,9 +238,11 @@ export async function addProviderPrescription(req: Request, res: Response): Prom
     return;
   }
 
+  const requestedOrg = req.body?.orgId || req.query.orgId;
+  const activeOrgId = await resolveActiveOrgId(req.provider!.providerId, requestedOrg ? String(requestedOrg) : null);
   const consult = await query(
-    `SELECT member_id FROM consultations WHERE id = $1 AND partner_id = $2`,
-    [id, partnerId]
+    `SELECT member_id FROM consultations WHERE id = $1 AND (provider_org_id = $2::uuid OR partner_id = $3)`,
+    [id, activeOrgId, partnerId]
   );
   if (consult.rows.length === 0) {
     res.status(404).json({ error: 'Consultation not found' });
@@ -267,21 +309,34 @@ const RX_SELECT = `
 // Params: $1 = pharmacy org id (nullable), $2 = partner id, $3 = partner name.
 const RX_MATCH = `(rx.pharmacy_org_id = $1::uuid OR rx.pharmacy_partner_id = $2 OR (rx.pharmacy_partner_id IS NULL AND rx.pharmacy_partner = $3))`;
 
-// Resolve the calling pharmacist's pharmacy org (from their partner link) plus
-// the partner name, so we can match prescriptions across old and new routing.
-async function pharmacyContext(partnerId: string): Promise<{ orgId: string | null; partnerName: string }> {
-  const org = await query(
-    `SELECT id FROM organisations WHERE type = 'pharmacy' AND legacy_partner_id = $1 LIMIT 1`,
-    [partnerId]
-  );
-  const partner = await query('SELECT name FROM partners WHERE id = $1', [partnerId]);
-  return { orgId: org.rows[0]?.id ?? null, partnerName: partner.rows[0]?.name || '' };
+// Resolve the calling pharmacist's pharmacy org (switcher-aware via the org
+// membership, then the legacy partner link) plus the partner name, so we can
+// match prescriptions across old and new routing.
+async function pharmacyContext(
+  providerId: string, partnerId: string | null, requestedOrgId?: string | null
+): Promise<{ orgId: string | null; partnerName: string }> {
+  let orgId = await resolveActiveOrgId(providerId, requestedOrgId ?? null);
+  if (!orgId && partnerId) {
+    const org = await query(
+      `SELECT id FROM organisations WHERE type = 'pharmacy' AND legacy_partner_id = $1 LIMIT 1`,
+      [partnerId]
+    );
+    orgId = org.rows[0]?.id ?? null;
+  }
+  let partnerName = '';
+  if (partnerId) {
+    const partner = await query('SELECT name FROM partners WHERE id = $1', [partnerId]);
+    partnerName = partner.rows[0]?.name || '';
+  }
+  return { orgId, partnerName };
 }
 
-// GET /provider/prescriptions?status=
+// GET /provider/prescriptions?status=&orgId=
 export async function listProviderPrescriptions(req: Request, res: Response): Promise<void> {
   const partnerId = req.provider!.partnerId;
-  const { orgId, partnerName } = await pharmacyContext(partnerId);
+  const { orgId, partnerName } = await pharmacyContext(
+    req.provider!.providerId, partnerId, req.query.orgId ? String(req.query.orgId) : null
+  );
   const status = req.query.status ? String(req.query.status) : null;
 
   const params: unknown[] = [orgId, partnerId, partnerName];
@@ -315,7 +370,9 @@ export async function advancePrescription(req: Request, res: Response): Promise<
   const partnerId = req.provider!.partnerId;
   const id = String(req.params.id);
   const status = String(req.body?.status || '');
-  const { orgId, partnerName } = await pharmacyContext(partnerId);
+  const { orgId, partnerName } = await pharmacyContext(
+    req.provider!.providerId, partnerId, (req.body?.orgId || req.query.orgId) ? String(req.body?.orgId || req.query.orgId) : null
+  );
 
   const cur = await query(`SELECT rx.* FROM prescriptions rx WHERE rx.id = $4 AND ${RX_MATCH}`, [orgId, partnerId, partnerName, id]);
   if (cur.rows.length === 0) {

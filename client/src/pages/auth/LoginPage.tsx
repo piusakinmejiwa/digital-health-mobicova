@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import type { CSSProperties } from 'react';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { loginUser, mfaChallenge } from '../../api/auth';
 import { ssoStatus, beginSso } from '../../api/sso';
+import { getOrgBrandingBySlug, type OrgBrandingPublic } from '../../api/publicOrg';
 import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
@@ -29,12 +31,20 @@ export default function LoginPage() {
   });
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { slug } = useParams();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Branded login: when reached via /o/<slug>/login, theme the page to that org.
+  const [branding, setBranding] = useState<OrgBrandingPublic | null>(null);
+  useEffect(() => {
+    if (!slug) return;
+    getOrgBrandingBySlug(slug).then(setBranding).catch(() => setBranding(null));
+  }, [slug]);
+
   // SSO panel state
   const [ssoMode, setSsoMode] = useState(false);
-  const [workspace, setWorkspace] = useState('');
+  const [workspace, setWorkspace] = useState(slug || '');
   const [ssoBusy, setSsoBusy] = useState(false);
   const [ssoError, setSsoError] = useState('');
 
@@ -113,10 +123,14 @@ export default function LoginPage() {
     }
   };
 
+  const brandStyle: CSSProperties | undefined = branding
+    ? ({ '--primary': branding.primaryColor, '--primary-dark': branding.primaryColor } as CSSProperties)
+    : undefined;
+
   return (
-    <div className="auth-wrap">
+    <div className="auth-wrap" style={brandStyle}>
       <div className="auth-hero">
-        <div className="logo-mark">M</div>
+        <div className="logo-mark">{branding?.logoLetter || 'M'}</div>
         <h1>The health platform behind Nigeria&rsquo;s insurers, employers &amp; telcos.</h1>
         <p>
           MobiCova connects your members to telemedicine, AI health guidance, and health-linked
@@ -131,8 +145,10 @@ export default function LoginPage() {
 
       <div className="auth-form-side">
         <div className="auth-card">
-          <h2>Partner sign in</h2>
-          <p className="sub">Access your MobiCova health platform.</p>
+          <h2>{branding ? `${branding.displayName} sign in` : 'Partner sign in'}</h2>
+          <p className="sub">
+            {branding ? `Sign in to ${branding.displayName} on MobiCova.` : 'Access your MobiCova health platform.'}
+          </p>
 
           {mfaToken ? (
             <>

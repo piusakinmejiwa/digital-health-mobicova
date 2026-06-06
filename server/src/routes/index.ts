@@ -19,6 +19,7 @@ import settingsRoutes from './settings.routes';
 import inboxRoutes from './inbox.routes';
 import leadsRoutes from './leads.routes';
 import supplyOrgRoutes from './supplyOrg.routes';
+import publicOrgRoutes from './publicOrg.routes';
 
 const router = Router();
 
@@ -42,5 +43,6 @@ router.use('/settings', settingsRoutes);
 router.use('/inbox', inboxRoutes);
 router.use('/leads', leadsRoutes);
 router.use('/supply', supplyOrgRoutes);
+router.use('/orgs', publicOrgRoutes);
 
 export default router;

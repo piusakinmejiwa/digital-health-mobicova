@@ -44,6 +44,8 @@ export const router = createBrowserRouter([
   { path: '/', element: <MarketingPage /> },
 
   { path: '/login', element: <LoginPage /> },
+  // Branded per-organisation login (themed to the org's white-label branding).
+  { path: '/o/:slug/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/sso/callback', element: <SsoCallbackPage /> },
 

@@ -336,11 +336,19 @@ is enforced by the account + `org_id` scoping, not by the address.
 **No.** Creating an org (Admin Console → Organisations → Onboard) creates the org + optionally its
 first admin user. That admin signs in at the **same `/login`**. No new URL is provisioned.
 
-### Optional future enhancement (not built)
+### Per-org branded login — path-based (BUILT ✅)
 
-If per-org URLs are wanted later, two standard patterns fit the existing `slug`:
-- **Path-based:** `…/o/<slug>/login` — pre-fills/locks branding to that org on the login screen.
-- **Subdomain-based:** `<slug>.digitalhealth.mobicova.com` — needs wildcard DNS + cert.
+A branded entry point per organisation, themed to its white-label branding:
 
-Neither is required for isolation (already enforced); they're cosmetic/branding conveniences. Say the
-word to add the path-based version.
+- **URL:** `https://…/o/<slug>/login` (e.g. `/o/axa-mansard-health/login`, `/o/healthplus/login`).
+- **What it does:** the login screen shows the org's display name + logo letter and is themed to its
+  primary colour; the SSO "workspace" field is pre-filled with the slug. After sign-in the user lands
+  in their own org as normal.
+- **It is cosmetic only** — it does **not** change auth or isolation (still by account + `org_id`).
+  Anyone can still use the plain `/login`; the branded URL is just a nicer, on-brand front door.
+- **How:** public endpoint `GET /api/v1/orgs/<slug>/branding` (unauthenticated, returns only
+  name/logo/colours) + the `/o/:slug/login` route reusing `LoginPage`.
+- Unknown/suspended slug → the page falls back to the standard MobiCova-branded login.
+
+### Still optional (not built)
+- **Subdomain-based** `<slug>.digitalhealth.mobicova.com` — needs wildcard DNS + cert. Say the word.

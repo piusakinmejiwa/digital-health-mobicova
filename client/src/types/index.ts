@@ -6,6 +6,7 @@ export interface User {
   orgId: string;
   orgName: string;
   partnerType?: string;
+  orgClass?: 'demand' | 'supply' | 'integration' | 'platform';
   planTier?: string;
   joinCode?: string;
   mfaEnabled?: boolean;

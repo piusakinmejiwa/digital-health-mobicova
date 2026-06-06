@@ -42,6 +42,18 @@
 
 > Note: Phase 1 backfills data but does **not** change any read paths yet — the app still reads via the legacy partner columns, so nothing breaks. Switching reads to the org columns + the privacy slice is **Phase 2**.
 
+### Phase 2 — DONE (model-awareness + prescription routing on orgs; builds green)
+
+- **`server/src/lib/orgTypes.ts`** — `ORG_TYPE_META` single source of truth (type → label + class + ownsMembers) and `orgClass()` / `orgTypeLabel()` / `isSupplyType()` helpers.
+- **Prescription routing flipped onto the org model** (the headline read-switch), with full legacy fallbacks so nothing breaks:
+  - `GET /provider/pharmacies` now lists pharmacy **organisations** (falls back to legacy pharmacy partners if the data migration hasn't run).
+  - `addProviderPrescription` resolves the chosen pharmacy to an **org** and stores `pharmacy_org_id` + `pharmacy_partner_id` + name together (accepts either `pharmacyOrgId` or legacy `pharmacyPartnerId` from the client — no client change needed).
+  - Pharmacist queue/advance match by `pharmacy_org_id` **OR** legacy partner id **OR** partner name (`pharmacyContext()` resolves the pharmacist's org) — strictly more inclusive, no regressions.
+- **Org `class` exposed on the staff session** (`login` / MFA / `getMe` now return `orgClass`); client `User` type carries optional `orgClass` for Phase 4 nav.
+- **No schema change** in Phase 2 → no migration to run; just deploy.
+
+**Deliberately staged to Phase 3/4 (not a gap):** the org-type *capability middleware* (route gating) and the *member-care projection* enforcement land **with** the supply-org dashboards that consume them. Data isolation for supply orgs is **already enforced today** by the universal `org_id` WHERE-clauses, so deferring the gating changes UX, not security.
+
 ---
 
 ## 1. Goal

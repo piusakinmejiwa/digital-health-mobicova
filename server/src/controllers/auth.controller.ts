@@ -6,6 +6,7 @@ import { env } from '../config/env';
 import { JwtPayload } from '../middleware/auth';
 import { isPlatformAdmin } from '../middleware/platformAdmin';
 import { generateJoinCode } from '../lib/org';
+import { orgClass } from '../lib/orgTypes';
 import { passwordIssue } from '../lib/password';
 import {
   generateTotpSecret,
@@ -44,6 +45,7 @@ function issueSession(user: SessionUserRow) {
       orgId: user.org_id,
       orgName: user.org_name,
       partnerType: user.partner_type,
+      orgClass: orgClass(user.partner_type),
     },
   };
 }
@@ -348,6 +350,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     orgId: user.org_id,
     orgName: user.org_name,
     partnerType: user.partner_type,
+    orgClass: orgClass(user.partner_type),
     planTier: user.plan_tier,
     joinCode: user.join_code,
     mfaEnabled: user.totp_enabled,

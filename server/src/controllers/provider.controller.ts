@@ -167,19 +167,31 @@ export async function updateProviderConsultation(req: Request, res: Response): P
   res.json(result.rows[0]);
 }
 
-// GET /provider/pharmacies — the pharmacy partners a doctor can route a script to.
+// GET /provider/pharmacies — the pharmacy ORGANISATIONS a doctor can route a
+// script to (unified org model). Falls back to legacy pharmacy partners if the
+// org-model data migration hasn't run yet.
 export async function listPharmacies(_req: Request, res: Response): Promise<void> {
-  const result = await query(
+  const orgs = await query(
+    `SELECT id, name FROM organisations WHERE type = 'pharmacy' AND is_active = true ORDER BY name`
+  );
+  if (orgs.rows.length > 0) {
+    res.json({ pharmacies: orgs.rows });
+    return;
+  }
+  const legacy = await query(
     `SELECT id, name FROM partners WHERE category = 'pharmacy' AND status = 'active' ORDER BY name`
   );
-  res.json({ pharmacies: result.rows });
+  res.json({ pharmacies: legacy.rows });
 }
 
 // POST /provider/consultations/:id/prescriptions — issue an e-prescription.
 export async function addProviderPrescription(req: Request, res: Response): Promise<void> {
   const partnerId = req.provider!.partnerId;
   const id = String(req.params.id);
-  const { medication, dosage, instructions, pharmacyPartnerId } = req.body;
+  // The chosen pharmacy id may be an organisation id (new) or a legacy partner
+  // id (old client/data). Accept either field name.
+  const { medication, dosage, instructions } = req.body;
+  const chosen = String(req.body?.pharmacyOrgId || req.body?.pharmacyPartnerId || '') || null;
 
   if (!medication || !String(medication).trim()) {
     res.status(400).json({ error: 'Medication is required.' });
@@ -195,21 +207,42 @@ export async function addProviderPrescription(req: Request, res: Response): Prom
     return;
   }
 
-  // Resolve the chosen pharmacy partner (by id), falling back to the first one.
-  let pharmacy = await query(
-    `SELECT id, name FROM partners WHERE category = 'pharmacy' AND id = $1`,
-    [pharmacyPartnerId || null]
+  // Resolve the destination pharmacy ORGANISATION: by org id, then by the org's
+  // legacy partner id, then the first pharmacy org. The matching org carries the
+  // legacy partner id, so we store org id + partner id + name together and every
+  // reader (old or new) keeps working.
+  let org = await query(
+    `SELECT id, name, legacy_partner_id FROM organisations WHERE type = 'pharmacy' AND id = $1`,
+    [chosen]
   );
-  if (pharmacy.rows.length === 0) {
-    pharmacy = await query(`SELECT id, name FROM partners WHERE category = 'pharmacy' ORDER BY name LIMIT 1`);
+  if (org.rows.length === 0) {
+    org = await query(
+      `SELECT id, name, legacy_partner_id FROM organisations WHERE type = 'pharmacy' AND legacy_partner_id = $1`,
+      [chosen]
+    );
   }
-  const pharmacyRow = pharmacy.rows[0] || { id: null, name: '' };
+  if (org.rows.length === 0) {
+    org = await query(`SELECT id, name, legacy_partner_id FROM organisations WHERE type = 'pharmacy' ORDER BY name LIMIT 1`);
+  }
+
+  let pharmacyOrgId: string | null = org.rows[0]?.id ?? null;
+  let pharmacyName: string = org.rows[0]?.name ?? '';
+  let pharmacyPartnerId: string | null = org.rows[0]?.legacy_partner_id ?? null;
+
+  // Pre-migration fallback: no pharmacy orgs yet — use legacy partners directly.
+  if (!org.rows[0]) {
+    let p = await query(`SELECT id, name FROM partners WHERE category = 'pharmacy' AND id = $1`, [chosen]);
+    if (p.rows.length === 0) p = await query(`SELECT id, name FROM partners WHERE category = 'pharmacy' ORDER BY name LIMIT 1`);
+    pharmacyName = p.rows[0]?.name ?? '';
+    pharmacyPartnerId = p.rows[0]?.id ?? null;
+    pharmacyOrgId = null;
+  }
 
   const result = await query(
     `INSERT INTO prescriptions
-       (consultation_id, member_id, medication, dosage, instructions, pharmacy_partner, pharmacy_partner_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [id, consult.rows[0].member_id, String(medication).slice(0, 255), String(dosage || ''), String(instructions || ''), pharmacyRow.name, pharmacyRow.id]
+       (consultation_id, member_id, medication, dosage, instructions, pharmacy_partner, pharmacy_partner_id, pharmacy_org_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [id, consult.rows[0].member_id, String(medication).slice(0, 255), String(dosage || ''), String(instructions || ''), pharmacyName, pharmacyPartnerId, pharmacyOrgId]
   );
   res.status(201).json(result.rows[0]);
 }
@@ -229,18 +262,29 @@ const RX_SELECT = `
   JOIN consultations c ON rx.consultation_id = c.id
 `;
 
-// Match prescriptions to a pharmacy by stable partner id, OR (for legacy rows
-// with no id) by the partner name carried on the prescription.
-const RX_MATCH = `(rx.pharmacy_partner_id = $1 OR (rx.pharmacy_partner_id IS NULL AND rx.pharmacy_partner = $2))`;
+// Match prescriptions to a pharmacy by org id (unified model), OR legacy partner
+// id, OR (oldest rows) the partner name carried on the prescription.
+// Params: $1 = pharmacy org id (nullable), $2 = partner id, $3 = partner name.
+const RX_MATCH = `(rx.pharmacy_org_id = $1::uuid OR rx.pharmacy_partner_id = $2 OR (rx.pharmacy_partner_id IS NULL AND rx.pharmacy_partner = $3))`;
+
+// Resolve the calling pharmacist's pharmacy org (from their partner link) plus
+// the partner name, so we can match prescriptions across old and new routing.
+async function pharmacyContext(partnerId: string): Promise<{ orgId: string | null; partnerName: string }> {
+  const org = await query(
+    `SELECT id FROM organisations WHERE type = 'pharmacy' AND legacy_partner_id = $1 LIMIT 1`,
+    [partnerId]
+  );
+  const partner = await query('SELECT name FROM partners WHERE id = $1', [partnerId]);
+  return { orgId: org.rows[0]?.id ?? null, partnerName: partner.rows[0]?.name || '' };
+}
 
 // GET /provider/prescriptions?status=
 export async function listProviderPrescriptions(req: Request, res: Response): Promise<void> {
   const partnerId = req.provider!.partnerId;
-  const partner = await query('SELECT name FROM partners WHERE id = $1', [partnerId]);
-  const partnerName = partner.rows[0]?.name || '';
+  const { orgId, partnerName } = await pharmacyContext(partnerId);
   const status = req.query.status ? String(req.query.status) : null;
 
-  const params: unknown[] = [partnerId, partnerName];
+  const params: unknown[] = [orgId, partnerId, partnerName];
   let where = `WHERE ${RX_MATCH}`;
   if (status) {
     params.push(status);
@@ -250,7 +294,7 @@ export async function listProviderPrescriptions(req: Request, res: Response): Pr
   const counts = await query(
     `SELECT fulfilment_status AS status, COUNT(*)::int AS count
      FROM prescriptions rx WHERE ${RX_MATCH} GROUP BY fulfilment_status`,
-    [partnerId, partnerName]
+    [orgId, partnerId, partnerName]
   );
   res.json({ prescriptions: result.rows, counts: counts.rows });
 }
@@ -271,10 +315,9 @@ export async function advancePrescription(req: Request, res: Response): Promise<
   const partnerId = req.provider!.partnerId;
   const id = String(req.params.id);
   const status = String(req.body?.status || '');
-  const partner = await query('SELECT name FROM partners WHERE id = $1', [partnerId]);
-  const partnerName = partner.rows[0]?.name || '';
+  const { orgId, partnerName } = await pharmacyContext(partnerId);
 
-  const cur = await query(`SELECT rx.* FROM prescriptions rx WHERE rx.id = $3 AND ${RX_MATCH}`, [partnerId, partnerName, id]);
+  const cur = await query(`SELECT rx.* FROM prescriptions rx WHERE rx.id = $4 AND ${RX_MATCH}`, [orgId, partnerId, partnerName, id]);
   if (cur.rows.length === 0) {
     res.status(404).json({ error: 'Prescription not found for your pharmacy.' });
     return;

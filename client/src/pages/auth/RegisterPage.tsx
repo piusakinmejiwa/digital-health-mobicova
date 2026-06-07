@@ -40,7 +40,7 @@ export default function RegisterPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-hero">
-        <BrandLogo chip />
+        <BrandLogo />
 
         <h1>Bring digital health to your members.</h1>
         <p>

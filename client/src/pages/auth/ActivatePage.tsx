@@ -34,7 +34,7 @@ export default function ActivatePage() {
   return (
     <div className="auth-wrap">
       <div className="auth-hero">
-        <BrandLogo chip />
+        <BrandLogo />
 
         <h1>Set up your MobiCova account</h1>
         <p>Choose a password to activate your administrator access.</p>

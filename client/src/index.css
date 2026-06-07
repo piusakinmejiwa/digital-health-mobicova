@@ -68,15 +68,18 @@ h1, h2, h3 { color: var(--dark); line-height: 1.25; }
 }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
-/* Brand wordmark (MobiCova Health logo). Dark-on-transparent asset: use the
-   chip (white background) on dark chrome, bare on light surfaces. */
-.brand-logo { height: 30px; width: auto; display: block; }
+/* Brand wordmark (MobiCova Health). Transparent, light-toned asset built for
+   dark backgrounds: render it bare on dark chrome (a soft shadow lifts it off
+   the background), and on LIGHT surfaces sit it on a dark teal chip so it pops. */
+.brand-logo {
+  height: 34px; width: auto; display: block;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+}
 .brand-logo-chip {
   display: inline-flex; align-items: center;
-  background: #fff; padding: 7px 12px; border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+  background: var(--dark, #0d2a2a); padding: 8px 14px; border-radius: 10px;
 }
-.brand-logo-chip .brand-logo { height: 26px; }
+.brand-logo-chip .brand-logo { height: 28px; filter: none; }
 
 /* Buttons */
 .btn {

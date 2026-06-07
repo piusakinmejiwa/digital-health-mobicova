@@ -38,7 +38,7 @@ export default function ProviderShell() {
     <div className="prov-app">
       <header className="prov-topbar">
         <div className="prov-brand">
-          <BrandLogo chip />
+          <BrandLogo />
           <span className="prov-brand-role">{roleLabel} portal</span>
         </div>
         <div className="prov-account">

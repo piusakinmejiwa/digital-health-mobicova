@@ -58,7 +58,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <BrandLogo chip />
+        <BrandLogo />
       </div>
 
       <nav className="sidebar-nav">

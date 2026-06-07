@@ -132,7 +132,7 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap" style={brandStyle}>
       <div className="auth-hero">
-        <BrandLogo chip />
+        <BrandLogo />
 
         <h1>The health platform behind Nigeria&rsquo;s insurers, employers &amp; telcos.</h1>
         <p>

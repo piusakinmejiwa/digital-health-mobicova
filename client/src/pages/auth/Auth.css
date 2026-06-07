@@ -17,7 +17,7 @@
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 1.6rem; margin-bottom: 1.6rem;
 }
-.auth-hero .brand-logo-chip { align-self: flex-start; margin-bottom: 1.6rem; }
+.auth-hero .brand-logo { align-self: flex-start; margin-bottom: 1.6rem; }
 .auth-hero h1 { color: #fff; font-size: 2.1rem; line-height: 1.2; margin-bottom: 1rem; }
 .auth-hero p { color: #cdeaea; font-size: 1rem; max-width: 420px; }
 .auth-hero ul { list-style: none; margin-top: 2rem; display: flex; flex-direction: column; gap: 0.8rem; }

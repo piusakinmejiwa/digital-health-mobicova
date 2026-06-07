@@ -72,14 +72,14 @@ h1, h2, h3 { color: var(--dark); line-height: 1.25; }
    dark backgrounds: render it bare on dark chrome (a soft shadow lifts it off
    the background), and on LIGHT surfaces sit it on a dark teal chip so it pops. */
 .brand-logo {
-  height: 38px; width: auto; display: block;
+  height: 46px; width: auto; display: block;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
 }
 .brand-logo-chip {
   display: inline-flex; align-items: center;
   background: var(--dark, #0d2a2a); padding: 8px 14px; border-radius: 10px;
 }
-.brand-logo-chip .brand-logo { height: 28px; filter: none; }
+.brand-logo-chip .brand-logo { height: 34px; filter: none; }
 
 /* Buttons */
 .btn {

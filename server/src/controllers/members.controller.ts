@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { query, pool } from '../config/database';
 import { sendMemberWelcome } from '../lib/onboarding';
+import { newMembershipId, generateMembershipId } from '../lib/membership';
 
 export async function listMembers(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
@@ -62,14 +63,16 @@ export async function createMember(req: Request, res: Response): Promise<void> {
     bloodGroup, allergies, chronicConditions, currentMedications,
   } = req.body;
 
+  const membershipId = await newMembershipId(orgId);
   const result = await query(
     `INSERT INTO members (org_id, full_name, phone, email, date_of_birth, gender, channel,
-                          blood_group, allergies, chronic_conditions, current_medications)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                          blood_group, allergies, chronic_conditions, current_medications, membership_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
     [
       orgId, fullName, phone || '', email || '', dateOfBirth || null, gender || '',
       channel || 'app', bloodGroup || '', allergies || [], chronicConditions || [], currentMedications || [],
+      membershipId,
     ]
   );
   const member = result.rows[0];
@@ -150,16 +153,22 @@ export async function importMembers(req: Request, res: Response): Promise<void> 
     return;
   }
 
+  // Membership IDs for the batch — prefix from the org name, unique per member.
+  const orgRow = await query('SELECT name FROM organisations WHERE id = $1', [orgId]);
+  const orgName = orgRow.rows[0]?.name || 'MobiCova';
+  const reserved = new Set<string>();
+
   // All valid rows succeed together or not at all.
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     for (const values of valid) {
+      const membershipId = await generateMembershipId(orgName, reserved);
       await client.query(
         `INSERT INTO members (org_id, full_name, phone, email, date_of_birth, gender, channel,
-                              blood_group, allergies, chronic_conditions, current_medications)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-        values
+                              blood_group, allergies, chronic_conditions, current_medications, membership_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        [...values, membershipId]
       );
     }
     await client.query('COMMIT');

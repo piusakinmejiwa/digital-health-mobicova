@@ -1,4 +1,5 @@
 import { query } from '../config/database';
+import { newMembershipId } from '../lib/membership';
 
 // A channel-agnostic conversational engine for enrolling a member through a
 // low-bandwidth channel (WhatsApp chat or USSD menu). The same step machine
@@ -128,11 +129,12 @@ export async function createMemberFromIntake(
   state: IntakeState,
   ctx: { phone: string; channel: IntakeChannel }
 ): Promise<string> {
+  const membershipId = await newMembershipId(state.orgId!);
   const result = await query(
-    `INSERT INTO members (org_id, full_name, phone, gender, channel, status)
-     VALUES ($1, $2, $3, $4, $5, 'active')
+    `INSERT INTO members (org_id, full_name, phone, gender, channel, status, membership_id)
+     VALUES ($1, $2, $3, $4, $5, 'active', $6)
      RETURNING id`,
-    [state.orgId, state.fullName || '', ctx.phone || '', state.gender || '', ctx.channel]
+    [state.orgId, state.fullName || '', ctx.phone || '', state.gender || '', ctx.channel, membershipId]
   );
   return result.rows[0].id;
 }

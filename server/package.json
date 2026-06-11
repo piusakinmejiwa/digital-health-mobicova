@@ -8,6 +8,7 @@
     "start": "node dist/server.js",
     "migrate": "tsx src/db/migrate.ts",
     "migrate:org-model": "tsx src/db/migrateOrgModel.ts",
+    "backfill:membership-ids": "tsx src/db/backfillMembershipIds.ts",
     "seed": "tsx src/db/seed.ts"
   },
   "dependencies": {

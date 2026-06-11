@@ -26,6 +26,14 @@ export default function MemberProfilePage() {
           </div>
         </div>
 
+        {me?.membership_id && (
+          <div className="m-memid">
+            <div className="m-memid-l">Membership ID</div>
+            <div className="m-memid-v">{me.membership_id}</div>
+            <div className="m-memid-h">Use this to register on USSD or to confirm your membership.</div>
+          </div>
+        )}
+
         <div className="m-sec-h">Health snapshot</div>
         <div className="m-statc m-kv-card">
           <div className="m-kv"><span className="k">Blood group</span><span className="v">{me?.blood_group || '—'}</span></div>

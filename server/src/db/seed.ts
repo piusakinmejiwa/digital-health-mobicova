@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { pool, query } from '../config/database';
+import { newMembershipId } from '../lib/membership';
 
 // Password for the demo accounts (admin + providers). Override per-deployment
 // with DEMO_SEED_PASSWORD so the real value never needs to live in the repo.
@@ -112,11 +113,13 @@ async function seed() {
       ['Yusuf Sani', 'male', '1978-01-30', 'ussd', 'AB+', ['Sulfa drugs'], ['Asthma']],
     ];
     for (const [name, gender, dob, channel, blood, allergies, conditions] of demoMembers) {
+      const membershipId = await newMembershipId(orgId);
       await query(
-        `INSERT INTO members (org_id, full_name, gender, date_of_birth, channel, blood_group, allergies, chronic_conditions, email, phone)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        `INSERT INTO members (org_id, full_name, gender, date_of_birth, channel, blood_group, allergies, chronic_conditions, email, phone, membership_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [orgId, name, gender, dob, channel, blood, allergies, conditions,
-         name.toLowerCase().replace(' ', '.') + '@member.demo', '+234' + Math.floor(7000000000 + Math.random() * 999999999)]
+         name.toLowerCase().replace(' ', '.') + '@member.demo', '+234' + Math.floor(7000000000 + Math.random() * 999999999),
+         membershipId]
       );
     }
   } else {

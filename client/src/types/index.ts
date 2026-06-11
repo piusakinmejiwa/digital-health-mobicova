@@ -40,6 +40,7 @@ export interface MfaSetup {
 export interface Member {
   id: string;
   org_id: string;
+  membership_id?: string;
   full_name: string;
   phone: string;
   email: string;
@@ -464,6 +465,7 @@ export interface MemberSession {
 
 export interface MemberProfile {
   id: string;
+  membership_id?: string;
   full_name: string;
   phone: string;
   email: string;

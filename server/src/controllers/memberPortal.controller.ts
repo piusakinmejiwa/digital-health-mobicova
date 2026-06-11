@@ -163,7 +163,7 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
 export async function getMemberMe(req: Request, res: Response): Promise<void> {
   const memberId = req.member!.memberId;
   const result = await query(
-    `SELECT m.id, m.full_name, m.phone, m.email, m.date_of_birth, m.gender, m.channel,
+    `SELECT m.id, m.membership_id, m.full_name, m.phone, m.email, m.date_of_birth, m.gender, m.channel,
             m.blood_group, m.allergies, m.chronic_conditions, m.current_medications,
             m.status, m.created_at, o.name AS org_name, o.type AS partner_type
      FROM members m JOIN organisations o ON m.org_id = o.id

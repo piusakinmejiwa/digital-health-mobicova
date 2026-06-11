@@ -19,6 +19,7 @@
 | Navigation | `0` = Back one level · `00` = Main menu · `98` = Next page (where lists are long) |
 | Session timeout | Per AT default (member re-dials `*XYZ#` to resume) |
 | Authentication | Member auto-recognised by calling number (MSISDN). A **4-digit PIN** is required before any sensitive action (membership/cover details, telemedicine, PIN change). Public actions (symptom check, find care) need no PIN. |
+| Membership ID | Format: **3-letter organisation prefix + 6 digits** (e.g. `AXA204517`). Issued to every member; shown in the member app and used to register a phone over USSD. |
 | Language | English (v1.0) |
 
 ---
@@ -73,7 +74,7 @@ This number isn't linked to a membership.
 ```
 CON Enter your MobiCova Membership ID:
 ```
-↳ member types ID (e.g. `MC100245`)
+↳ member types ID (e.g. `AXA204517`)
 ```
 CON Create a 4-digit PIN:
 ```
@@ -83,7 +84,7 @@ CON Confirm your 4-digit PIN:
 ```
 ↳ member re-types PIN
 ```
-END Success! Membership MC100245 is now linked to this phone.
+END Success! Membership AXA204517 is now linked to this phone.
 Dial *XYZ# anytime to access your cover.
 ```
 *Failure cases:* unknown/duplicate ID → `END Membership ID not found or already linked. Contact support on 0700-MOBICOVA.` · PIN mismatch → `END PINs did not match. Please dial *XYZ# and try again.`

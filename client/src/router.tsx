@@ -15,6 +15,7 @@ import DocsPage from './pages/docs/DocsPage';
 import InboxPage from './pages/inbox/InboxPage';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import SupplyStaffPage from './pages/supply/SupplyStaffPage';
+import ActivityPage from './pages/activity/ActivityPage';
 import MembersListPage from './pages/members/MembersListPage';
 import MemberCreatePage from './pages/members/MemberCreatePage';
 import MemberDetailPage from './pages/members/MemberDetailPage';
@@ -95,6 +96,7 @@ export const router = createBrowserRouter([
     children: [
       { path: 'dashboard', element: <DashboardHome /> },
       { path: 'staff', element: <SupplyStaffPage /> },
+      { path: 'activity', element: <ActivityPage /> },
       { path: 'inbox', element: <InboxPage /> },
       { path: 'members', element: <MembersListPage /> },
       { path: 'members/new', element: <MemberCreatePage /> },

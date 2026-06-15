@@ -1,5 +1,6 @@
 import { query } from '../config/database';
 import { newMembershipId } from '../lib/membership';
+import { writeAudit } from '../lib/audit';
 
 // A channel-agnostic conversational engine for enrolling a member through a
 // low-bandwidth channel (WhatsApp chat or USSD menu). The same step machine
@@ -136,5 +137,12 @@ export async function createMemberFromIntake(
      RETURNING id`,
     [state.orgId, state.fullName || '', ctx.phone || '', state.gender || '', ctx.channel, membershipId]
   );
+
+  // Self-service enrolment — no authenticated actor; the channel is the source.
+  await writeAudit({
+    action: 'member.enrol', orgId: state.orgId, targetType: 'member',
+    targetId: result.rows[0].id, targetLabel: state.fullName || '',
+    metadata: { channel: ctx.channel, membershipId, self_service: true },
+  });
   return result.rows[0].id;
 }

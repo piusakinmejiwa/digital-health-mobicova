@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { env } from '../config/env';
-import { recordAudit } from '../lib/audit';
+import { recordAudit, writeAudit } from '../lib/audit';
 import {
   generateOtpCode, hashOtp, verifyOtpHash, signMemberToken,
   maskDestination, OTP_TTL_MS, OTP_MAX_ATTEMPTS,
@@ -149,6 +149,11 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
 
   await query('UPDATE member_otps SET consumed = true WHERE id = $1', [otp.id]);
   await query('UPDATE members SET last_portal_login_at = NOW() WHERE id = $1', [member.id]);
+
+  await writeAudit({
+    actorEmail: member.email || null, action: 'member.login', orgId: member.org_id,
+    targetType: 'member', targetId: member.id, targetLabel: member.full_name, ip: req.ip,
+  });
 
   const token = signMemberToken(member.id, member.org_id);
   res.json({

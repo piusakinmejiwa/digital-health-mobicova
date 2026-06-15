@@ -19,7 +19,7 @@ import {
   signMfaPendingToken,
   verifyMfaPendingToken,
 } from '../lib/mfa';
-import { recordAudit } from '../lib/audit';
+import { recordAudit, writeAudit } from '../lib/audit';
 import QRCode from 'qrcode';
 
 // Shape of the session a successful auth hands back to the client.
@@ -137,6 +137,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  await writeAudit({ actorId: user.id, actorEmail: user.email, action: 'auth.login', orgId: user.org_id, ip: req.ip, metadata: { method: 'password' } });
   res.json(issueSession(user));
 }
 
@@ -184,6 +185,7 @@ export async function mfaChallenge(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  await writeAudit({ actorId: user.id, actorEmail: user.email, action: 'auth.login', orgId: user.org_id, ip: req.ip, metadata: { method: 'mfa' } });
   res.json(issueSession(user));
 }
 

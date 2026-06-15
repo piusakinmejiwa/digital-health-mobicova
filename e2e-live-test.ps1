@@ -93,6 +93,12 @@ $wM = @($m2 | Where-Object { $_.full_name -eq "E2E WhatsApp Test" })
 Check "USSD member created w/ AXA###### id" ($uM.Count -ge 1 -and $uM[0].membership_id -match '^AXA\d{6}$') "id=$($uM[0].membership_id)"
 Check "WhatsApp member created w/ AXA###### id" ($wM.Count -ge 1 -and $wM[0].membership_id -match '^AXA\d{6}$') "id=$($wM[0].membership_id)"
 
+Write-Host "`n=== PER-ORG ACTIVITY LOG ===" -ForegroundColor Cyan
+$act = JSON (Req "GET" "$api/activity" $null $H)
+Check "Org activity log returns events" (@($act).Count -gt 0) "count=$(@($act).Count)"
+Check "Activity captures member events (add/import/enrol)" (@($act | Where-Object { $_.action -like 'member.*' }).Count -gt 0) "no member.* events"
+Check "Activity captures sign-ins" (@($act | Where-Object { $_.action -eq 'auth.login' -or $_.action -eq 'member.login' }).Count -gt 0) "no login events"
+
 Write-Host "`n=== PLATFORM ADMIN (separate account - Admin Console) ===" -ForegroundColor Cyan
 if ($PlatformPassword) {
   $plg = JSON (Req "POST" "$api/auth/login" @{email = $PlatformEmail; password = $PlatformPassword })

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { query, pool } from '../config/database';
 import { sendMemberWelcome } from '../lib/onboarding';
 import { newMembershipId, generateMembershipId } from '../lib/membership';
+import { recordAudit } from '../lib/audit';
 
 export async function listMembers(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
@@ -85,6 +86,11 @@ export async function createMember(req: Request, res: Response): Promise<void> {
       orgName: org.rows[0]?.name || 'MobiCova', joinCode: org.rows[0]?.join_code || '',
     });
   }
+
+  await recordAudit(req, {
+    action: 'member.create', targetType: 'member', targetId: member.id,
+    targetLabel: member.full_name, orgId, metadata: { channel: member.channel, membershipId },
+  });
 
   res.status(201).json(member);
 }
@@ -178,6 +184,10 @@ export async function importMembers(req: Request, res: Response): Promise<void> 
   } finally {
     client.release();
   }
+
+  await recordAudit(req, {
+    action: 'member.import', orgId, metadata: { inserted: valid.length, skipped, total: rows.length },
+  });
 
   res.status(201).json({ inserted: valid.length, skipped, total: rows.length });
 }

@@ -38,6 +38,8 @@ const ssoNavItem = { to: '/settings/sso', label: 'Single sign-on', icon: '⚷' }
 const developerNavItem = { to: '/settings/developer', label: 'API & webhooks', icon: '⧉' };
 // Shown only to org admins — white-label branding.
 const brandingNavItem = { to: '/settings/branding', label: 'Branding', icon: '◑' };
+// Shown only to org admins — their own organisation's activity/audit trail.
+const activityNavItem = { to: '/activity', label: 'Activity log', icon: '◷' };
 // Shown only to platform admins (see AuthContext user.isPlatformAdmin).
 const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
 
@@ -51,7 +53,7 @@ export default function Sidebar() {
     ...(isSupply ? supplyNavItems : navItems),
     docsNavItem,
     securityNavItem,
-    ...(user?.role === 'admin' ? [brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
+    ...(user?.role === 'admin' ? [activityNavItem, brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
     ...(user?.isPlatformAdmin ? [adminNavItem] : []),
   ];
 

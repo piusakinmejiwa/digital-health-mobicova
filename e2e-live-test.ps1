@@ -23,7 +23,7 @@ if (-not $Token) { Write-Host "  AUTH FAILED - the 2FA code likely expired. Send
 Set-Content -Path "$env:TEMP\mc_token.txt" -Value $Token
 $H = @{ Authorization = "Bearer $Token" }
 $me = JSON (Req "GET" "$api/auth/me" $null $H)
-Check "Admin signed in (platform admin)" ($me.isPlatformAdmin -eq $true) "isPlatformAdmin=$($me.isPlatformAdmin)"
+Check "Org admin signed in (admin@axamansard)" ($me.role -eq 'admin') "role=$($me.role)"
 Write-Host ("  token cached at $env:TEMP\mc_token.txt (valid ~7d)") -ForegroundColor DarkGray
 
 Write-Host "`n=== UNIFIED ORG MODEL + JOIN CODE ===" -ForegroundColor Cyan

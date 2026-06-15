@@ -62,7 +62,8 @@ $H = @{ Authorization = "Bearer $token" }
 Write-Host "Q2  Roles & access control"
 $me = Invoke-RestMethod -Uri "$BaseUrl/auth/me" -Headers $H
 Check "GET /auth/me returns a known role" { $me.role -in @('admin','manager','analyst') }
-Check "demo admin is a platform admin"     { $me.isPlatformAdmin -eq $true }
+# (platform-admin status is verified separately in e2e-live-test.ps1 with the
+#  dedicated platform-admin account — org admins are intentionally NOT platform admins.)
 
 # --- Q7: analytics -------------------------------------------------------
 Write-Host "`nQ7  Analytics & reporting"
@@ -219,10 +220,10 @@ $lead = Invoke-RestMethod -Method Post -Uri "$BaseUrl/leads" -ContentType "appli
   -Body (@{ email = "smoke.lead@test.demo"; company = "SMOKE TEST Co"; partnerType = "Insurer / underwriter" } | ConvertTo-Json)
 Check "marketing lead captured"          { $lead.received -eq $true }
 
-# --- Q1: audit log -------------------------------------------------------
-Write-Host "`nQ1  Audit log"
-$audit = Invoke-RestMethod -Uri "$BaseUrl/admin/audit" -Headers $H
-Check "audit endpoint returns a list"  { $audit -is [System.Array] -or $audit.Count -ge 0 }
+# --- Q1: activity log (per-org; works for the org admin token) -----------
+Write-Host "`nQ1  Activity log"
+$activity = Invoke-RestMethod -Uri "$BaseUrl/activity" -Headers $H
+Check "activity endpoint returns a list"  { $activity -is [System.Array] -or $activity.Count -ge 0 }
 
 # --- Q3: SAML SSO --------------------------------------------------------
 Write-Host "`nQ3  SAML single sign-on"

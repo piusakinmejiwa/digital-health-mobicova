@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { env } from '../config/env';
 import {
-  advanceIntake, createMemberFromIntake, initialIntakeState, IntakeState, IntakeStep,
+  advanceIntake, createMemberFromIntake, initialIntakeState, INTAKE_INTRO, IntakeState, IntakeStep,
 } from '../services/intake.service';
 
 // WhatsApp intake via Meta's WhatsApp Business Cloud API. Unlike USSD, WhatsApp
@@ -32,7 +32,7 @@ function toState(row: StoredSession): IntakeState {
   };
 }
 
-async function loadOrStartSession(identifier: string): Promise<StoredSession> {
+async function loadOrStartSession(identifier: string): Promise<{ session: StoredSession; isNew: boolean }> {
   const existing = await query(
     `SELECT id, step, org_id, data, completed FROM intake_sessions
      WHERE channel = 'whatsapp' AND identifier = $1 ORDER BY updated_at DESC LIMIT 1`,
@@ -46,9 +46,9 @@ async function loadOrStartSession(identifier: string): Promise<StoredSession> {
        VALUES ('whatsapp', $1, 'org_code', '{}') RETURNING id, step, org_id, data, completed`,
       [identifier]
     );
-    return created.rows[0];
+    return { session: created.rows[0], isNew: true };
   }
-  return existing.rows[0];
+  return { session: existing.rows[0], isNew: false };
 }
 
 async function saveSession(id: string, state: IntakeState, done: boolean): Promise<void> {
@@ -68,7 +68,14 @@ async function saveSession(id: string, state: IntakeState, done: boolean): Promi
 
 // Runs one conversational turn for a sender and returns what to reply.
 async function processInbound(identifier: string, message: string): Promise<{ reply: string; done: boolean; step: IntakeStep }> {
-  const session = await loadOrStartSession(identifier);
+  const { session, isNew } = await loadOrStartSession(identifier);
+
+  // First contact: greet with instructions instead of consuming the opening
+  // message ("Hi") as an organisation code. The next message is the code.
+  if (isNew) {
+    return { reply: INTAKE_INTRO, done: false, step: session.step };
+  }
+
   const result = await advanceIntake(toState(session), message);
 
   if (result.done && result.state.step === 'done') {

@@ -93,9 +93,9 @@ async function seed() {
   if (existing.rows.length === 0) {
     console.log('Seeding demo organisation + admin...');
     const org = await query(
-      `INSERT INTO organisations (name, slug, type, plan_tier)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      ['AXA Mansard Health', 'axa-mansard-health', 'underwriter', 'growth']
+      `INSERT INTO organisations (name, slug, type, plan_tier, join_code)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      ['AXA Mansard Health', 'axa-mansard-health', 'underwriter', 'growth', '100200']
     );
     const orgId = org.rows[0].id;
     const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
@@ -126,6 +126,10 @@ async function seed() {
     console.log('Demo organisation already exists — ensuring platform-admin access + rotating password.');
     const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
     await query('UPDATE users SET is_platform_admin = true, password_hash = $2 WHERE email = $1', [demoEmail, passwordHash]);
+    // Ensure the demo org has a join code so USSD/WhatsApp enrolment works.
+    await query(
+      "UPDATE organisations SET join_code = '100200' WHERE slug = 'axa-mansard-health' AND (join_code IS NULL OR join_code = '')"
+    );
   }
 
   await seedProviders();

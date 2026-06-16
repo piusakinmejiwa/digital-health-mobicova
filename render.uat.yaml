@@ -1,0 +1,92 @@
+# ──────────────────────────────────────────────────────────────────────────
+# MobiCova Health — UAT / pre-production blueprint
+#
+# Deploys from `main`. Each release is gated by CI (.github/workflows/uat.yml):
+# CI builds + type-checks, then triggers the Render deploy hooks below.
+#
+# Render auto-reads `render.yaml`, not this file. Apply it one of two ways:
+#   (a) Create the two services in the Render dashboard using these settings, OR
+#   (b) Use this as the render.yaml of a dedicated UAT Blueprint/workspace.
+# Either way the CI → deploy-hook wiring is what makes "push to main → UAT" work.
+#
+# Set every `sync: false` var in the dashboard to a TEST / SANDBOX value so UAT
+# can never charge money or message real members. Use a UAT-only Supabase
+# database — never share a DB with production.
+# ──────────────────────────────────────────────────────────────────────────
+services:
+  # Express API (UAT)
+  - type: web
+    name: mobicova-uat-api
+    runtime: node
+    rootDir: server
+    plan: starter                       # always-on (free tier sleeps)
+    branch: main
+    autoDeploy: false                   # CI triggers the deploy hook after it passes
+    buildCommand: npm install && npm run build
+    preDeployCommand: npm run migrate   # apply DB migrations before each release
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Render skips devDependencies when NODE_ENV=production; keep them for the tsc build.
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+      - key: APP_ENV
+        value: uat
+      - key: JWT_SECRET
+        generateValue: true
+      # UAT Supabase — separate database from production.
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_CA_CERT
+        sync: false
+      - key: CLIENT_URL                 # https://mobicova-uat-web.onrender.com
+        sync: false
+      - key: PLATFORM_ADMIN_EMAILS
+        sync: false
+      # ---- integrations: TEST / sandbox values ONLY ----
+      - key: ANTHROPIC_API_KEY          # separate key with a low budget cap
+        sync: false
+      - key: STRIPE_SECRET_KEY          # sk_test_...
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: PAYSTACK_SECRET_KEY        # test secret key
+        sync: false
+      - key: RESEND_API_KEY             # test/sandbox domain
+        sync: false
+      - key: EMAIL_FROM                 # e.g. uat@yourdomain
+        sync: false
+      # WhatsApp: leave unset to use the built-in simulator, or set a sandbox number.
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_ID
+        sync: false
+
+  # React (Vite) static client (UAT)
+  - type: web
+    name: mobicova-uat-web
+    runtime: static
+    rootDir: client
+    branch: main
+    autoDeploy: false
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://mobicova-uat-api.onrender.com
+      - key: VITE_APP_ENV               # client can show a "UAT — not live" banner
+        value: uat
+    headers:
+      # Keep UAT out of search engines.
+      - path: /*
+        name: X-Robots-Tag
+        value: noindex
+    routes:
+      # SPA fallback so react-router deep links / refreshes resolve to index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,0 +1,85 @@
+<svg viewBox="0 0 1000 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t7 d7">
+  <title id="t7">MobiCova Health member enrolment sequence</title>
+  <desc id="d7">A member sends JOIN via WhatsApp or USSD; the gateway forwards an inbound webhook to the API; the intake engine starts a session, requests and validates a join code against the organisation, collects details, creates the member with a generated membership ID, queues a welcome message, and confirms enrolment back to the member.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#5B6B6B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    .bg{fill:#ffffff;stroke:#E3EAEA}
+    .hd{font:500 13px 'Segoe UI',Arial,sans-serif;fill:#16302F}
+    .ml{font:400 11px 'Segoe UI',Arial,sans-serif;fill:#16302F}
+    .note{font:400 11px 'Segoe UI',Arial,sans-serif;fill:#5E6E6E}
+    .life{stroke:#C7D2D2;stroke-width:1.2;stroke-dasharray:4 4}
+    .act{fill:#F7EFDD;stroke:#BD8B2C;stroke-width:1}
+    .msg{fill:none;stroke:#5B6B6B;stroke-width:1.5}
+    .ret{fill:none;stroke:#8A9A9A;stroke-width:1.4;stroke-dasharray:5 3}
+    .n-gray{fill:#EEF1F1;stroke:#5B6B6B;stroke-width:1.3}
+    .n-blue{fill:#E7EEF7;stroke:#2F6FB0;stroke-width:1.3}
+    .n-amber{fill:#F7EFDD;stroke:#BD8B2C;stroke-width:1.3}
+    .n-teal{fill:#E2F1F0;stroke:#0A7B7B;stroke-width:1.3}
+    .n-green{fill:#E7F2E9;stroke:#3E8E5A;stroke-width:1.3}
+  </style>
+  <rect class="bg" x="4" y="4" width="992" height="652" rx="14"/>
+
+  <!-- lifelines -->
+  <line class="life" x1="110" y1="82" x2="110" y2="600"/>
+  <line class="life" x1="310" y1="82" x2="310" y2="600"/>
+  <line class="life" x1="510" y1="82" x2="510" y2="600"/>
+  <line class="life" x1="710" y1="82" x2="710" y2="600"/>
+  <line class="life" x1="900" y1="82" x2="900" y2="600"/>
+
+  <!-- activation bar on the API/engine lifeline -->
+  <rect class="act" x="505" y="150" width="10" height="398" rx="2"/>
+
+  <!-- headers -->
+  <g><rect class="n-gray"  x="35"  y="40" width="150" height="42" rx="8"/><text class="hd" x="110" y="66" text-anchor="middle">Member</text></g>
+  <g><rect class="n-blue"  x="235" y="40" width="150" height="42" rx="8"/><text class="hd" x="310" y="66" text-anchor="middle">Channel gateway</text></g>
+  <g><rect class="n-amber" x="435" y="40" width="150" height="42" rx="8"/><text class="hd" x="510" y="66" text-anchor="middle">API · intake engine</text></g>
+  <g><rect class="n-teal"  x="635" y="40" width="150" height="42" rx="8"/><text class="hd" x="710" y="66" text-anchor="middle">Database</text></g>
+  <g><rect class="n-green" x="825" y="40" width="150" height="42" rx="8"/><text class="hd" x="900" y="66" text-anchor="middle">Notifications</text></g>
+
+  <!-- 1 -->
+  <text class="ml" x="210" y="110" text-anchor="middle">1 · Sends “JOIN” (WhatsApp / USSD)</text>
+  <line class="msg" x1="110" y1="116" x2="310" y2="116" marker-end="url(#arrow)"/>
+  <!-- 2 -->
+  <text class="ml" x="410" y="144" text-anchor="middle">2 · Inbound webhook</text>
+  <line class="msg" x1="310" y1="150" x2="505" y2="150" marker-end="url(#arrow)"/>
+  <!-- 3 self -->
+  <path class="msg" d="M515 178 L568 178 L568 194 L515 194" marker-end="url(#arrow)"/>
+  <text class="ml" x="574" y="190">3 · Start session (Redis)</text>
+  <!-- 4 -->
+  <text class="ml" x="310" y="218" text-anchor="middle">4 · Greeting + request join code</text>
+  <line class="ret" x1="505" y1="224" x2="110" y2="224" marker-end="url(#arrow)"/>
+  <!-- 5 -->
+  <text class="ml" x="310" y="254" text-anchor="middle">5 · Sends join code</text>
+  <line class="msg" x1="110" y1="260" x2="505" y2="260" marker-end="url(#arrow)"/>
+  <!-- 6 -->
+  <text class="ml" x="610" y="290" text-anchor="middle">6 · Validate join code → org</text>
+  <line class="msg" x1="515" y1="296" x2="710" y2="296" marker-end="url(#arrow)"/>
+  <!-- 7 -->
+  <text class="ml" x="610" y="324" text-anchor="middle">7 · Organisation matched</text>
+  <line class="ret" x1="710" y1="330" x2="515" y2="330" marker-end="url(#arrow)"/>
+  <!-- 8 -->
+  <text class="ml" x="307" y="362" text-anchor="middle">8 · Collect name, DOB, phone (several turns)</text>
+  <line class="ret" x1="505" y1="368" x2="110" y2="368" marker-end="url(#arrow)"/>
+  <!-- 9 -->
+  <text class="ml" x="310" y="398" text-anchor="middle">9 · Provides details</text>
+  <line class="msg" x1="110" y1="404" x2="505" y2="404" marker-end="url(#arrow)"/>
+  <!-- 10 -->
+  <text class="ml" x="610" y="434" text-anchor="middle">10 · Create member + membership ID</text>
+  <line class="msg" x1="515" y1="440" x2="710" y2="440" marker-end="url(#arrow)"/>
+  <!-- 11 -->
+  <text class="ml" x="610" y="468" text-anchor="middle">11 · Saved · ID AXA204517</text>
+  <line class="ret" x1="710" y1="474" x2="515" y2="474" marker-end="url(#arrow)"/>
+  <!-- 12 -->
+  <text class="ml" x="706" y="504" text-anchor="middle">12 · Queue welcome (SMS / email)</text>
+  <line class="msg" x1="515" y1="510" x2="900" y2="510" marker-end="url(#arrow)"/>
+  <!-- 13 -->
+  <text class="ml" x="310" y="540" text-anchor="middle">13 · Enrolled ✓ — ID: AXA204517</text>
+  <line class="ret" x1="505" y1="546" x2="110" y2="546" marker-end="url(#arrow)"/>
+
+  <text class="note" x="500" y="624" text-anchor="middle">Self-enrolment via WhatsApp / USSD shown.</text>
+  <text class="note" x="500" y="642" text-anchor="middle">Partner admins can also create members directly in the Admin Console — same membership-ID + welcome steps.</text>
+</svg>

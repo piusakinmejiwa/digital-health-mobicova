@@ -1,0 +1,44 @@
+name: UAT
+
+# Build + type-check every PR and every push to main. On a green push to main,
+# trigger the Render UAT deploy hooks (set as repo secrets). This makes CI the
+# gate: a broken build never reaches UAT.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+      - name: Build & type-check server
+        working-directory: server
+        run: npm ci && npm run build
+      - name: Build & type-check client
+        working-directory: client
+        run: npm ci && npm run build
+
+  deploy-uat:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render UAT API deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+        run: curl -fsS -X POST "$HOOK"
+      - name: Trigger Render UAT web deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_WEB }}
+        run: curl -fsS -X POST "$HOOK"

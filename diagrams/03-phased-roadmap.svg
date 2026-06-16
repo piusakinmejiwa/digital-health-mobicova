@@ -1,0 +1,67 @@
+<svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t3 d3">
+  <title id="t3">MobiCova Health production roadmap</title>
+  <desc id="d3">Four phases: reliability foundation now, cloud-native cutover to AWS af-south-1, a parallel compliance window for SOC 2 and ISO 27001, and optional multi-region disaster recovery.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#9AA8A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    .bg{fill:#ffffff;stroke:#E3EAEA}
+    .ph{font:500 15px 'Segoe UI',Arial,sans-serif;fill:#16302F}
+    .meta{font:400 11px 'Segoe UI',Arial,sans-serif;fill:#0A7B7B}
+    .b{font:400 11.5px 'Segoe UI',Arial,sans-serif;fill:#4A5A5A}
+    .badge{font:500 11px 'Segoe UI',Arial,sans-serif;fill:#ffffff}
+    .arr{fill:none;stroke:#9AA8A8;stroke-width:1.8}
+    .c-teal{fill:#E2F1F0;stroke:#0A7B7B;stroke-width:1.4}
+    .c-blue{fill:#E7EEF7;stroke:#2F6FB0;stroke-width:1.4}
+    .c-amber{fill:#F7EFDD;stroke:#BD8B2C;stroke-width:1.4}
+    .c-gray{fill:#EEF1F1;stroke:#7B8B8B;stroke-width:1.4}
+    .p-teal{fill:#0A7B7B}.p-blue{fill:#2F6FB0}.p-amber{fill:#BD8B2C}.p-gray{fill:#6B7B7B}
+  </style>
+  <rect class="bg" x="4" y="4" width="972" height="292" rx="14"/>
+
+  <!-- connectors -->
+  <line class="arr" x1="244" y1="150" x2="262" y2="150" marker-end="url(#arrow)"/>
+  <line class="arr" x1="479" y1="150" x2="497" y2="150" marker-end="url(#arrow)"/>
+  <line class="arr" x1="714" y1="150" x2="732" y2="150" marker-end="url(#arrow)"/>
+
+  <!-- Phase 1 -->
+  <rect class="c-teal" x="30" y="60" width="210" height="180" rx="11"/>
+  <rect class="p-teal" x="46" y="76" width="62" height="20" rx="10"/><text class="badge" x="77" y="90" text-anchor="middle">Phase 1</text>
+  <text class="ph"   x="46" y="120">Reliability now</text>
+  <text class="meta" x="46" y="138">on current stack · 2–4 wks</text>
+  <text class="b" x="46" y="162">• HA database + PITR</text>
+  <text class="b" x="46" y="182">• ≥2 API + load balancer</text>
+  <text class="b" x="46" y="202">• Redis queue · WAF</text>
+  <text class="b" x="46" y="222">• CI/CD · monitoring</text>
+
+  <!-- Phase 2 -->
+  <rect class="c-blue" x="265" y="60" width="210" height="180" rx="11"/>
+  <rect class="p-blue" x="281" y="76" width="62" height="20" rx="10"/><text class="badge" x="312" y="90" text-anchor="middle">Phase 2</text>
+  <text class="ph"   x="281" y="120">Cloud-native</text>
+  <text class="meta" x="281" y="138">AWS af-south-1</text>
+  <text class="b" x="281" y="162">• ECS + RDS Multi-AZ</text>
+  <text class="b" x="281" y="182">• ElastiCache · S3</text>
+  <text class="b" x="281" y="202">• Terraform (IaC)</text>
+  <text class="b" x="281" y="222">• migrate + load-test</text>
+
+  <!-- Phase 3 -->
+  <rect class="c-amber" x="500" y="60" width="210" height="180" rx="11"/>
+  <rect class="p-amber" x="516" y="76" width="62" height="20" rx="10"/><text class="badge" x="547" y="90" text-anchor="middle">Phase 3</text>
+  <text class="ph"   x="516" y="120">Compliance</text>
+  <text class="meta" x="516" y="138">parallel · 3–12 mo window</text>
+  <text class="b" x="516" y="162">• SOC 2 Type I → II</text>
+  <text class="b" x="516" y="182">• ISO 27001</text>
+  <text class="b" x="516" y="202">• penetration test</text>
+  <text class="b" x="516" y="222">• Vanta / Drata</text>
+
+  <!-- Phase 4 -->
+  <rect class="c-gray" x="735" y="60" width="210" height="180" rx="11"/>
+  <rect class="p-gray" x="751" y="76" width="62" height="20" rx="10"/><text class="badge" x="782" y="90" text-anchor="middle">Phase 4</text>
+  <text class="ph"   x="751" y="120">Multi-region DR</text>
+  <text class="meta" x="751" y="138">only if 99.99% needed</text>
+  <text class="b" x="751" y="162">• active / standby region</text>
+  <text class="b" x="751" y="182">• cross-region backups</text>
+  <text class="b" x="751" y="202">• failover drills</text>
+</svg>

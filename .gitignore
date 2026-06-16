@@ -9,3 +9,7 @@ dist
 
 # Office temp/lock files
 ~$*
+
+# Python
+__pycache__/
+*.pyc

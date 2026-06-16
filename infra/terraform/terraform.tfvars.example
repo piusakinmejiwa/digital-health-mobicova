@@ -1,0 +1,17 @@
+# Copy to terraform.tfvars and adjust. Do NOT commit terraform.tfvars.
+
+aws_region  = "af-south-1"
+project     = "mobicova"
+environment = "prod"
+
+# First apply: leave api_image as the placeholder, target network+data+registry,
+# push an image to ECR, then set the real URI and apply the compute tier.
+api_image = "PLACEHOLDER_ECR_URI:latest"
+
+# Set after creating an ACM cert for api.<yourdomain> in af-south-1.
+# acm_certificate_arn = "arn:aws:acm:af-south-1:<acct>:certificate/<id>"
+
+# Sizing (raise as load grows)
+db_instance_class = "db.t4g.medium"
+redis_node_type   = "cache.t4g.small"
+api_desired_count = 2

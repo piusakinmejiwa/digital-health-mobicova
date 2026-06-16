@@ -1,0 +1,135 @@
+name: Production release
+
+# Triggered by a semver tag (e.g. v1.4.0). Builds + pushes the API image to ECR,
+# runs DB migrations as a one-off ECS task, then rolls out the ECS service —
+# behind a manual approval gate (GitHub Environment "production").
+#
+# Required repo configuration
+#   Secrets:
+#     AWS_ROLE_ARN                 IAM role for GitHub OIDC (ECR push + ECS deploy)
+#     CLOUDFRONT_DISTRIBUTION_ID   (optional) for client cache invalidation
+#   Variables (Settings → Actions → Variables):
+#     AWS_REGION        e.g. af-south-1
+#     ECR_REPOSITORY    e.g. mobicova-prod-api
+#     ECS_CLUSTER       e.g. mobicova-prod
+#     ECS_SERVICE       e.g. mobicova-prod-api
+#     ECS_TASK_FAMILY   e.g. mobicova-prod-api
+#     CONTAINER_NAME    api
+#     ECS_SUBNETS       comma-separated private-app subnet IDs (for the migrate task)
+#     ECS_SECURITY_GROUP  the ECS security group ID
+#     PROD_API_URL      e.g. https://api.yourdomain  (smoke test)
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  id-token: write   # OIDC
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+      - name: Build & type-check server
+        working-directory: server
+        run: npm ci && npm run build
+      - name: Build & type-check client
+        working-directory: client
+        run: npm ci && npm run build
+
+  build-push:
+    needs: verify
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.image.outputs.uri }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - id: image
+        name: Build, tag & push image
+        run: |
+          URI="${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${GITHUB_REF_NAME}"
+          docker build -t "$URI" ./server
+          docker push "$URI"
+          echo "uri=$URI" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: production        # manual approval gate (set required reviewers)
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Render task definition with the new image
+        run: |
+          aws ecs describe-task-definition --task-definition "${{ vars.ECS_TASK_FAMILY }}" \
+            --query 'taskDefinition | {family:family, taskRoleArn:taskRoleArn, executionRoleArn:executionRoleArn, networkMode:networkMode, containerDefinitions:containerDefinitions, requiresCompatibilities:requiresCompatibilities, cpu:cpu, memory:memory}' \
+            > taskdef.json
+          # point the api container at the new image
+          IMAGE='${{ needs.build-push.outputs.image }}'
+          jq --arg img "$IMAGE" --arg name "${{ vars.CONTAINER_NAME }}" \
+            '(.containerDefinitions[] | select(.name==$name) | .image) |= $img' \
+            taskdef.json > taskdef.new.json
+          NEW_ARN=$(aws ecs register-task-definition --cli-input-json file://taskdef.new.json \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+          echo "TASKDEF_ARN=$NEW_ARN" >> "$GITHUB_ENV"
+
+      - name: Run database migrations (one-off task)
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "${{ vars.ECS_CLUSTER }}" \
+            --task-definition "$TASKDEF_ARN" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ vars.ECS_SUBNETS }}],securityGroups=[${{ vars.ECS_SECURITY_GROUP }}],assignPublicIp=DISABLED}" \
+            --overrides '{"containerOverrides":[{"name":"${{ vars.CONTAINER_NAME }}","command":["node","dist/db/migrate.js"]}]}' \
+            --query 'tasks[0].taskArn' --output text)
+          echo "Migration task: $TASK_ARN"
+          aws ecs wait tasks-stopped --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$TASK_ARN"
+          CODE=$(aws ecs describe-tasks --cluster "${{ vars.ECS_CLUSTER }}" --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          echo "Migration exit code: $CODE"
+          test "$CODE" = "0"
+
+      - name: Deploy the new task definition to the service
+        run: |
+          aws ecs update-service \
+            --cluster "${{ vars.ECS_CLUSTER }}" \
+            --service "${{ vars.ECS_SERVICE }}" \
+            --task-definition "$TASKDEF_ARN"
+          aws ecs wait services-stable \
+            --cluster "${{ vars.ECS_CLUSTER }}" \
+            --services "${{ vars.ECS_SERVICE }}"
+
+      - name: Invalidate CloudFront (optional)
+        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/*"
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.PROD_API_URL }}/health" || true)
+            echo "attempt $i: $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 6
+          done
+          echo "health check did not return 200"; exit 1

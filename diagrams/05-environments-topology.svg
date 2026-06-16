@@ -1,0 +1,71 @@
+<svg viewBox="0 0 960 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t5 d5">
+  <title id="t5">MobiCova Health environments topology</title>
+  <desc id="d5">Feature branches deploy to Development, main deploys to UAT (today's MVP formalised), and release tags promote to Production on AWS af-south-1; three isolated databases with only Production holding real PII.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#9AA8A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    .bg{fill:#ffffff;stroke:#E3EAEA}
+    .ph{font:500 15px 'Segoe UI',Arial,sans-serif;fill:#16302F}
+    .meta{font:400 11px 'Segoe UI',Arial,sans-serif;fill:#0A7B7B}
+    .b{font:400 11.5px 'Segoe UI',Arial,sans-serif;fill:#4A5A5A}
+    .cost{font:500 12px 'Segoe UI',Arial,sans-serif;fill:#16302F}
+    .chip{font:500 11px 'Segoe UI',Arial,sans-serif;fill:#16302F}
+    .note{font:400 11px 'Segoe UI',Arial,sans-serif;fill:#5E6E6E}
+    .arr{fill:none;stroke:#9AA8A8;stroke-width:1.8}
+    .c-gray{fill:#EEF1F1;stroke:#7B8B8B;stroke-width:1.4}
+    .c-amber{fill:#F7EFDD;stroke:#BD8B2C;stroke-width:1.4}
+    .c-teal{fill:#E2F1F0;stroke:#0A7B7B;stroke-width:1.4}
+    .pill{fill:#ffffff;stroke:#9AA8A8;stroke-width:1.2}
+  </style>
+  <rect class="bg" x="4" y="4" width="952" height="462" rx="14"/>
+
+  <!-- branch flow row -->
+  <g><rect class="pill" x="40"  y="34" width="150" height="30" rx="15"/><text class="chip" x="115" y="54" text-anchor="middle">feature/*</text></g>
+  <g><rect class="pill" x="345" y="34" width="150" height="30" rx="15"/><text class="chip" x="420" y="54" text-anchor="middle">main</text></g>
+  <g><rect class="pill" x="650" y="34" width="150" height="30" rx="15"/><text class="chip" x="725" y="54" text-anchor="middle">release tag vX.Y</text></g>
+  <line class="arr" x1="115" y1="64" x2="115" y2="96" marker-end="url(#arrow)"/>
+  <line class="arr" x1="420" y1="64" x2="420" y2="96" marker-end="url(#arrow)"/>
+  <line class="arr" x1="725" y1="64" x2="725" y2="96" marker-end="url(#arrow)"/>
+
+  <!-- promotion arrows between cards -->
+  <line class="arr" x1="314" y1="250" x2="342" y2="250" marker-end="url(#arrow)"/>
+  <line class="arr" x1="619" y1="250" x2="647" y2="250" marker-end="url(#arrow)"/>
+
+  <!-- Development -->
+  <rect class="c-gray" x="40" y="100" width="270" height="300" rx="11"/>
+  <text class="ph"   x="60" y="130">Development</text>
+  <text class="meta" x="60" y="148">engineers only · synthetic data</text>
+  <text class="b" x="60" y="178">• local + PR preview deploys</text>
+  <text class="b" x="60" y="200">• Supabase dev project (free)</text>
+  <text class="b" x="60" y="222">• integrations: sandbox / mock</text>
+  <text class="b" x="60" y="244">• no HA · can sleep when idle</text>
+  <text class="b" x="60" y="266">• deploy: feature/* previews</text>
+  <text class="cost" x="60" y="372">$0 – $50 / mo</text>
+
+  <!-- UAT -->
+  <rect class="c-amber" x="345" y="100" width="270" height="300" rx="11"/>
+  <text class="ph"   x="365" y="130">UAT / pre-prod</text>
+  <text class="meta" x="365" y="148">internal + partner testers</text>
+  <text class="b" x="365" y="178">• today's MVP, formalised</text>
+  <text class="b" x="365" y="200">• Render + Supabase Pro</text>
+  <text class="b" x="365" y="222">• integrations: test keys</text>
+  <text class="b" x="365" y="244">• daily backup · no HA</text>
+  <text class="b" x="365" y="266">• auto-deploy from main</text>
+  <text class="cost" x="365" y="372">$50 – $300 / mo</text>
+
+  <!-- Production -->
+  <rect class="c-teal" x="650" y="100" width="270" height="300" rx="11"/>
+  <text class="ph"   x="670" y="130">Production</text>
+  <text class="meta" x="670" y="148">real members · live · NDPR</text>
+  <text class="b" x="670" y="178">• AWS af-south-1 (Tier B)</text>
+  <text class="b" x="670" y="200">• HA Postgres + LB + Redis</text>
+  <text class="b" x="670" y="222">• integrations: live keys</text>
+  <text class="b" x="670" y="244">• multi-AZ · PITR · SOC 2</text>
+  <text class="b" x="670" y="266">• promote on release tag</text>
+  <text class="cost" x="670" y="372">$1.5k – $3k / mo</text>
+
+  <text class="note" x="480" y="432" text-anchor="middle">Three isolated databases — never shared.  Only Production holds real member PII.</text>
+</svg>

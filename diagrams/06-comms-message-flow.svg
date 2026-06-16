@@ -1,0 +1,109 @@
+<svg viewBox="0 0 980 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t6 d6">
+  <title id="t6">MobiCova Health comms message flow</title>
+  <desc id="d6">An inbound message from WhatsApp, USSD or SMS arrives via a provider webhook, is received and authenticated by the API, routed by the intake engine and session store, dispatched to one of four intents (enrolment, portal action, AI triage, OTP), then a reply is queued, sent back through the channel providers, and the outbound template type determines the cost.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#7A8A8A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    .bg{fill:#ffffff;stroke:#E3EAEA}
+    .th{font:500 13.5px 'Segoe UI',Arial,sans-serif;fill:#16302F}
+    .ts{font:400 11px 'Segoe UI',Arial,sans-serif;fill:#5E6E6E}
+    .note{font:400 11px 'Segoe UI',Arial,sans-serif;fill:#5E6E6E}
+    .rail{font:500 11px 'Segoe UI',Arial,sans-serif;fill:#3E8E5A}
+    .arr{fill:none;stroke:#7A8A8A;stroke-width:1.6}
+    .dash{fill:none;stroke:#9AA8A8;stroke-width:1.4;stroke-dasharray:5 3}
+    .ret{fill:none;stroke:#3E8E5A;stroke-width:1.6;stroke-dasharray:6 4}
+    .n-gray{fill:#EEF1F1;stroke:#5B6B6B;stroke-width:1.3}
+    .n-blue{fill:#E7EEF7;stroke:#2F6FB0;stroke-width:1.3}
+    .n-teal{fill:#E2F1F0;stroke:#0A7B7B;stroke-width:1.3}
+    .n-amber{fill:#F7EFDD;stroke:#BD8B2C;stroke-width:1.3}
+    .n-green{fill:#E7F2E9;stroke:#3E8E5A;stroke-width:1.3}
+    .cost{fill:#FAFBFB;stroke:#9AA8A8;stroke-width:1.2}
+  </style>
+  <rect class="bg" x="4" y="4" width="972" height="652" rx="14"/>
+
+  <!-- inbound arrows -->
+  <line class="arr" x1="229" y1="84" x2="320" y2="116" marker-end="url(#arrow)"/>
+  <line class="arr" x1="403" y1="84" x2="555" y2="116" marker-end="url(#arrow)"/>
+  <line class="arr" x1="577" y1="84" x2="660" y2="116" marker-end="url(#arrow)"/>
+  <line class="dash" x1="751" y1="84" x2="700" y2="194" marker-end="url(#arrow)"/>
+  <line class="arr" x1="350" y1="168" x2="430" y2="194" marker-end="url(#arrow)"/>
+  <line class="arr" x1="640" y1="168" x2="560" y2="194" marker-end="url(#arrow)"/>
+  <line class="arr" x1="490" y1="240" x2="490" y2="268" marker-end="url(#arrow)"/>
+  <!-- engine -> intents -->
+  <line class="arr" x1="470" y1="324" x2="170" y2="358" marker-end="url(#arrow)"/>
+  <line class="arr" x1="483" y1="324" x2="381" y2="358" marker-end="url(#arrow)"/>
+  <line class="arr" x1="497" y1="324" x2="599" y2="358" marker-end="url(#arrow)"/>
+  <line class="arr" x1="510" y1="324" x2="810" y2="358" marker-end="url(#arrow)"/>
+  <!-- intents -> queue -->
+  <line class="arr" x1="163" y1="416" x2="372" y2="448" marker-end="url(#arrow)"/>
+  <line class="arr" x1="381" y1="416" x2="450" y2="448" marker-end="url(#arrow)"/>
+  <line class="arr" x1="599" y1="416" x2="530" y2="448" marker-end="url(#arrow)"/>
+  <line class="arr" x1="817" y1="416" x2="608" y2="448" marker-end="url(#arrow)"/>
+  <line class="arr" x1="490" y1="496" x2="490" y2="522" marker-end="url(#arrow)"/>
+  <line class="dash" x1="730" y1="546" x2="752" y2="556" marker-end="url(#arrow)"/>
+
+  <!-- return loop -->
+  <path class="ret" d="M250 552 L36 552 L36 62 L150 62" marker-end="url(#arrow)"/>
+  <text class="rail" transform="rotate(-90 22 320)" x="22" y="320" text-anchor="middle">reply delivered to member</text>
+
+  <!-- inbound channels -->
+  <g><rect class="n-gray" x="154" y="40" width="150" height="44" rx="8"/><text class="th" x="229" y="67" text-anchor="middle">WhatsApp</text></g>
+  <g><rect class="n-gray" x="328" y="40" width="150" height="44" rx="8"/><text class="th" x="403" y="67" text-anchor="middle">USSD</text></g>
+  <g><rect class="n-gray" x="502" y="40" width="150" height="44" rx="8"/><text class="th" x="577" y="67" text-anchor="middle">SMS</text></g>
+  <g><rect class="n-gray" x="676" y="40" width="150" height="44" rx="8"/><text class="th" x="751" y="67" text-anchor="middle">Web / app</text></g>
+
+  <!-- gateways -->
+  <g><rect class="n-blue" x="230" y="116" width="240" height="52" rx="9"/>
+     <text class="th" x="350" y="140" text-anchor="middle">WhatsApp Cloud API</text>
+     <text class="ts" x="350" y="157" text-anchor="middle">inbound webhook</text></g>
+  <g><rect class="n-blue" x="520" y="116" width="240" height="52" rx="9"/>
+     <text class="th" x="640" y="140" text-anchor="middle">Africa's Talking</text>
+     <text class="ts" x="640" y="157" text-anchor="middle">USSD · SMS webhook</text></g>
+
+  <!-- receiver -->
+  <g><rect class="n-blue" x="250" y="194" width="480" height="46" rx="9"/>
+     <text class="th" x="490" y="214" text-anchor="middle">API · webhook receiver</text>
+     <text class="ts" x="490" y="230" text-anchor="middle">verifies signature · authenticates</text></g>
+
+  <!-- engine -->
+  <g><rect class="n-amber" x="250" y="268" width="480" height="56" rx="9"/>
+     <text class="th" x="490" y="291" text-anchor="middle">Intake engine · session store (Redis)</text>
+     <text class="ts" x="490" y="308" text-anchor="middle">matches join code · tracks conversation state · routes by intent</text></g>
+
+  <!-- intents -->
+  <g><rect class="n-teal" x="63"  y="358" width="200" height="58" rx="9"/>
+     <text class="th" x="163" y="382" text-anchor="middle">Enrolment</text>
+     <text class="ts" x="163" y="400" text-anchor="middle">+ membership ID</text></g>
+  <g><rect class="n-teal" x="281" y="358" width="200" height="58" rx="9"/>
+     <text class="th" x="381" y="382" text-anchor="middle">Portal action</text>
+     <text class="ts" x="381" y="400" text-anchor="middle">menu · balance · claims</text></g>
+  <g><rect class="n-teal" x="499" y="358" width="200" height="58" rx="9"/>
+     <text class="th" x="599" y="382" text-anchor="middle">AI triage</text>
+     <text class="ts" x="599" y="400" text-anchor="middle">Claude assistant</text></g>
+  <g><rect class="n-teal" x="717" y="358" width="200" height="58" rx="9"/>
+     <text class="th" x="817" y="382" text-anchor="middle">OTP verify</text>
+     <text class="ts" x="817" y="400" text-anchor="middle">login · confirm</text></g>
+
+  <!-- queue -->
+  <g><rect class="n-amber" x="250" y="448" width="480" height="48" rx="9"/>
+     <text class="th" x="490" y="468" text-anchor="middle">Outbound queue → workers</text>
+     <text class="ts" x="490" y="484" text-anchor="middle">retry · rate-limit · batching</text></g>
+
+  <!-- providers -->
+  <g><rect class="n-green" x="250" y="522" width="480" height="48" rx="9"/>
+     <text class="th" x="490" y="542" text-anchor="middle">Channel providers · send</text>
+     <text class="ts" x="490" y="558" text-anchor="middle">WhatsApp API · SMS gateway · USSD response</text></g>
+
+  <!-- cost panel -->
+  <g><rect class="cost" x="752" y="510" width="212" height="112" rx="9"/>
+     <text class="th" x="768" y="532">Outbound cost by type</text>
+     <text class="ts" x="768" y="554">auth template   ~$0.015</text>
+     <text class="ts" x="768" y="572">utility template   ~$0.012</text>
+     <text class="ts" x="768" y="590">marketing   ~$0.045</text>
+     <text class="ts" x="768" y="608">USSD / SMS   per use</text></g>
+
+  <text class="note" x="380" y="638" text-anchor="middle">Inbound webhooks are free; the outbound template type drives the bill — see the comms cost model.</text>
+</svg>

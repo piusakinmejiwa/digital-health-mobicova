@@ -1,8 +1,12 @@
-name: Production release
+name: Production release (AWS af-south-1 — Path C)
 
-# Triggered by a semver tag (e.g. v1.4.0). Builds + pushes the API image to ECR,
-# runs DB migrations as a one-off ECS task, then rolls out the ECS service —
-# behind a manual approval gate (GitHub Environment "production").
+# PATH C — NOT ACTIVE YET. We launch on the managed stack first (release.yml deploys
+# release tags to managed production). This AWS/ECS pipeline is the handover target for
+# the incoming DevOps engineer: when migrating to af-south-1, switch the trigger below
+# from `workflow_dispatch` to `push: tags: ["v*.*.*"]` (and retire the managed deploy).
+#
+# Builds + pushes the API image to ECR, runs DB migrations as a one-off ECS task, then
+# rolls out the ECS service — behind a manual approval gate (GitHub Environment "production").
 #
 # Required repo configuration
 #   Secrets:
@@ -20,8 +24,7 @@ name: Production release
 #     PROD_API_URL      e.g. https://api.yourdomain  (smoke test)
 
 on:
-  push:
-    tags: ["v*.*.*"]
+  workflow_dispatch: {}   # manual only until the AWS migration (Path C). Then switch to: push → tags v*.*.*
 
 permissions:
   id-token: write   # OIDC

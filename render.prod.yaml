@@ -1,0 +1,90 @@
+# ──────────────────────────────────────────────────────────────────────────
+# MobiCova Health — MANAGED production blueprint (Path A)
+#
+# The hardened managed production environment: Render (≥2 instances, autoscaled)
+# + a SEPARATE production Supabase project, fronted by Cloudflare. This is the
+# bridge to AWS af-south-1 (Path C / infra/terraform), which a DevOps engineer
+# will execute later.
+#
+# Deploys are gated by .github/workflows/release.yml (a semver tag → manual
+# approval → deploy hook). Set every `sync: false` var in the Render dashboard
+# to a LIVE production value. Use a production Supabase DB — never the UAT one.
+# ──────────────────────────────────────────────────────────────────────────
+services:
+  # Express API (production)
+  - type: web
+    name: mobicova-prod-api
+    runtime: node
+    rootDir: server
+    plan: standard                      # always-on, more headroom than starter
+    region: frankfurt                   # EU (managed interim; af-south-1 comes with Path C)
+    branch: main
+    autoDeploy: false                   # release.yml triggers the deploy hook
+    buildCommand: npm install && npm run build
+    preDeployCommand: npm run migrate   # apply migrations before each release
+    startCommand: npm start
+    healthCheckPath: /health
+    scaling:
+      minInstances: 2                   # redundancy (no single point of failure)
+      maxInstances: 4
+      targetCPUPercent: 70
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+      - key: APP_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      # Production Supabase (separate project from UAT). Use the IPv4 pooler
+      # connection string — the direct host is IPv6-only.
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_CA_CERT
+        sync: false
+      - key: CLIENT_URL                 # https://app.<yourdomain>
+        sync: false
+      - key: SERVER_URL                 # https://api.<yourdomain>
+        sync: false
+      - key: PLATFORM_ADMIN_EMAILS
+        sync: false
+      # ---- integrations: LIVE production values ----
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY          # live
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: PAYSTACK_SECRET_KEY        # live
+        sync: false
+      - key: RESEND_API_KEY             # verified domain
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN      # production number
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_ID
+        sync: false
+      # DO NOT set OTP_DEV_MODE or DEMO_SEED_PASSWORD in production.
+
+  # React (Vite) static client (production)
+  - type: web
+    name: mobicova-prod-web
+    runtime: static
+    rootDir: client
+    branch: main
+    autoDeploy: false
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://api.yourdomain   # replace with your real API domain
+      - key: VITE_APP_ENV
+        value: production
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

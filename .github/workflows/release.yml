@@ -1,0 +1,59 @@
+name: Production release (managed — Path A)
+
+# Active production pipeline. A semver tag (e.g. v1.4.0) promotes the release to
+# MANAGED production (Render + Supabase), behind a manual approval gate.
+#
+# Promotion path:  PR/push to main → UAT (uat.yml)  →  tag vX.Y → production (this)
+#
+# Required repo configuration
+#   Secrets:
+#     RENDER_DEPLOY_HOOK_PROD_API   deploy hook for the prod API service
+#     RENDER_DEPLOY_HOOK_PROD_WEB   deploy hook for the prod web (static) service
+#   Variables:
+#     PROD_API_URL                  e.g. https://api.yourdomain  (smoke test)
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+      - name: Build & type-check server
+        working-directory: server
+        run: npm ci && npm run build
+      - name: Build & type-check client
+        working-directory: client
+        run: npm ci && npm run build
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production        # set required reviewers for the manual approval gate
+    steps:
+      - name: Trigger Render production API deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_PROD_API }}
+        run: curl -fsS -X POST "$HOOK"
+      - name: Trigger Render production web deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_PROD_WEB }}
+        run: curl -fsS -X POST "$HOOK"
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.PROD_API_URL }}/health" || true)
+            echo "attempt $i: $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "health check did not return 200"; exit 1

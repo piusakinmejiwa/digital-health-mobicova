@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { submitLead } from '../../api/marketing';
 import BrandLogo from '../../components/common/BrandLogo';
+import SocialLinks from '../../components/marketing/SocialLinks';
 import './Marketing.css';
 
 // Self-hosted photos (royalty-free, Pexels License) — files live in public/images/.
@@ -280,6 +281,7 @@ export default function MarketingPage() {
             <div>
               <div className="brand"><BrandLogo /></div>
               <p className="foot-blurb">Digital health infrastructure connecting Africans to care, on any phone.</p>
+              <SocialLinks />
             </div>
             {FOOT_COLS.map((col) => (
               <div key={col.h}>

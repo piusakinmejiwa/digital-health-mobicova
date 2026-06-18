@@ -29,6 +29,9 @@
 .mk .hero-buddy { display: inline-flex; align-items: center; gap: .35rem; margin-top: 1.1rem; color: #dff2f2; font-size: .98rem; line-height: 1.4; cursor: pointer; border-bottom: 1px dashed rgba(255, 255, 255, .3); padding-bottom: 2px; }
 .mk .hero-buddy strong { color: #ffcf99; font-weight: 700; }
 .mk .hero-buddy:hover { color: #fff; border-bottom-color: rgba(255, 255, 255, .6); }
+.mk .mk-social { display: flex; gap: .7rem; margin-top: 1.1rem; }
+.mk .mk-social a { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: #cfe7e7; background: rgba(255, 255, 255, .07); transition: background .12s, color .12s; }
+.mk .mk-social a:hover { background: #0a7b7b; color: #fff; }
 .mk .btn-lg { padding: 14px 28px; font-size: 1rem; border-radius: 10px; }
 .mk .btn-outline { background: transparent; color: #dff2f2; border: 1.5px solid rgba(255, 255, 255, .22); }
 .mk .btn-outline:hover { background: rgba(255, 255, 255, .08); }

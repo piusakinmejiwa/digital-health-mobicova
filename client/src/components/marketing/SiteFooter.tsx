@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import BrandLogo from '../common/BrandLogo';
+import SocialLinks from './SocialLinks';
 import '../../pages/marketing/Marketing.css';
 
 // Shared marketing footer for standalone public pages (/shape, /buddy) so they
@@ -21,6 +22,7 @@ export default function SiteFooter() {
             <div>
               <div className="brand"><BrandLogo /></div>
               <p className="foot-blurb">Digital health infrastructure connecting Africans to care, on any phone.</p>
+              <SocialLinks />
             </div>
             {FOOT_COLS.map((col) => (
               <div key={col.h}>

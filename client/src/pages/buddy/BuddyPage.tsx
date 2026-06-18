@@ -6,7 +6,7 @@ import type { BuddyMessage, BuddySource } from '../../api/buddy';
 import { SPECIALTIES, specialtyByKey } from '../../lib/buddyCatalog';
 import './BuddyPage.css';
 
-type Msg = BuddyMessage & { sources?: BuddySource[]; safety?: 'ok' | 'crisis' | 'emergency' };
+type Msg = BuddyMessage & { sources?: BuddySource[]; safety?: 'ok' | 'crisis' | 'emergency' | 'distress' };
 
 export default function BuddyPage() {
   const navigate = useNavigate();
@@ -19,6 +19,12 @@ export default function BuddyPage() {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, sending]);
 
   const buddy = active ? specialtyByKey(active) : null;
+
+  // Safe Emotions is gated until clinician + legal sign-off (SAFE-EMOTIONS-SAFETY-DESIGN.md).
+  // Production sets VITE_SAFE_EMOTIONS_ENABLED=false to hide it until the gate is signed.
+  const buddies = SPECIALTIES.filter(
+    (s) => s.key !== 'safe_emotions' || import.meta.env.VITE_SAFE_EMOTIONS_ENABLED !== 'false'
+  );
 
   function openBuddy(key: string) {
     setActive(key);
@@ -64,7 +70,7 @@ export default function BuddyPage() {
               <p className="buddy-disclaimer">Pick a buddy for free, general health info from trusted sources — <strong>not a diagnosis</strong>.</p>
             </div>
             <div className="buddy-grid">
-              {SPECIALTIES.map((s) => (
+              {buddies.map((s) => (
                 <button key={s.key} className={`buddy-card ${s.key === 'safe_emotions' ? 'care' : ''}`} onClick={() => openBuddy(s.key)}>
                   <span className="buddy-card-emoji">{s.emoji}</span>
                   <span className="buddy-card-name">{s.name}</span>
@@ -81,10 +87,14 @@ export default function BuddyPage() {
               <p className="buddy-disclaimer">General info, <strong>not a diagnosis</strong>. For your own health, see a clinician.</p>
             </div>
 
+            {buddy.key === 'safe_emotions' && (
+              <div className="buddy-help-strip">💚 Need to talk now? SURPIN 0800 0787 746 · MANI 0809 111 6264 · Emergency 112</div>
+            )}
+
             <div className="buddy-chat">
               {msgs.map((m, i) => (
                 <div key={i} className={`buddy-row ${m.role}`}>
-                  <div className={`buddy-bubble ${m.role} ${m.safety && m.safety !== 'ok' ? 'alert' : ''}`}>
+                  <div className={`buddy-bubble ${m.role} ${m.safety === 'crisis' || m.safety === 'emergency' ? 'alert' : ''}`}>
                     {m.content.split('\n').map((line, j) => <p key={j}>{line || ' '}</p>)}
                     {m.sources && m.sources.length > 0 && (
                       <div className="buddy-sources">

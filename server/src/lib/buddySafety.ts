@@ -3,19 +3,27 @@
 // API call. Helpline numbers were verified June 2026 — the clinician reviewer
 // must re-confirm (test-dial) at go-live.
 
-export type Safety = 'ok' | 'crisis' | 'emergency';
+export type Safety = 'ok' | 'crisis' | 'emergency' | 'distress';
 
 // Self-harm / suicide intent → crisis response (highest priority).
-const CRISIS_RE = /\b(suicide|suicidal|kill myself|killing myself|end (?:my|it all)|take my (?:own )?life|don'?t want to (?:live|be here)|want to die|better off dead|self[\s-]?harm|harm(?:ing)? myself|hurt myself|overdose)\b/i;
+const CRISIS_RE = /\b(suicide|suicidal|kill (?:myself|me)|killing myself|end (?:my life|it all|my own life)|ending (?:my life|it all)|take my (?:own )?life|taking my (?:own )?life|no reason to live|don'?t want to (?:live|be here|exist)|want to (?:die|disappear)|wish (?:i was|i were) dead|better off dead|better off without me|self[\s-]?harm|harm(?:ing)? myself|hurt(?:ing)? myself|cut(?:ting)? myself|overdose|took (?:pills|an overdose))\b/i;
 
 // Medical red flags → urgent emergency guidance.
 const EMERGENCY_RE = /\b(chest pain|can'?t breathe|cannot breathe|trouble breathing|difficulty breathing|struggling to breathe|stroke|face droop|slurred speech|severe bleeding|bleeding (?:heavily|a lot)|won'?t stop bleeding|unconscious|passed out|seizure|convulsion|anaphyla|severe allergic|not breathing|blue lips)\b/i;
+
+// Emotional distress (not necessarily suicidal) → used by the Safe Emotions buddy
+// to respond supportively and gently offer helplines.
+const DISTRESS_RE = /\b(overwhelmed|can'?t cope|cannot cope|can'?t take (?:it|this)(?: any ?more)?|hopeless|worthless|hate myself|no one cares|nobody cares|so alone|all alone|breaking down|falling apart|giving up|can'?t go on|tired of (?:living|everything|it all)|exhausted with (?:life|everything)|depressed|empty inside|feel numb)\b/i;
 
 export function classify(text: string): Safety {
   const t = (text || '').toLowerCase();
   if (CRISIS_RE.test(t)) return 'crisis';
   if (EMERGENCY_RE.test(t)) return 'emergency';
   return 'ok';
+}
+
+export function isDistress(text: string): boolean {
+  return DISTRESS_RE.test((text || '').toLowerCase());
 }
 
 // Verified Nigerian crisis helplines (June 2026 — re-confirm at go-live).
@@ -47,3 +55,25 @@ export function emergencyReply(): string {
     'I can only share general information and cannot help with an emergency.'
   );
 }
+
+// Shorthand helpline lines (named subset) for warmer, non-crisis messages.
+function helplineLines(names: string[]): string {
+  return HELPLINES.filter((h) => names.some((n) => h.name.startsWith(n)))
+    .map((h) => `• ${h.name.split(' (')[0]}: ${h.number}`)
+    .join('\n');
+}
+
+// Safe Emotions — emotional distress (not an explicit self-harm statement).
+// Warm, validating, gently offers helplines, and keeps the conversation open.
+export function distressReply(): string {
+  return (
+    "I'm really sorry you're carrying so much right now — that sounds heavy, and what you're feeling is valid. " +
+    "You don't have to face it alone. If it would help to talk to someone any time:\n\n" +
+    helplineLines(['SURPIN', 'MANI']) +
+    "\n\nI'm here too — would you like to tell me a little more about what's going on?"
+  );
+}
+
+// Always-available footer on Safe Emotions replies so help is one tap away.
+export const SAFE_EMOTIONS_FOOTER =
+  '💚 If things ever feel too heavy, you can reach SURPIN 0800 0787 746 or MANI 0809 111 6264 any time.';

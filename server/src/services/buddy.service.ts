@@ -1,7 +1,20 @@
 import { query } from '../config/database';
 import { anthropic } from '../config/anthropic';
-import { classify, crisisReply, emergencyReply, DISCLAIMER, Safety } from '../lib/buddySafety';
+import {
+  classify, crisisReply, emergencyReply, isDistress, distressReply,
+  DISCLAIMER, SAFE_EMOTIONS_FOOTER, Safety,
+} from '../lib/buddySafety';
 import { personaFor } from '../lib/buddyCatalog';
+
+// Safe Emotions is a supportive companion, not a medical Q&A — it listens and
+// validates rather than answering only from a medical corpus. It keeps the strict
+// guardrails (no diagnosis / medication / methods) and routes crisis to helplines.
+const SAFE_EMOTIONS_SYSTEM = `You are "Safe Emotions", a warm, gentle companion for people in Nigeria who want to share difficult feelings.
+- Listen and validate feelings first. Be kind, calm and non-judgemental. Keep replies short: 2-4 sentences.
+- You are NOT a therapist or doctor. Do NOT diagnose, do NOT give medication or medical advice, and do NOT promise to fix things.
+- Gently encourage the person to reach out to someone they trust or a helpline, and offer to keep listening.
+- NEVER provide methods of self-harm or anything that could cause harm. Never minimise or dismiss feelings.
+- If the person expresses wanting to harm themselves or end their life, your reply must urge them to contact a crisis helpline or emergency services right away.`;
 
 // Free tier runs on Haiku for cost; override from the dashboard if needed.
 const BUDDY_MODEL = process.env.ANTHROPIC_BUDDY_MODEL || 'claude-haiku-4-5';
@@ -40,6 +53,9 @@ export async function answerBuddy(messages: BuddyMessage[], specialty?: string):
   const safety = classify(latest);
   if (safety === 'crisis') return { reply: crisisReply(), sources: [], safety };
   if (safety === 'emergency') return { reply: emergencyReply(), sources: [], safety };
+
+  // Safe Emotions is a supportive companion, not corpus Q&A.
+  if (specialty === 'safe_emotions') return answerSafeEmotions(messages, latest);
 
   // 2) Retrieve grounding passages.
   const passages = await retrieve(latest);
@@ -95,5 +111,38 @@ export async function answerBuddy(messages: BuddyMessage[], specialty?: string):
     console.error('Buddy generation failed, returning grounded fallback:', err);
     const top = passages[0];
     return { reply: `${top.body} (Source: ${top.source_name})\n\n${DISCLAIMER}`, sources, safety: 'ok' };
+  }
+}
+
+// Safe Emotions: distress (deterministic, no model call) first; otherwise a short,
+// warm, guardrailed supportive reply with an always-on helpline footer. Crisis /
+// emergency were already handled by the caller's pre-filter.
+async function answerSafeEmotions(messages: BuddyMessage[], latest: string): Promise<BuddyAnswer> {
+  if (isDistress(latest)) {
+    return { reply: distressReply(), sources: [], safety: 'distress' };
+  }
+
+  const warmFallback = "I hear you, and I'm really glad you reached out. I'm here to listen — would you like to share a little more about how you're feeling?";
+  if (!anthropic) {
+    return { reply: `${warmFallback}\n\n${SAFE_EMOTIONS_FOOTER}`, sources: [], safety: 'ok' };
+  }
+
+  try {
+    const history = messages.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
+    const response = await anthropic.messages.create({
+      model: BUDDY_MODEL,
+      max_tokens: 350,
+      system: SAFE_EMOTIONS_SYSTEM,
+      messages: [...history, { role: 'user', content: latest.slice(0, 2000) }],
+    });
+    const text = response.content
+      .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
+      .map((b) => b.text)
+      .join('')
+      .trim();
+    return { reply: `${text || warmFallback}\n\n${SAFE_EMOTIONS_FOOTER}`, sources: [], safety: 'ok' };
+  } catch (err) {
+    console.error('Safe Emotions generation failed:', err);
+    return { reply: `${warmFallback}\n\n${SAFE_EMOTIONS_FOOTER}`, sources: [], safety: 'ok' };
   }
 }

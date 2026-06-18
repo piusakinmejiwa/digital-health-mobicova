@@ -2,10 +2,11 @@ import api from './client';
 
 export type BuddySource = { name: string; url: string; title: string };
 export type BuddyMessage = { role: 'user' | 'assistant'; content: string };
+export type BuddySafety = 'ok' | 'crisis' | 'emergency' | 'distress';
 export type BuddyReply = {
   reply: string;
   sources: BuddySource[];
-  safety: 'ok' | 'crisis' | 'emergency';
+  safety: BuddySafety;
 };
 
 const KEY = 'mobicova_buddy_session';

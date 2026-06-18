@@ -127,6 +127,9 @@ export default function MarketingPage() {
                 <button className="btn btn-amber btn-lg" onClick={() => scrollTo('demo')}>Book a demo →</button>
                 <button className="btn btn-outline btn-lg" onClick={() => scrollTo('services')}>See how it works</button>
               </div>
+              <a className="hero-buddy" onClick={() => navigate('/buddy')} role="button">
+                💬 Or try the free <strong>Health Buddy</strong> — basic health tips, no sign-up →
+              </a>
             </div>
             <div className="hero-media">
               <img src={HERO_PHOTO} alt="A MobiCova member accessing health care in a Nigerian clinic" onError={hideImg} />

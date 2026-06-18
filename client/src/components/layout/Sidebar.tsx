@@ -42,6 +42,8 @@ const brandingNavItem = { to: '/settings/branding', label: 'Branding', icon: '�
 const activityNavItem = { to: '/activity', label: 'Activity log', icon: '◷' };
 // Shown only to platform admins (see AuthContext user.isPlatformAdmin).
 const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
+// Shown only to platform admins — prospect discovery / feature-priority results.
+const feedbackAdminNavItem = { to: '/admin/feedback', label: 'Prospect feedback', icon: '✎' };
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -54,7 +56,7 @@ export default function Sidebar() {
     docsNavItem,
     securityNavItem,
     ...(user?.role === 'admin' ? [activityNavItem, brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
-    ...(user?.isPlatformAdmin ? [adminNavItem] : []),
+    ...(user?.isPlatformAdmin ? [adminNavItem, feedbackAdminNavItem] : []),
   ];
 
   return (

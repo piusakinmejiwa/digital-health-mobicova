@@ -21,6 +21,7 @@ import leadsRoutes from './leads.routes';
 import supplyOrgRoutes from './supplyOrg.routes';
 import publicOrgRoutes from './publicOrg.routes';
 import activityRoutes from './activity.routes';
+import feedbackRoutes from './feedback.routes';
 
 const router = Router();
 
@@ -46,5 +47,6 @@ router.use('/leads', leadsRoutes);
 router.use('/supply', supplyOrgRoutes);
 router.use('/orgs', publicOrgRoutes);
 router.use('/activity', activityRoutes);
+router.use('/feedback', feedbackRoutes);
 
 export default router;

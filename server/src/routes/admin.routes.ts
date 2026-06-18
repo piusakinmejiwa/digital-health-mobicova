@@ -14,6 +14,7 @@ import {
   adminResetUserPassword, adminDeleteUser,
 } from '../controllers/adminUsers.controller';
 import { adminListAudit } from '../controllers/adminAudit.controller';
+import { adminListProspectFeedback } from '../controllers/prospectFeedback.controller';
 import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller';
 import {
   adminListProviders, adminCreateProvider, adminUpdateProvider,
@@ -63,5 +64,8 @@ router.delete('/plans/:id', asyncHandler(adminDeletePlan));
 
 // Audit trail (read-only)
 router.get('/audit', asyncHandler(adminListAudit));
+
+// Prospect discovery / feature-priority feedback (read-only)
+router.get('/prospect-feedback', asyncHandler(adminListProspectFeedback));
 
 export default router;

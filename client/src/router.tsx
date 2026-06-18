@@ -40,10 +40,15 @@ import ProviderShell from './components/provider/ProviderShell';
 import ProviderProtectedRoute from './components/provider/ProviderProtectedRoute';
 import ProviderLoginPage from './pages/provider/ProviderLoginPage';
 import ProviderHome from './pages/provider/ProviderHome';
+import ShapePage from './pages/feedback/ShapePage';
+import ProspectFeedbackPage from './pages/admin/ProspectFeedbackPage';
 
 export const router = createBrowserRouter([
   // Public marketing & pricing site (pre-login landing).
   { path: '/', element: <MarketingPage /> },
+
+  // Public "Help shape MobiCova" discovery + feature-priority capture.
+  { path: '/shape', element: <ShapePage /> },
 
   { path: '/login', element: <LoginPage /> },
   // Branded per-organisation login (themed to the org's white-label branding).
@@ -115,6 +120,7 @@ export const router = createBrowserRouter([
       { path: 'docs', element: <DocsPage /> },
       { path: 'partners', element: <PartnersPage /> },
       { path: 'admin', element: <AdminRoute><AdminPage /></AdminRoute> },
+      { path: 'admin/feedback', element: <AdminRoute><ProspectFeedbackPage /></AdminRoute> },
     ],
   },
 ]);

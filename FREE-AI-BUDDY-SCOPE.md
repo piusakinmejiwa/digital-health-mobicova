@@ -51,12 +51,11 @@ channel → API → buddy orchestrator
 ---
 
 ## 4. "Verified by Wikipedia / a trusted encyclopedia"
-Implemented as **retrieval-grounded answers with citations**, and a deliberate **source hierarchy** (Wikipedia is useful but not authoritative for medicine):
+Implemented as **retrieval-grounded answers with citations** from an **authoritative-only** source set (decision locked — no Wikipedia):
 
-1. **Primary (authoritative):** WHO fact sheets, NHS Health A–Z, MedlinePlus, CDC.
-2. **Secondary (context):** Wikipedia medical articles (which follow medical-sourcing guidelines).
-3. The model is instructed to **answer only from retrieved passages and cite them**; if unsupported, it declines and points to a clinician.
-4. **Human review:** a clinician reviews the curated corpus and the canned answers for high-traffic topics before launch.
+1. **Sources:** WHO fact sheets, NHS Health A–Z, MedlinePlus, CDC.
+2. The model is instructed to **answer only from retrieved passages and cite them**; if unsupported, it declines and points to a clinician.
+3. **Human review:** a clinician reviews the curated corpus and the canned answers for high-traffic topics before launch.
 
 This gives you the "verified" property *and* controls cost (grounding shortens answers and cuts hallucination-driven retries).
 
@@ -65,11 +64,17 @@ This gives you the "verified" property *and* controls cost (grounding shortens a
 ## 5. Safety & compliance (the gating work)
 - **Persistent medical disclaimer** on every answer; clear Terms of Use ("not a substitute for professional advice").
 - **Scope guardrails:** no diagnosis, no prescriptions, no dosing, no emergency triage beyond "seek care".
-- **Crisis detection (Safe Emotions):** detect self-harm/suicidal intent → immediate supportive message + **Nigerian helplines** (e.g. Mentally Aware Nigeria Initiative) + emergency guidance + offer a human hand-off. **Do not ship the emotional-wellbeing buddy without this.**
+- **Crisis detection (Safe Emotions):** detect self-harm/suicidal intent → immediate supportive message + **Nigerian helplines** (below) + emergency guidance + offer a human hand-off. **Do not ship the emotional-wellbeing buddy without this.**
+  - **Verified helplines (June 2026 — clinician to re-confirm at go-live):**
+    - **SURPIN** (suicide-specific, 24/7): **0800 0787 746** (toll-free) · 0908 021 7555 (9mobile) · 0903 440 0009 (MTN) · 0814 224 1007 (Hausa)
+    - **MANI**: **0809 111 6264** · **0811 168 0686** · WhatsApp **+234 806 210 6493**
+    - **She Writes Woman** (24/7 toll-free): **0800 800 2000**
+    - **Emergency: 112** (Lagos also **767**)
+  - **Buddy crisis screen** surfaces 3 (SURPIN · MANI · 112); web adds She Writes Woman.
 - **Red-flag symptom detection** → emergency guidance.
 - **Escalation to care:** hand off to **telemedicine** (the conversion path).
 - **NDPR / privacy:** new consumer PII + health conversations are sensitive — explicit consent, data minimisation, a retention policy, no training on user data, and (later) encryption/residency per the production plan.
-- **Age:** paediatrics/menstrual topics imply minors — decide an **age policy** (gate or parental framing).
+- **Age:** **open to all, general-info framing** (decision locked) — no hard age gate; for child/menstrual topics the buddy speaks to the parent/caregiver and tightens scope.
 - **Logging & review:** store conversations (consented) for a safety-review queue; audit crisis escalations.
 - **Legal review** of disclaimers and the crisis flow before launch.
 
@@ -106,14 +111,21 @@ This gives you the "verified" property *and* controls cost (grounding shortens a
 
 ---
 
-## 8. Effort & open decisions
-- **MVP effort:** ~2–3 weeks for the web general buddy (retrieval + persona + safety + citations + free-tier limits), building on the existing assistant.
-- **Open decisions (yours):**
-  1. **Source list** — confirm the trusted set (WHO/NHS/MedlinePlus/CDC + Wikipedia as secondary)?
-  2. **Clinician reviewer** — who signs off the corpus + canned answers + crisis flow?
-  3. **Age policy** — gate under-18, or parental framing?
-  4. **Free-tier limits** — messages/user/day?
-  5. **Channels at launch** — web only, or web + WhatsApp?
-  6. **Crisis helplines** — confirm the Nigerian helpline numbers/partners to surface.
+## 8. Decisions (locked) & effort
 
-Answer these and the MVP is ready to build — starting with the **web general buddy**, validated by whatever the `/shape` page tells you prospects want most.
+| # | Decision | Locked |
+|---|----------|--------|
+| 1 | **Sources** | WHO · NHS · MedlinePlus · CDC (authoritative-only, no Wikipedia) |
+| 2 | **Clinician reviewer** | ⏳ *pending — you to name (network doctor / partner HMO team); I can draft a reviewer brief + sign-off checklist* |
+| 3 | **Age policy** | Open to all, general-info framing (no hard gate) |
+| 4 | **Free-tier limit** | 20 messages / user / day |
+| 5 | **Channels** | Web · WhatsApp (full RAG buddy) · USSD (curated-menu buddy) |
+| 6 | **Crisis helplines** | SURPIN · MANI · She Writes Woman · 112 (verified June 2026; clinician re-confirms at go-live) |
+
+### USSD design (because of decision #5)
+USSD can't do open-ended chat (session-based, ~182-char screens, timeouts). On USSD the buddy is a **guided menu of curated, grounded short tips + escalation** (reusing the canned-answer library — zero model cost, fits the screen). Crisis/red-flag on USSD shows the emergency numbers immediately. Web + WhatsApp keep the full conversational buddy.
+
+### Effort
+~2–3 weeks for the **web general buddy** MVP (retrieval + persona + the two safety filters + citations + 20/day limit), building on the existing assistant — then WhatsApp, then the USSD menu, then specialty buddies (by `/shape` demand), then Safe Emotions.
+
+**Only open item:** the **clinician reviewer (#2)**. Everything else is locked — the MVP is build-ready.

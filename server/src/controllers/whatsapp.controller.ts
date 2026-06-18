@@ -4,6 +4,14 @@ import { env } from '../config/env';
 import {
   advanceIntake, createMemberFromIntake, initialIntakeState, INTAKE_INTRO, IntakeState, IntakeStep,
 } from '../services/intake.service';
+import { answerBuddy } from '../services/buddy.service';
+
+// WhatsApp greeting adds buddy discoverability (INTAKE_INTRO itself is shared with
+// USSD, so we keep it untouched and only extend the greeting here).
+const WA_GREETING = `${INTAKE_INTRO}\n\nOr reply *BUDDY* followed by a question to chat with our free Health Buddy (basic health info from trusted sources).`;
+const BUDDY_WELCOME = 'Hi! I can share basic health info from trusted sources. Ask me a question (e.g. "what helps a fever?"). I\'m not a doctor — reply MENU any time to register or talk to one.';
+const BUDDY_DAILY_LIMIT = Number(process.env.BUDDY_DAILY_LIMIT || 20);
+const BUDDY_EXIT = new Set(['MENU', 'REGISTER', 'ENROL', 'ENROLL', 'STOP', 'EXIT', 'BACK']);
 
 // WhatsApp intake via Meta's WhatsApp Business Cloud API. Unlike USSD, WhatsApp
 // is genuinely stateful (each inbound message stands alone), so we persist the
@@ -20,6 +28,7 @@ interface StoredSession {
   org_id: string | null;
   data: { orgName?: string; fullName?: string; gender?: string };
   completed: boolean;
+  mode: 'intake' | 'buddy';
 }
 
 function toState(row: StoredSession): IntakeState {
@@ -34,7 +43,7 @@ function toState(row: StoredSession): IntakeState {
 
 async function loadOrStartSession(identifier: string): Promise<{ session: StoredSession; isNew: boolean }> {
   const existing = await query(
-    `SELECT id, step, org_id, data, completed FROM intake_sessions
+    `SELECT id, step, org_id, data, completed, mode FROM intake_sessions
      WHERE channel = 'whatsapp' AND identifier = $1 ORDER BY updated_at DESC LIMIT 1`,
     [identifier]
   );
@@ -43,12 +52,57 @@ async function loadOrStartSession(identifier: string): Promise<{ session: Stored
   if (existing.rows.length === 0 || existing.rows[0].completed) {
     const created = await query(
       `INSERT INTO intake_sessions (channel, identifier, step, data)
-       VALUES ('whatsapp', $1, 'org_code', '{}') RETURNING id, step, org_id, data, completed`,
+       VALUES ('whatsapp', $1, 'org_code', '{}') RETURNING id, step, org_id, data, completed, mode`,
       [identifier]
     );
     return { session: created.rows[0], isNew: true };
   }
   return { session: existing.rows[0], isNew: false };
+}
+
+async function setSessionMode(id: string, mode: 'intake' | 'buddy'): Promise<void> {
+  await query(`UPDATE intake_sessions SET mode = $2, updated_at = NOW() WHERE id = $1`, [id, mode]);
+}
+
+// Leaving the buddy → restart a clean intake session.
+async function resetToIntake(id: string): Promise<void> {
+  await query(
+    `UPDATE intake_sessions SET mode = 'intake', step = 'org_code', org_id = NULL,
+       data = '{}', completed = false, updated_at = NOW() WHERE id = $1`,
+    [id]
+  );
+}
+
+// One buddy turn over WhatsApp: enforce the free daily cap, answer (grounded +
+// safety-filtered), log for review, and format for a chat message.
+async function buddyTurn(identifier: string, message: string): Promise<string> {
+  const usage = await query(
+    `INSERT INTO buddy_usage (session_key, day, count) VALUES ($1, CURRENT_DATE, 1)
+     ON CONFLICT (session_key, day) DO UPDATE SET count = buddy_usage.count + 1 RETURNING count`,
+    [identifier.slice(0, 80)]
+  );
+  if (usage.rows[0].count > BUDDY_DAILY_LIMIT) {
+    return `You've reached today's free limit of ${BUDDY_DAILY_LIMIT} questions. Please come back tomorrow — or reply MENU to register and talk to a MobiCova doctor.`;
+  }
+
+  const ans = await answerBuddy([{ role: 'user', content: message.slice(0, 2000) }]);
+  try {
+    await query(
+      `INSERT INTO buddy_messages (session_key, channel, role, content, safety) VALUES ($1,'whatsapp','user',$2,$3)`,
+      [identifier.slice(0, 80), message.slice(0, 2000), ans.safety]
+    );
+    await query(
+      `INSERT INTO buddy_messages (session_key, channel, role, content, safety, sources) VALUES ($1,'whatsapp','assistant',$2,$3,$4::jsonb)`,
+      [identifier.slice(0, 80), ans.reply, ans.safety, JSON.stringify(ans.sources)]
+    );
+  } catch (err) {
+    console.error('Buddy WhatsApp log failed (non-fatal):', err);
+  }
+
+  let out = ans.reply;
+  if (ans.sources.length) out += `\n\nSources: ${ans.sources.map((s) => s.name).join(', ')}`;
+  if (ans.safety === 'ok') out += '\n\n(Reply MENU to register, or ask another question.)';
+  return out;
 }
 
 async function saveSession(id: string, state: IntakeState, done: boolean): Promise<void> {
@@ -69,11 +123,29 @@ async function saveSession(id: string, state: IntakeState, done: boolean): Promi
 // Runs one conversational turn for a sender and returns what to reply.
 async function processInbound(identifier: string, message: string): Promise<{ reply: string; done: boolean; step: IntakeStep }> {
   const { session, isNew } = await loadOrStartSession(identifier);
+  const cmd = message.trim().toUpperCase();
+
+  // Enter the Health Buddy from anywhere with "BUDDY [question]".
+  if (cmd === 'BUDDY' || cmd.startsWith('BUDDY ')) {
+    await setSessionMode(session.id, 'buddy');
+    const q = message.trim().slice('BUDDY'.length).trim();
+    if (!q) return { reply: BUDDY_WELCOME, done: false, step: session.step };
+    return { reply: await buddyTurn(identifier, q), done: false, step: session.step };
+  }
+
+  // Continue an active buddy conversation (MENU/REGISTER returns to enrolment).
+  if (session.mode === 'buddy') {
+    if (BUDDY_EXIT.has(cmd)) {
+      await resetToIntake(session.id);
+      return { reply: WA_GREETING, done: false, step: 'org_code' };
+    }
+    return { reply: await buddyTurn(identifier, message), done: false, step: session.step };
+  }
 
   // First contact: greet with instructions instead of consuming the opening
   // message ("Hi") as an organisation code. The next message is the code.
   if (isNew) {
-    return { reply: INTAKE_INTRO, done: false, step: session.step };
+    return { reply: WA_GREETING, done: false, step: session.step };
   }
 
   const result = await advanceIntake(toState(session), message);

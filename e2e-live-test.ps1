@@ -85,6 +85,12 @@ $w3 = Wa "E2E WhatsApp Test";   Check "WhatsApp asks gender" ($w3.reply -match '
 $w4 = Wa "2";                   Check "WhatsApp asks confirm" ($w4.reply -match 'Create member') "reply=$($w4.reply)"
 $w5 = Wa "1";                   Check "WhatsApp enrolment completes" ($w5.done -eq $true -and $w5.reply -match 'enrolled') "reply=$($w5.reply)"
 
+Write-Host "`n=== WHATSAPP HEALTH BUDDY (separate sender) ===" -ForegroundColor Cyan
+$bf = "+234701" + (Get-Random -Minimum 1000000 -Maximum 9999999)
+function Wb($m) { JSON (Req "POST" "$api/channels/whatsapp/simulate" @{from = $bf; message = $m }) }
+$b1 = Wb "BUDDY what helps a fever"; Check "WhatsApp Buddy answers a grounded health question" ($b1.reply -match 'clinician') "reply=$($b1.reply)"
+$b2 = Wb "MENU";                     Check "WhatsApp Buddy 'MENU' returns to enrolment greeting" ($b2.reply -match 'organisation code') "reply=$($b2.reply)"
+
 Write-Host "`n=== VERIFY ENROLLED MEMBERS HAVE IDs ===" -ForegroundColor Cyan
 Start-Sleep -Seconds 1
 $m2 = JSON (Req "GET" "$api/members" $null $H)

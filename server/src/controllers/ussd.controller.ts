@@ -1,7 +1,13 @@
 import { Request, Response } from 'express';
+import { query } from '../config/database';
 import {
   advanceIntake, createMemberFromIntake, initialIntakeState, IntakeState, INTAKE_INTRO,
 } from '../services/intake.service';
+import { buddyMenuScreen, buddyTipScreen, buddyTopicLabel } from '../lib/buddyMenu';
+
+// USSD opening adds a Health Buddy option. INTAKE_INTRO (shared with WhatsApp) is
+// left untouched; entering an org code as the first input still goes to enrolment.
+const USSD_OPENING = `${INTAKE_INTRO}\n0 Health Buddy (free health tips)`;
 
 // USSD gateway endpoint, shaped for Africa's Talking (also works with most
 // aggregators). The gateway POSTs sessionId, phoneNumber, serviceCode and `text`
@@ -22,7 +28,30 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
 
   // Opening screen, before any input.
   if (parts.length === 0) {
-    res.send(`CON ${INTAKE_INTRO}`);
+    res.send(`CON ${USSD_OPENING}`);
+    return;
+  }
+
+  // Health Buddy branch (first input "0"): a curated menu of short, sourced tips.
+  // Enrolment is unaffected — an org code as the first input never starts with "0".
+  if (parts[0] === '0') {
+    const nav = parts.slice(1);
+    if (nav.length === 0) {
+      res.send(`CON ${buddyMenuScreen()}`);
+      return;
+    }
+    const choice = nav[0];
+    const tip = buddyTipScreen(choice);
+    try {
+      await query(
+        `INSERT INTO buddy_messages (session_key, channel, role, content, safety)
+         VALUES ($1,'ussd','user',$2,'ok'),($1,'ussd','assistant',$3,'ok')`,
+        [phoneNumber.slice(0, 80), `topic: ${buddyTopicLabel(choice)}`, tip]
+      );
+    } catch (err) {
+      console.error('USSD buddy log failed (non-fatal):', err);
+    }
+    res.send(`END ${tip}`);
     return;
   }
 

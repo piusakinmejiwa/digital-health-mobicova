@@ -76,6 +76,11 @@ $s3 = Ussd "100200*E2E USSD Test";              Check "USSD asks gender" ($s3 -m
 $s4 = Ussd "100200*E2E USSD Test*2";            Check "USSD asks confirm" ($s4 -match 'Create member') $s4
 $s5 = Ussd "100200*E2E USSD Test*2*1";          Check "USSD enrolment completes (END / enrolled)" ($s5 -match '^END' -and $s5 -match 'enrolled') $s5
 
+Write-Host "`n=== USSD HEALTH BUDDY (curated menu) ===" -ForegroundColor Cyan
+$sb1 = Ussd "0";    Check "USSD Buddy menu (option 0)" ($sb1 -match '^CON' -and $sb1 -match 'Fever') $sb1
+$sb2 = Ussd "0*1";  Check "USSD Buddy returns a sourced fever tip" ($sb2 -match '^END' -and $sb2 -match 'NHS') $sb2
+$sb9 = Ussd "0*9";  Check "USSD Buddy emergency shows helplines" ($sb9 -match '^END' -and $sb9 -match '112') $sb9
+
 Write-Host "`n=== WHATSAPP ENROLMENT (greeting + code) ===" -ForegroundColor Cyan
 $wf = "+234809" + (Get-Random -Minimum 1000000 -Maximum 9999999)
 function Wa($m) { JSON (Req "POST" "$api/channels/whatsapp/simulate" @{from = $wf; message = $m }) }

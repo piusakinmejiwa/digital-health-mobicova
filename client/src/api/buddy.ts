@@ -20,10 +20,11 @@ export function buddySessionKey(): string {
   return k;
 }
 
-export async function chatWithBuddy(messages: BuddyMessage[]): Promise<BuddyReply> {
+export async function chatWithBuddy(messages: BuddyMessage[], specialty = 'general'): Promise<BuddyReply> {
   try {
     const { data } = await api.post<BuddyReply>('/buddy/chat', {
       messages,
+      specialty,
       sessionKey: buddySessionKey(),
     });
     return data;

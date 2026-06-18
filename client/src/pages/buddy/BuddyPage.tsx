@@ -3,34 +3,42 @@ import { useNavigate } from 'react-router-dom';
 import BrandLogo from '../../components/common/BrandLogo';
 import { chatWithBuddy } from '../../api/buddy';
 import type { BuddyMessage, BuddySource } from '../../api/buddy';
+import { SPECIALTIES, specialtyByKey } from '../../lib/buddyCatalog';
 import './BuddyPage.css';
 
 type Msg = BuddyMessage & { sources?: BuddySource[]; safety?: 'ok' | 'crisis' | 'emergency' };
 
-const GREETING: Msg =
-  { role: 'assistant', content: "Hi! I'm the MobiCova Health Buddy 👋 Ask me a basic health question and I'll share what trusted sources say. I'm not a doctor — for anything serious I'll point you to one." };
-
-const SUGGESTIONS = ['What helps a fever?', 'What are malaria symptoms?', 'How do I stay hydrated?', 'Tips for a sore throat'];
-
 export default function BuddyPage() {
   const navigate = useNavigate();
-  const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
+  const [active, setActive] = useState<string | null>(null); // selected specialty key
+  const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, sending]);
 
+  const buddy = active ? specialtyByKey(active) : null;
+
+  function openBuddy(key: string) {
+    setActive(key);
+    setMsgs([{ role: 'assistant', content: specialtyByKey(key).greeting }]);
+    setInput('');
+  }
+  function backToBuddies() {
+    setActive(null);
+    setMsgs([]);
+  }
+
   async function send(text: string) {
     const q = text.trim();
-    if (!q || sending) return;
+    if (!q || sending || !active) return;
     const history = msgs.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content }));
-    const next: Msg[] = [...msgs, { role: 'user', content: q }];
-    setMsgs(next);
+    setMsgs((m) => [...m, { role: 'user', content: q }]);
     setInput('');
     setSending(true);
     try {
-      const res = await chatWithBuddy([...history, { role: 'user', content: q }]);
+      const res = await chatWithBuddy([...history, { role: 'user', content: q }], active);
       setMsgs((m) => [...m, { role: 'assistant', content: res.reply, sources: res.sources, safety: res.safety }]);
     } catch {
       setMsgs((m) => [...m, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }]);
@@ -43,50 +51,68 @@ export default function BuddyPage() {
     <div className="buddy">
       <header className="buddy-head">
         <div className="buddy-logo" onClick={() => navigate('/')} role="button"><BrandLogo /></div>
-        <a className="buddy-home" onClick={() => navigate('/')}>← Home</a>
+        {buddy
+          ? <a className="buddy-home" onClick={backToBuddies}>← Buddies</a>
+          : <a className="buddy-home" onClick={() => navigate('/')}>← Home</a>}
       </header>
 
       <div className="buddy-shell">
-        <div className="buddy-title">
-          <h1>Health Buddy</h1>
-          <p className="buddy-disclaimer">General health info from trusted sources — <strong>not a diagnosis</strong>. For your own health, see a clinician.</p>
-        </div>
-
-        <div className="buddy-chat">
-          {msgs.map((m, i) => (
-            <div key={i} className={`buddy-row ${m.role}`}>
-              <div className={`buddy-bubble ${m.role} ${m.safety && m.safety !== 'ok' ? 'alert' : ''}`}>
-                {m.content.split('\n').map((line, j) => <p key={j}>{line || ' '}</p>)}
-                {m.sources && m.sources.length > 0 && (
-                  <div className="buddy-sources">
-                    {m.sources.map((s, k) => (
-                      <a key={k} href={s.url} target="_blank" rel="noopener noreferrer" className="buddy-source">{s.name}</a>
-                    ))}
-                  </div>
-                )}
-              </div>
+        {!buddy ? (
+          <>
+            <div className="buddy-title">
+              <h1>Health Buddy</h1>
+              <p className="buddy-disclaimer">Pick a buddy for free, general health info from trusted sources — <strong>not a diagnosis</strong>.</p>
             </div>
-          ))}
-          {sending && <div className="buddy-row assistant"><div className="buddy-bubble assistant"><span className="buddy-typing">…</span></div></div>}
-          <div ref={endRef} />
-        </div>
+            <div className="buddy-grid">
+              {SPECIALTIES.map((s) => (
+                <button key={s.key} className={`buddy-card ${s.key === 'safe_emotions' ? 'care' : ''}`} onClick={() => openBuddy(s.key)}>
+                  <span className="buddy-card-emoji">{s.emoji}</span>
+                  <span className="buddy-card-name">{s.name}</span>
+                  <span className="buddy-card-blurb">{s.blurb}</span>
+                </button>
+              ))}
+            </div>
+            <p className="buddy-foot">If you may be in danger, call <strong>112</strong>. Free tier: 20 questions/day.</p>
+          </>
+        ) : (
+          <>
+            <div className="buddy-title">
+              <h1><span className="buddy-emoji">{buddy.emoji}</span> {buddy.name}</h1>
+              <p className="buddy-disclaimer">General info, <strong>not a diagnosis</strong>. For your own health, see a clinician.</p>
+            </div>
 
-        {msgs.length <= 1 && (
-          <div className="buddy-suggestions">
-            {SUGGESTIONS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
-          </div>
+            <div className="buddy-chat">
+              {msgs.map((m, i) => (
+                <div key={i} className={`buddy-row ${m.role}`}>
+                  <div className={`buddy-bubble ${m.role} ${m.safety && m.safety !== 'ok' ? 'alert' : ''}`}>
+                    {m.content.split('\n').map((line, j) => <p key={j}>{line || ' '}</p>)}
+                    {m.sources && m.sources.length > 0 && (
+                      <div className="buddy-sources">
+                        {m.sources.map((s, k) => (
+                          <a key={k} href={s.url} target="_blank" rel="noopener noreferrer" className="buddy-source">{s.name}</a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {sending && <div className="buddy-row assistant"><div className="buddy-bubble assistant"><span className="buddy-typing">…</span></div></div>}
+              <div ref={endRef} />
+            </div>
+
+            {msgs.length <= 1 && (
+              <div className="buddy-suggestions">
+                {buddy.suggestions.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
+              </div>
+            )}
+
+            <form className="buddy-input" onSubmit={(e) => { e.preventDefault(); send(input); }}>
+              <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={`Ask the ${buddy.name} buddy…`} maxLength={500} />
+              <button type="submit" disabled={sending || !input.trim()}>Send</button>
+            </form>
+            <p className="buddy-foot">If you may be in danger, call <strong>112</strong>. Free tier: 20 questions/day.</p>
+          </>
         )}
-
-        <form className="buddy-input" onSubmit={(e) => { e.preventDefault(); send(input); }}>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a basic health question…"
-            maxLength={500}
-          />
-          <button type="submit" disabled={sending || !input.trim()}>Send</button>
-        </form>
-        <p className="buddy-foot">If you may be in danger, call <strong>112</strong>. Free tier: 20 questions/day.</p>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { query } from '../config/database';
 import { anthropic } from '../config/anthropic';
 import { classify, crisisReply, emergencyReply, DISCLAIMER, Safety } from '../lib/buddySafety';
+import { personaFor } from '../lib/buddyCatalog';
 
 // Free tier runs on Haiku for cost; override from the dashboard if needed.
 const BUDDY_MODEL = process.env.ANTHROPIC_BUDDY_MODEL || 'claude-haiku-4-5';
@@ -32,7 +33,7 @@ async function retrieve(text: string, limit = 3): Promise<Array<{ title: string;
   return result.rows;
 }
 
-export async function answerBuddy(messages: BuddyMessage[]): Promise<BuddyAnswer> {
+export async function answerBuddy(messages: BuddyMessage[], specialty?: string): Promise<BuddyAnswer> {
   const latest = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
 
   // 1) Deterministic safety pre-filter — short-circuit, no model call.
@@ -74,10 +75,11 @@ export async function answerBuddy(messages: BuddyMessage[]): Promise<BuddyAnswer
   try {
     const userTurn = `SOURCES:\n${sourcesBlock}\n\nQuestion: ${latest}`;
     const history = messages.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
+    const persona = personaFor(specialty);
     const response = await anthropic.messages.create({
       model: BUDDY_MODEL,
       max_tokens: 400,
-      system: SYSTEM,
+      system: persona ? `${SYSTEM}\n\nPersona: ${persona}` : SYSTEM,
       messages: [...history, { role: 'user', content: userTurn }],
     });
     const text = response.content

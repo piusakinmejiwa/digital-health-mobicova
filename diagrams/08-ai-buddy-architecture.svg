@@ -1,0 +1,82 @@
+<svg viewBox="0 0 980 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t8 d8">
+  <title id="t8">Free AI Health Buddy architecture</title>
+  <desc id="d8">A member message passes through a safety pre-filter, retrieval over a trusted-source corpus, generation by Claude Haiku with citations, and a safety post-filter that adds a disclaimer, returning a cited reply. The pre-filter can branch to crisis helplines, emergency guidance, or telemedicine.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#7A8A8A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    .bg{fill:#ffffff;stroke:#E3EAEA}
+    .th{font:500 13px 'Segoe UI',Arial,sans-serif;fill:#16302F}
+    .ts{font:400 10.5px 'Segoe UI',Arial,sans-serif;fill:#5E6E6E}
+    .zl{font:500 11.5px 'Segoe UI',Arial,sans-serif;fill:#0A7B7B}
+    .lg{font:400 10.5px 'Segoe UI',Arial,sans-serif;fill:#5E6E6E}
+    .arr{fill:none;stroke:#7A8A8A;stroke-width:1.6}
+    .dash{fill:none;stroke:#3E8E5A;stroke-width:1.5;stroke-dasharray:6 4}
+    .n-gray{fill:#EEF1F1;stroke:#5B6B6B;stroke-width:1.3}
+    .n-blue{fill:#E7EEF7;stroke:#2F6FB0;stroke-width:1.3}
+    .n-teal{fill:#E2F1F0;stroke:#0A7B7B;stroke-width:1.3}
+    .n-amber{fill:#F7EFDD;stroke:#BD8B2C;stroke-width:1.3}
+    .n-green{fill:#E7F2E9;stroke:#3E8E5A;stroke-width:1.3}
+    .n-red{fill:#FBEBEA;stroke:#C0392B;stroke-width:1.4}
+  </style>
+  <rect class="bg" x="4" y="4" width="972" height="552" rx="14"/>
+
+  <!-- member + API -->
+  <g><rect class="n-gray" x="390" y="48" width="200" height="46" rx="9"/><text class="th" x="490" y="76" text-anchor="middle">Member · web / WhatsApp</text></g>
+  <g><rect class="n-blue" x="390" y="110" width="200" height="46" rx="9"/><text class="th" x="490" y="138" text-anchor="middle">API · buddy orchestrator</text></g>
+  <line class="arr" x1="490" y1="94" x2="490" y2="110" marker-end="url(#arrow)"/>
+  <line class="arr" x1="440" y1="156" x2="150" y2="180" marker-end="url(#arrow)"/>
+
+  <!-- pipeline -->
+  <g><rect class="n-teal" x="30" y="180" width="215" height="72" rx="9"/>
+     <text class="th" x="137" y="208" text-anchor="middle">1 · Safety pre-filter</text>
+     <text class="ts" x="137" y="226" text-anchor="middle">crisis · red-flag · scope</text></g>
+  <g><rect class="n-blue" x="265" y="180" width="205" height="72" rx="9"/>
+     <text class="th" x="367" y="208" text-anchor="middle">2 · Retrieve</text>
+     <text class="ts" x="367" y="226" text-anchor="middle">vector search over corpus</text></g>
+  <g><rect class="n-amber" x="495" y="180" width="215" height="72" rx="9"/>
+     <text class="th" x="602" y="205" text-anchor="middle">3 · Generate</text>
+     <text class="ts" x="602" y="222" text-anchor="middle">Claude Haiku 4.5</text>
+     <text class="ts" x="602" y="238" text-anchor="middle">answer only from sources · cite</text></g>
+  <g><rect class="n-teal" x="735" y="180" width="215" height="72" rx="9"/>
+     <text class="th" x="842" y="205" text-anchor="middle">4 · Safety post-filter</text>
+     <text class="ts" x="842" y="222" text-anchor="middle">disclaimer · scope check</text>
+     <text class="ts" x="842" y="238" text-anchor="middle">escalation CTA</text></g>
+  <line class="arr" x1="245" y1="216" x2="265" y2="216" marker-end="url(#arrow)"/>
+  <line class="arr" x1="470" y1="216" x2="495" y2="216" marker-end="url(#arrow)"/>
+  <line class="arr" x1="710" y1="216" x2="735" y2="216" marker-end="url(#arrow)"/>
+
+  <!-- corpus feeding retrieve -->
+  <g><rect class="n-gray" x="265" y="300" width="205" height="46" rx="9"/><text class="th" x="367" y="328" text-anchor="middle">Vector store (pgvector)</text></g>
+  <g><rect class="n-gray" x="265" y="356" width="205" height="60" rx="9"/>
+     <text class="th" x="367" y="380" text-anchor="middle">Trusted-source corpus</text>
+     <text class="ts" x="367" y="398" text-anchor="middle">WHO · NHS · MedlinePlus · Wiki</text></g>
+  <line class="arr" x1="367" y1="356" x2="367" y2="346" marker-end="url(#arrow)"/>
+  <line class="arr" x1="367" y1="300" x2="367" y2="252" marker-end="url(#arrow)"/>
+  <text class="lg" x="602" y="268" text-anchor="middle">system + safety prompt cached</text>
+
+  <!-- escalation from pre-filter -->
+  <g><rect class="n-red" x="30" y="300" width="215" height="118" rx="9"/>
+     <text class="th" x="44" y="324">Escalation (from pre-filter)</text>
+     <text class="ts" x="44" y="348">• Crisis → helplines + human</text>
+     <text class="ts" x="44" y="370">• Red-flag → emergency care</text>
+     <text class="ts" x="44" y="392">• Beyond basic → telemedicine</text></g>
+  <line class="arr" x1="137" y1="252" x2="137" y2="300" marker-end="url(#arrow)"/>
+
+  <!-- cited reply + return -->
+  <g><rect class="n-green" x="735" y="300" width="215" height="56" rx="9"/>
+     <text class="th" x="842" y="324" text-anchor="middle">Cited reply + disclaimer</text>
+     <text class="ts" x="842" y="342" text-anchor="middle">sources shown</text></g>
+  <line class="arr" x1="842" y1="252" x2="842" y2="300" marker-end="url(#arrow)"/>
+  <path class="dash" d="M950 328 L965 328 L965 71 L592 71" marker-end="url(#arrow)"/>
+  <text class="lg" x="780" y="58">reply to member</text>
+
+  <!-- legend -->
+  <rect x="30" y="500" width="12" height="12" rx="3" class="n-teal"/><text class="lg" x="48" y="510">Safety filters</text>
+  <rect x="150" y="500" width="12" height="12" rx="3" class="n-blue"/><text class="lg" x="168" y="510">Retrieval (RAG)</text>
+  <rect x="290" y="500" width="12" height="12" rx="3" class="n-amber"/><text class="lg" x="308" y="510">Generation (Claude)</text>
+  <rect x="450" y="500" width="12" height="12" rx="3" class="n-red"/><text class="lg" x="468" y="510">Escalation / duty of care</text>
+  <rect x="640" y="500" width="12" height="12" rx="3" class="n-green"/><text class="lg" x="658" y="510">Cited output</text>
+</svg>

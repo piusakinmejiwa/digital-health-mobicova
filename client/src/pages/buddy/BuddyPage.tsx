@@ -4,6 +4,7 @@ import BrandLogo from '../../components/common/BrandLogo';
 import { chatWithBuddy } from '../../api/buddy';
 import type { BuddyMessage, BuddySource } from '../../api/buddy';
 import { SPECIALTIES, specialtyByKey } from '../../lib/buddyCatalog';
+import SiteFooter from '../../components/marketing/SiteFooter';
 import './BuddyPage.css';
 
 type Msg = BuddyMessage & { sources?: BuddySource[]; safety?: 'ok' | 'crisis' | 'emergency' | 'distress' };
@@ -124,6 +125,7 @@ export default function BuddyPage() {
           </>
         )}
       </div>
+      <SiteFooter />
     </div>
   );
 }

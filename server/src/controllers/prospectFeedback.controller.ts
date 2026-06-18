@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
+import { env } from '../config/env';
+import { sendEmail } from '../lib/email';
 
 // Public "Help shape MobiCova" capture: a prospect tells us which features they
 // want and their order of priority. Unauthenticated; contact details only, no PHI.
@@ -10,6 +12,49 @@ const MAX_PRIORITIES = 5;
 function cleanList(v: unknown, max: number): string[] {
   if (!Array.isArray(v)) return [];
   return v.map((x) => String(x).slice(0, 80)).filter(Boolean).slice(0, max);
+}
+
+const pretty = (k: string) => k.replace(/_/g, ' ');
+
+// Best-effort email notification to a configured inbox when a form is submitted.
+// Never throws — a mail failure must not break the submission.
+async function notifyFeedback(d: {
+  name: string; email: string; organisation: string; role: string; country: string;
+  wanted: string[]; priorities: string[]; useCase: string; pilot: boolean;
+}): Promise<void> {
+  if (!env.feedbackNotifyEmail) return;
+  try {
+    const row = (label: string, val: string) =>
+      `<tr><td style="padding:4px 12px 4px 0;color:#5e6e6e">${label}</td><td style="padding:4px 0"><strong>${val || '—'}</strong></td></tr>`;
+    const html = `
+      <h2 style="color:#0a7b7b;margin:0 0 12px">New "Shape MobiCova" submission</h2>
+      <table style="border-collapse:collapse;font:14px Arial,sans-serif">
+        ${row('Name', d.name)}${row('Email', d.email)}${row('Organisation', d.organisation)}
+        ${row('Role', d.role)}${row('Country', d.country)}
+        ${row('Priorities', d.priorities.map(pretty).join(' → '))}
+        ${row('Wanted', d.wanted.map(pretty).join(', '))}
+        ${row('Pilot interest', d.pilot ? 'Yes' : 'No')}
+      </table>
+      ${d.useCase ? `<p style="font:14px Arial,sans-serif"><em>"${d.useCase}"</em></p>` : ''}
+      <p style="color:#5e6e6e;font:12px Arial,sans-serif">View all in Admin Console → Prospect feedback.</p>`;
+    const text = `New Shape MobiCova submission
+Name: ${d.name}
+Email: ${d.email}
+Organisation: ${d.organisation}
+Role: ${d.role}  Country: ${d.country}
+Priorities: ${d.priorities.map(pretty).join(' > ')}
+Wanted: ${d.wanted.map(pretty).join(', ')}
+Pilot interest: ${d.pilot ? 'Yes' : 'No'}
+${d.useCase ? `Notes: ${d.useCase}` : ''}`;
+    await sendEmail({
+      to: env.feedbackNotifyEmail,
+      subject: `New Shape MobiCova submission — ${d.name || d.email}`,
+      html,
+      text,
+    });
+  } catch (err) {
+    console.error('[feedback] notify email failed:', err);
+  }
 }
 
 export async function createProspectFeedback(req: Request, res: Response): Promise<void> {
@@ -35,6 +80,9 @@ export async function createProspectFeedback(req: Request, res: Response): Promi
     [name, email.slice(0, 255), organisation, role, country,
      JSON.stringify(wanted), JSON.stringify(priorities), useCase, pilot, consent]
   );
+
+  // Notify the team inbox (best-effort; does not block the response on failure).
+  await notifyFeedback({ name, email, organisation, role, country, wanted, priorities, useCase, pilot });
 
   res.status(201).json({ received: true });
 }

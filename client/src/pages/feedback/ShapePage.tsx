@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BrandLogo from '../../components/common/BrandLogo';
+import SiteHeader from '../../components/marketing/SiteHeader';
+import SiteFooter from '../../components/marketing/SiteFooter';
 import { FEATURE_CATALOG, featureLabel } from '../../lib/featureCatalog';
 import { submitFeedback } from '../../api/feedback';
 import './ShapePage.css';
@@ -55,24 +56,24 @@ export default function ShapePage() {
 
   if (status === 'done') {
     return (
-      <div className="shape">
-        <div className="shape-card shape-thanks">
-          <div className="shape-logo"><BrandLogo /></div>
-          <h1>Thank you 🎉</h1>
-          <p>Your priorities are in. We use this to decide what to build next — and we’ll be in touch about early access.</p>
-          <button className="shape-btn" onClick={() => navigate('/')}>Back to home</button>
+      <>
+        <SiteHeader />
+        <div className="shape">
+          <div className="shape-card shape-thanks">
+            <h1>Thank you 🎉</h1>
+            <p>Your priorities are in. We use this to decide what to build next — and we’ll be in touch about early access.</p>
+            <button className="shape-btn" onClick={() => navigate('/')}>Back to home</button>
+          </div>
         </div>
-      </div>
+        <SiteFooter />
+      </>
     );
   }
 
   return (
-    <div className="shape">
-      <header className="shape-head">
-        <div className="shape-logo" onClick={() => navigate('/')} role="button"><BrandLogo /></div>
-        <a className="shape-home" onClick={() => navigate('/')}>← Home</a>
-      </header>
-
+    <>
+      <SiteHeader />
+      <div className="shape">
       <div className="shape-card">
         <span className="shape-eyebrow">Help shape MobiCova</span>
         <h1>What do you want from MobiCova — and what matters most?</h1>
@@ -161,6 +162,8 @@ export default function ShapePage() {
           </button>
         </form>
       </div>
-    </div>
+      </div>
+      <SiteFooter />
+    </>
   );
 }

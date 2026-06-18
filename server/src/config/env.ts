@@ -44,6 +44,8 @@ export const env = {
   // a verified EMAIL_FROM to switch on real delivery via Resend.
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'MobiCova <onboarding@mobicova.com>',
+  // Optional inbox to notify when a "Shape MobiCova" (/shape) feedback form is submitted.
+  feedbackNotifyEmail: process.env.FEEDBACK_NOTIFY_EMAIL || '',
   // Comma-separated emails granted platform-admin access to the catalog Admin UI.
   platformAdminEmails: (process.env.PLATFORM_ADMIN_EMAILS || '')
     .split(',')

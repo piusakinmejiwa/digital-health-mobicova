@@ -68,7 +68,40 @@ const HA: Lexicon = {
   ],
 };
 
-const LEXICONS: Record<Lang, Lexicon> = { en: EN, pcm: PCM, ha: HA };
+// ─── Yoruba & Igbo (DRAFT — pending native + clinician sign-off) ─────────────
+// Phrases are written WITHOUT tone marks/diacritics on purpose: the matcher
+// normalises input the same way (NFKD + strip marks), so "mo fẹ́ kú" still matches
+// "mo fe ku". Replace/extend with the clinician-approved Seed Kit lists.
+const YO: Lexicon = {
+  crisis: [
+    'mo fe pa ara mi', 'mo fe ku', 'mi o fe wa laaye mo', 'ki n ku',
+    'mo fe pare', 'ko si idi lati wa laaye', 'mo fe gbe ara mi sonu',
+  ],
+  emergency: [
+    'mi o le mi', 'aya mi n dun mi', 'eje n san', 'eje ko duro',
+    'o fe bimo', 'ejo bu', 'mo fe daku', 'eniyan daku',
+  ],
+  distress: [
+    'okan mi ko bale', 'mo re mi', 'mo n sunkun', 'ko si eni ti o bikita',
+    'mi o ni ireti', 'mo ti re tan',
+  ],
+};
+const IG: Lexicon = {
+  crisis: [
+    'achoro m igbu onwe m', 'achoro m inwu', 'achoghi m idi ndu ozo', 'ka m nwuo',
+    'achoro m ila n iyi', 'enweghi m ihe m ji adi ndu',
+  ],
+  emergency: [
+    'enweghi m ike iku ume', 'obi na-egbu m mgbu', 'obara na-agba', 'obara anaghi akwusi',
+    'o na-acho imu nwa', 'agwo tara', 'achoro m ida mba', 'mmadu dara mba',
+  ],
+  distress: [
+    'obi adighi m mma', 'ike gwuru m', 'ana m ebe akwa', 'onweghi onye na-eche banyere m',
+    'enweghi m olileanya', 'ihe niile emebiela',
+  ],
+};
+
+const LEXICONS: Record<Lang, Lexicon> = { en: EN, pcm: PCM, ha: HA, yo: YO, ig: IG };
 
 // Lowercase + strip accents so matching is robust across spellings.
 function norm(text: string): string {

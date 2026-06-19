@@ -9,11 +9,15 @@ import { initReactI18next } from 'react-i18next';
 import enCommon from './locales/en/common.json';
 import pcmCommon from './locales/pcm/common.json';
 import haCommon from './locales/ha/common.json';
+import yoCommon from './locales/yo/common.json';
+import igCommon from './locales/ig/common.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'pcm', label: 'Pidgin' },
   { code: 'ha', label: 'Hausa' },
+  { code: 'yo', label: 'Yorùbá' },
+  { code: 'ig', label: 'Igbo' },
 ] as const;
 
 export type LangCode = (typeof SUPPORTED_LANGUAGES)[number]['code'];
@@ -52,6 +56,8 @@ i18n.use(initReactI18next).init({
     en: { common: enCommon },
     pcm: { common: pcmCommon },
     ha: { common: haCommon },
+    yo: { common: yoCommon },
+    ig: { common: igCommon },
   },
   lng: initialLang(),
   fallbackLng: 'en',

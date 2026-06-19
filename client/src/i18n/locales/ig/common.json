@@ -1,0 +1,26 @@
+{
+  "_note": "DRAFT Igbo — pending native-speaker + clinician sign-off (see Igbo Seed Kit). Missing keys fall back to English.",
+  "nav": {
+    "platform": "Platform",
+    "whoFor": "Onye ọ dịịrị",
+    "pricing": "Ọnụahịa",
+    "healthBuddy": "Health Buddy",
+    "shape": "Shape MobiCova",
+    "signIn": "Banye",
+    "bookDemo": "Debanye aha"
+  },
+  "language": {
+    "label": "Asụsụ",
+    "english": "Bekee",
+    "pidgin": "Pidgin",
+    "hausa": "Hausa",
+    "yoruba": "Yoruba",
+    "igbo": "Igbo"
+  },
+  "buddy": {
+    "greeting": "Ndewo! Abụ m MobiCova Health Buddy. Jụọ m obere ajụjụ gbasara ahụike.",
+    "seeDoctor": "MobiCova nwere ike ijikọ gị na dọkịta.",
+    "limitReached": "I ruola ọnụ ọgụgụ ajụjụ efu nke taa. Biko lọghachi echi.",
+    "cannotVerify": "Naanị ozi sitere n'isi mmalite ahụike a pụrụ ịtụkwasị obi ka m nwere ike ịkọrọ, enweghị m azịza doro anya gbasara nke ahụ. Biko gakwuru dọkịta."
+  }
+}

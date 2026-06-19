@@ -1,0 +1,26 @@
+{
+  "_note": "DRAFT Yorùbá — pending native-speaker + clinician sign-off (see Yoruba Seed Kit). Missing keys fall back to English.",
+  "nav": {
+    "platform": "Platform",
+    "whoFor": "Ẹni tó bá yẹ",
+    "pricing": "Owó",
+    "healthBuddy": "Health Buddy",
+    "shape": "Shape MobiCova",
+    "signIn": "Wọlé",
+    "bookDemo": "Forúkọsílẹ̀"
+  },
+  "language": {
+    "label": "Èdè",
+    "english": "Gẹ̀ẹ́sì",
+    "pidgin": "Pidgin",
+    "hausa": "Hausa",
+    "yoruba": "Yorùbá",
+    "igbo": "Igbo"
+  },
+  "buddy": {
+    "greeting": "Ẹ nlẹ́! Èmi ni MobiCova Health Buddy. Béèrè ìbéèrè kékeré nípa ìlera lọ́wọ́ mi.",
+    "seeDoctor": "MobiCova lè so ọ́ pọ̀ mọ́ dókítà.",
+    "limitReached": "O ti dé iye ìbéèrè ọ̀fẹ́ ti òní. Jọ̀wọ́ padà wá lọ́la.",
+    "cannotVerify": "Àlàyé láti orísun ìlera tó ṣe é gbẹ́kẹ̀lé nìkan ni mo lè pín, mi ò sì ní ìdáhùn tó dájú nípa ìyẹn. Jọ̀wọ́ bá dókítà sọ̀rọ̀."
+  }
+}

@@ -3,7 +3,8 @@
 // English as the guaranteed fallback. Web UI strings live in the client catalogue;
 // this covers everything the server renders or speaks.
 
-export const SUPPORTED_LANGS = ['en', 'pcm', 'ha'] as const; // pcm = Nigerian Pidgin, ha = Hausa
+// pcm = Nigerian Pidgin, ha = Hausa, yo = Yoruba, ig = Igbo
+export const SUPPORTED_LANGS = ['en', 'pcm', 'ha', 'yo', 'ig'] as const;
 export type Lang = (typeof SUPPORTED_LANGS)[number];
 
 export function isLang(v: unknown): v is Lang {
@@ -34,6 +35,16 @@ const STRINGS: Record<Lang, Catalogue> = {
     'channel.chooseLanguage': 'Zabi harshe:\n1. Turanci\n2. Hausa',
     'buddy.greeting': 'Sannu! Ni ne MobiCova Health Buddy. Ka tambaye ni karamar tambaya kan lafiya.',
   },
+  yo: {
+    // DRAFT Yoruba — pending native + clinician sign-off (see Yoruba Seed Kit).
+    'channel.chooseLanguage': 'Yan ede:\n1. Geesi\n2. Yoruba',
+    'buddy.greeting': 'E nle! Emi ni MobiCova Health Buddy. Beere ibeere kekere nipa ilera lowo mi.',
+  },
+  ig: {
+    // DRAFT Igbo — pending native + clinician sign-off (see Igbo Seed Kit).
+    'channel.chooseLanguage': 'Horo asusu:\n1. Bekee\n2. Igbo',
+    'buddy.greeting': 'Ndewo! Abu m MobiCova Health Buddy. Juo m obere ajuju gbasara ahuike.',
+  },
 };
 
 export function t(lang: Lang, key: string): string {
@@ -50,6 +61,14 @@ export function languageDirective(lang: Lang): string {
   }
   if (lang === 'ha') {
     return '\n\nIMPORTANT: Reply in clear, simple Hausa. ' +
+      'Keep the same meaning as the English sources — do not add facts. Stay respectful and clear.';
+  }
+  if (lang === 'yo') {
+    return '\n\nIMPORTANT: Reply in clear, simple Yoruba (with correct tone marks). ' +
+      'Keep the same meaning as the English sources — do not add facts. Stay respectful and clear.';
+  }
+  if (lang === 'ig') {
+    return '\n\nIMPORTANT: Reply in clear, simple Igbo (with correct diacritics). ' +
       'Keep the same meaning as the English sources — do not add facts. Stay respectful and clear.';
   }
   return '';

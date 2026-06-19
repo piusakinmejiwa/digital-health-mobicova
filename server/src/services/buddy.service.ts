@@ -33,15 +33,36 @@ Rules — follow strictly:
 - Be kind and non-judgemental. Encourage seeing a clinician for anything beyond basic info.
 - You are information only, not an emergency or crisis service.`;
 
+// Question/filler words that shouldn't drive retrieval (so "what helps a fever"
+// keys on "fever", not "help"). Kept small and health-question focused.
+const STOPWORDS = new Set([
+  'what', 'whats', 'how', 'why', 'when', 'where', 'who', 'which', 'can', 'could', 'should',
+  'would', 'does', 'doing', 'did', 'are', 'was', 'were', 'the', 'and', 'for', 'with', 'you',
+  'your', 'yours', 'this', 'that', 'these', 'those', 'about', 'any', 'some', 'get', 'got',
+  'have', 'has', 'had', 'help', 'helps', 'helping', 'tip', 'tips', 'best', 'good', 'bad',
+  'tell', 'know', 'need', 'want', 'please', 'thanks', 'from', 'into', 'out', 'off', 'too',
+  'really', 'very', 'just', 'feel', 'feeling',
+]);
+
+// Build an OR full-text query from the meaningful words. OR (not AND) so a passage
+// isn't dropped just because it lacks a filler word; ts_rank then orders by how
+// well each passage matches the query terms.
+function buildOrQuery(text: string): string {
+  const words = (text.toLowerCase().match(/[a-z]{3,}/g) || []).filter((w) => !STOPWORDS.has(w));
+  return [...new Set(words)].slice(0, 10).join(' | ');
+}
+
 // Retrieve the most relevant curated passages via Postgres full-text search.
 async function retrieve(text: string, limit = 3): Promise<Array<{ title: string; body: string; source_name: string; source_url: string }>> {
+  const tsq = buildOrQuery(text);
+  if (!tsq) return [];
   const result = await query(
     `SELECT title, body, source_name, source_url
      FROM buddy_sources
-     WHERE tsv @@ websearch_to_tsquery('english', $1)
-     ORDER BY ts_rank(tsv, websearch_to_tsquery('english', $1)) DESC
+     WHERE tsv @@ to_tsquery('english', $1)
+     ORDER BY ts_rank(tsv, to_tsquery('english', $1)) DESC
      LIMIT $2`,
-    [text, limit]
+    [tsq, limit]
   );
   return result.rows;
 }

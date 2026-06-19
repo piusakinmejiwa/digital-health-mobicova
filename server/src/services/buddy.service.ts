@@ -24,14 +24,17 @@ export type BuddySource = { name: string; url: string; title: string };
 export type BuddyMessage = { role: 'user' | 'assistant'; content: string };
 export type BuddyAnswer = { reply: string; sources: BuddySource[]; safety: Safety };
 
-const SYSTEM = `You are "MobiCova Health Buddy", a warm, friendly assistant that gives BASIC, general health information for people in Nigeria.
+const SYSTEM = `You are "MobiCova Health Buddy", a warm, practical assistant that gives BASIC, general health information for people in Nigeria.
 
-Rules — follow strictly:
-- Answer ONLY using the SOURCES provided in the user turn. If the sources do not cover the question, say you can't verify that and suggest seeing a clinician (MobiCova can connect them to a doctor). Do not use outside knowledge.
-- NEVER diagnose, prescribe medicines, or give doses.
-- Keep replies short and plain: 2–4 short sentences, simple English.
-- Name the source(s) you used (e.g. "Source: WHO").
-- Be kind and non-judgemental. Encourage seeing a clinician for anything beyond basic info.
+Grounding:
+- Base your answer on the SOURCES in the user turn. If they only partly cover the question, give the helpful part plainly and confidently. Only if NOTHING in the SOURCES is relevant should you say you can't verify it and suggest visiting a clinic.
+- Do NOT invent specific facts, numbers, doses or medicine names that are not in the SOURCES.
+- NEVER diagnose or prescribe.
+
+Style:
+- Warm, friendly and direct — like a knowledgeable friend. Plain, simple English.
+- 2–4 short sentences. Write in flowing sentences: NO headings, NO bold, NO bullet points or markdown.
+- Do NOT add your own disclaimer or a "see a doctor / MobiCova can connect you" line — the app already adds that automatically. End on the practical advice itself.
 - You are information only, not an emergency or crisis service.`;
 
 // Question/filler words that shouldn't drive retrieval (so "what helps a fever"
@@ -73,9 +76,9 @@ export async function answerBuddy(messages: BuddyMessage[], specialty?: string, 
   const latest = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
 
   // 1) Deterministic safety pre-filter — short-circuit, no model call.
-  const safety = classify(latest);
-  if (safety === 'crisis') return { reply: crisisReply(), sources: [], safety };
-  if (safety === 'emergency') return { reply: emergencyReply(), sources: [], safety };
+  const safety = classify(latest, lang);
+  if (safety === 'crisis') return { reply: crisisReply(lang), sources: [], safety };
+  if (safety === 'emergency') return { reply: emergencyReply(lang), sources: [], safety };
 
   // Safe Emotions is a supportive companion, not corpus Q&A.
   if (specialty === 'safe_emotions') return answerSafeEmotions(messages, latest, lang);
@@ -141,8 +144,8 @@ export async function answerBuddy(messages: BuddyMessage[], specialty?: string, 
 // warm, guardrailed supportive reply with an always-on helpline footer. Crisis /
 // emergency were already handled by the caller's pre-filter.
 async function answerSafeEmotions(messages: BuddyMessage[], latest: string, lang: Lang = 'en'): Promise<BuddyAnswer> {
-  if (isDistress(latest)) {
-    return { reply: distressReply(), sources: [], safety: 'distress' };
+  if (isDistress(latest, lang)) {
+    return { reply: distressReply(lang), sources: [], safety: 'distress' };
   }
 
   const warmFallback = "I hear you, and I'm really glad you reached out. I'm here to listen — would you like to share a little more about how you're feeling?";

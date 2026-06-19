@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import BrandLogo from '../../components/common/BrandLogo';
 import { chatWithBuddy } from '../../api/buddy';
 import type { BuddyMessage, BuddySource } from '../../api/buddy';
@@ -11,6 +12,7 @@ type Msg = BuddyMessage & { sources?: BuddySource[]; safety?: 'ok' | 'crisis' | 
 
 export default function BuddyPage() {
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const [active, setActive] = useState<string | null>(null); // selected specialty key
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -45,7 +47,7 @@ export default function BuddyPage() {
     setInput('');
     setSending(true);
     try {
-      const res = await chatWithBuddy([...history, { role: 'user', content: q }], active);
+      const res = await chatWithBuddy([...history, { role: 'user', content: q }], active, i18n.resolvedLanguage);
       setMsgs((m) => [...m, { role: 'assistant', content: res.reply, sources: res.sources, safety: res.safety }]);
     } catch {
       setMsgs((m) => [...m, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }]);

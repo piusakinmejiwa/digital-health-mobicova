@@ -21,11 +21,12 @@ export function buddySessionKey(): string {
   return k;
 }
 
-export async function chatWithBuddy(messages: BuddyMessage[], specialty = 'general'): Promise<BuddyReply> {
+export async function chatWithBuddy(messages: BuddyMessage[], specialty = 'general', lang = 'en'): Promise<BuddyReply> {
   try {
     const { data } = await api.post<BuddyReply>('/buddy/chat', {
       messages,
       specialty,
+      lang, // server answers in this language (e.g. 'pcm'); defaults to English
       sessionKey: buddySessionKey(),
     });
     return data;

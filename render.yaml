@@ -57,6 +57,11 @@ services:
     envVars:
       - key: VITE_API_URL
         sync: false
+      # Reveals the English/Pidgin language switcher. Build-time flag — changing it
+      # rebuilds the static site. Keep "false" until the reviewed Pidgin translations
+      # and the clinician/legal sign-off are in; set to "true" to go live with Pidgin.
+      - key: VITE_PIDGIN_ENABLED
+        value: "false"
     routes:
       # SPA fallback so react-router deep links / refreshes resolve to index.html
       - type: rewrite

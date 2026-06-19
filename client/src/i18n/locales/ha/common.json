@@ -1,0 +1,24 @@
+{
+  "_note": "DRAFT Hausa — pending native-speaker + clinician sign-off (see Hausa Seed Kit). Missing keys fall back to English.",
+  "nav": {
+    "platform": "Platform",
+    "whoFor": "Wa ya dace",
+    "pricing": "Farashi",
+    "healthBuddy": "Health Buddy",
+    "shape": "Shape MobiCova",
+    "signIn": "Shiga",
+    "bookDemo": "Yi rijista"
+  },
+  "language": {
+    "label": "Harshe",
+    "english": "Turanci",
+    "pidgin": "Pidgin",
+    "hausa": "Hausa"
+  },
+  "buddy": {
+    "greeting": "Sannu! Ni ne MobiCova Health Buddy. Ka tambaye ni karamar tambaya kan lafiya.",
+    "seeDoctor": "MobiCova na iya hada ka da likita.",
+    "limitReached": "Ka kai iyakar tambayoyin kyauta na yau. Ka dawo gobe.",
+    "cannotVerify": "Bayani daga amintattun hanyoyin lafiya kawai nake iya bayarwa, kuma ban da tabbataccen amsa kan wannan ba. Da fatan ka ga likita."
+  }
+}

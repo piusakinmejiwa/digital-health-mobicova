@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { SUPPORTED_LANGUAGES, setLanguage, type LangCode } from '../../i18n';
+import { ENABLED_LANGUAGES, setLanguage, type LangCode } from '../../i18n';
 
-// Language picker. Hidden until Pidgin is signed off and VITE_PIDGIN_ENABLED is
-// turned on — so members never see a half-translated language. Once enabled, the
-// chosen language persists across sessions (localStorage).
+// Language picker. Shows only the languages switched on via VITE_ENABLED_LANGS
+// (English always; others once signed off) — so members never see a half-
+// translated language. Hidden entirely until more than one language is enabled.
+// The chosen language persists across sessions (localStorage).
 export default function LanguageSwitcher({ className = '' }: { className?: string }) {
   const { i18n } = useTranslation();
 
-  // Gate: only show the switcher once non-English languages are ready.
-  if (import.meta.env.VITE_PIDGIN_ENABLED !== 'true') return null;
+  if (ENABLED_LANGUAGES.length <= 1) return null;
 
   return (
     <select
@@ -17,7 +17,7 @@ export default function LanguageSwitcher({ className = '' }: { className?: strin
       onChange={(e) => setLanguage(e.target.value as LangCode)}
       aria-label="Language"
     >
-      {SUPPORTED_LANGUAGES.map((l) => (
+      {ENABLED_LANGUAGES.map((l) => (
         <option key={l.code} value={l.code}>{l.label}</option>
       ))}
     </select>

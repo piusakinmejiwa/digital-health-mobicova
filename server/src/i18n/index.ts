@@ -3,7 +3,7 @@
 // English as the guaranteed fallback. Web UI strings live in the client catalogue;
 // this covers everything the server renders or speaks.
 
-export const SUPPORTED_LANGS = ['en', 'pcm'] as const; // pcm = Nigerian Pidgin
+export const SUPPORTED_LANGS = ['en', 'pcm', 'ha'] as const; // pcm = Nigerian Pidgin, ha = Hausa
 export type Lang = (typeof SUPPORTED_LANGS)[number];
 
 export function isLang(v: unknown): v is Lang {
@@ -29,6 +29,11 @@ const STRINGS: Record<Lang, Catalogue> = {
     'channel.chooseLanguage': 'Choose language:\n1. English\n2. Pidgin',
     'buddy.greeting': 'How far! Na me be MobiCova Health Buddy. Ask me any small health question.',
   },
+  ha: {
+    // DRAFT Hausa — pending native + clinician sign-off (see Hausa Seed Kit).
+    'channel.chooseLanguage': 'Zabi harshe:\n1. Turanci\n2. Hausa',
+    'buddy.greeting': 'Sannu! Ni ne MobiCova Health Buddy. Ka tambaye ni karamar tambaya kan lafiya.',
+  },
 };
 
 export function t(lang: Lang, key: string): string {
@@ -41,6 +46,10 @@ export function t(lang: Lang, key: string): string {
 export function languageDirective(lang: Lang): string {
   if (lang === 'pcm') {
     return '\n\nIMPORTANT: Reply in warm, simple Nigerian Pidgin (no diacritics). ' +
+      'Keep the same meaning as the English sources — do not add facts. Stay respectful and clear.';
+  }
+  if (lang === 'ha') {
+    return '\n\nIMPORTANT: Reply in clear, simple Hausa. ' +
       'Keep the same meaning as the English sources — do not add facts. Stay respectful and clear.';
   }
   return '';

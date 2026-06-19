@@ -48,7 +48,27 @@ const PCM: Lexicon = {
   ],
 };
 
-const LEXICONS: Record<Lang, Lexicon> = { en: EN, pcm: PCM };
+// ─── Hausa (DRAFT — pending native + clinician sign-off) ─────────────────────
+// Replace/extend with the clinician-approved phrases from the Hausa Seed Kit
+// before enabling Hausa in production. Lowercase substrings; keep them generous.
+// (Some drafts may be imperfect — a native Hausa speaker must verify.)
+const HA: Lexicon = {
+  crisis: [
+    'ina son kashe kaina', 'zan kashe kaina', 'ba na son rayuwa', 'ba na son raina',
+    'ina son mutuwa', 'na gaji da rayuwa', 'in mutu zai fi', 'ina son in bace',
+  ],
+  emergency: [
+    'ba zan iya numfashi ba', 'numfashi ya kebe', 'kirjina na ciwo sosai', 'jini na zuba',
+    'jini ba ya tsayawa', 'tana naƙuda', 'tana son haihuwa', 'maciji ya sare',
+    'ina son suma', 'mutum ya suma',
+  ],
+  distress: [
+    'raina ba shi da daɗi', 'na gaji sosai', 'ina kuka kullum', 'ba ni da wani amfani',
+    'babu wanda ya damu da ni', 'ba ni da bege', 'kaina ya baci',
+  ],
+};
+
+const LEXICONS: Record<Lang, Lexicon> = { en: EN, pcm: PCM, ha: HA };
 
 // Lowercase + strip accents so matching is robust across spellings.
 function norm(text: string): string {

@@ -57,7 +57,9 @@ function buildOrQuery(text: string): string {
 }
 
 // Retrieve the most relevant curated passages via Postgres full-text search.
-async function retrieve(text: string, limit = 3): Promise<Array<{ title: string; body: string; source_name: string; source_url: string }>> {
+// Retrieve a few extra candidates (the corpus has many passages that share common
+// words like "baby"/"child"); the model then grounds on whichever are relevant.
+async function retrieve(text: string, limit = 5): Promise<Array<{ title: string; body: string; source_name: string; source_url: string }>> {
   const tsq = buildOrQuery(text);
   if (!tsq) return [];
   const result = await query(

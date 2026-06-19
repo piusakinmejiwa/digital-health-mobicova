@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { answerBuddy, BuddyMessage } from '../services/buddy.service';
+import { toLang } from '../i18n';
 import { isSpecialty } from '../lib/buddyCatalog';
 
 const DAILY_LIMIT = Number(process.env.BUDDY_DAILY_LIMIT || 20);
@@ -26,6 +27,7 @@ export async function buddyChat(req: Request, res: Response): Promise<void> {
 
   const sessionKey = cleanSessionKey(req.body?.sessionKey, req.ip || 'anon');
   const specialty = isSpecialty(req.body?.specialty) ? req.body.specialty : 'general';
+  const lang = toLang(req.body?.lang); // 'en' (default) | 'pcm' — see src/i18n
 
   // Free-tier daily cap (atomic upsert), counting before answering.
   const usage = await query(
@@ -42,7 +44,7 @@ export async function buddyChat(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const answer = await answerBuddy(messages, specialty);
+  const answer = await answerBuddy(messages, specialty, lang);
 
   // Consented conversation log → safety-review queue (no account required).
   try {

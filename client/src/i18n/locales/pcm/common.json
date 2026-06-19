@@ -1,0 +1,23 @@
+{
+  "_note": "DRAFT Nigerian Pidgin — pending native-speaker + clinician sign-off (see Pidgin Seed Kit). Missing keys fall back to English.",
+  "nav": {
+    "platform": "Platform",
+    "whoFor": "Who e dey for",
+    "pricing": "Price",
+    "healthBuddy": "Health Buddy",
+    "shape": "Shape MobiCova",
+    "signIn": "Sign in",
+    "bookDemo": "Book demo"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "pidgin": "Pidgin"
+  },
+  "buddy": {
+    "greeting": "How far! Na me be MobiCova Health Buddy. Ask me any small health question.",
+    "seeDoctor": "MobiCova fit connect you to doctor.",
+    "limitReached": "You don reach the free question wey you fit ask today. Abeg come back tomorrow.",
+    "cannotVerify": "Na only info from trusted health source I fit share, and I no get confirm answer for dat one. Abeg talk to doctor."
+  }
+}

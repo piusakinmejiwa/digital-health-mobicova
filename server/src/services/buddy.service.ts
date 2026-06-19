@@ -5,6 +5,7 @@ import {
   DISCLAIMER, SAFE_EMOTIONS_FOOTER, Safety,
 } from '../lib/buddySafety';
 import { personaFor } from '../lib/buddyCatalog';
+import { languageDirective, toLang, type Lang } from '../i18n';
 
 // Safe Emotions is a supportive companion, not a medical Q&A — it listens and
 // validates rather than answering only from a medical corpus. It keeps the strict
@@ -67,7 +68,8 @@ async function retrieve(text: string, limit = 3): Promise<Array<{ title: string;
   return result.rows;
 }
 
-export async function answerBuddy(messages: BuddyMessage[], specialty?: string): Promise<BuddyAnswer> {
+export async function answerBuddy(messages: BuddyMessage[], specialty?: string, langInput?: unknown): Promise<BuddyAnswer> {
+  const lang: Lang = toLang(langInput);
   const latest = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
 
   // 1) Deterministic safety pre-filter — short-circuit, no model call.
@@ -76,7 +78,7 @@ export async function answerBuddy(messages: BuddyMessage[], specialty?: string):
   if (safety === 'emergency') return { reply: emergencyReply(), sources: [], safety };
 
   // Safe Emotions is a supportive companion, not corpus Q&A.
-  if (specialty === 'safe_emotions') return answerSafeEmotions(messages, latest);
+  if (specialty === 'safe_emotions') return answerSafeEmotions(messages, latest, lang);
 
   // 2) Retrieve grounding passages.
   const passages = await retrieve(latest);
@@ -113,10 +115,11 @@ export async function answerBuddy(messages: BuddyMessage[], specialty?: string):
     const userTurn = `SOURCES:\n${sourcesBlock}\n\nQuestion: ${latest}`;
     const history = messages.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
     const persona = personaFor(specialty);
+    const baseSystem = persona ? `${SYSTEM}\n\nPersona: ${persona}` : SYSTEM;
     const response = await anthropic.messages.create({
       model: BUDDY_MODEL,
       max_tokens: 400,
-      system: persona ? `${SYSTEM}\n\nPersona: ${persona}` : SYSTEM,
+      system: `${baseSystem}${languageDirective(lang)}`,
       messages: [...history, { role: 'user', content: userTurn }],
     });
     const text = response.content
@@ -137,7 +140,7 @@ export async function answerBuddy(messages: BuddyMessage[], specialty?: string):
 // Safe Emotions: distress (deterministic, no model call) first; otherwise a short,
 // warm, guardrailed supportive reply with an always-on helpline footer. Crisis /
 // emergency were already handled by the caller's pre-filter.
-async function answerSafeEmotions(messages: BuddyMessage[], latest: string): Promise<BuddyAnswer> {
+async function answerSafeEmotions(messages: BuddyMessage[], latest: string, lang: Lang = 'en'): Promise<BuddyAnswer> {
   if (isDistress(latest)) {
     return { reply: distressReply(), sources: [], safety: 'distress' };
   }
@@ -152,7 +155,7 @@ async function answerSafeEmotions(messages: BuddyMessage[], latest: string): Pro
     const response = await anthropic.messages.create({
       model: BUDDY_MODEL,
       max_tokens: 350,
-      system: SAFE_EMOTIONS_SYSTEM,
+      system: `${SAFE_EMOTIONS_SYSTEM}${languageDirective(lang)}`,
       messages: [...history, { role: 'user', content: latest.slice(0, 2000) }],
     });
     const text = response.content

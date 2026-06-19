@@ -1,0 +1,22 @@
+{
+  "nav": {
+    "platform": "Platform",
+    "whoFor": "Who it's for",
+    "pricing": "Pricing",
+    "healthBuddy": "Health Buddy",
+    "shape": "Shape MobiCova",
+    "signIn": "Sign in",
+    "bookDemo": "Book a demo"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "pidgin": "Pidgin"
+  },
+  "buddy": {
+    "greeting": "Hi! I'm the MobiCova Health Buddy. Ask me a basic health question.",
+    "seeDoctor": "MobiCova can connect you to a doctor.",
+    "limitReached": "You've reached today's free question limit. Please come back tomorrow.",
+    "cannotVerify": "I can only share information from trusted health sources, and I don't have a verified answer for that. Please speak to a clinician."
+  }
+}

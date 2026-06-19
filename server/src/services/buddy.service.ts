@@ -120,8 +120,7 @@ export async function answerBuddy(messages: BuddyMessage[], specialty?: string):
       messages: [...history, { role: 'user', content: userTurn }],
     });
     const text = response.content
-      .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-      .map((b) => b.text)
+      .map((b) => (b.type === 'text' ? b.text : ''))
       .join('')
       .trim();
 
@@ -157,8 +156,7 @@ async function answerSafeEmotions(messages: BuddyMessage[], latest: string): Pro
       messages: [...history, { role: 'user', content: latest.slice(0, 2000) }],
     });
     const text = response.content
-      .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-      .map((b) => b.text)
+      .map((b) => (b.type === 'text' ? b.text : ''))
       .join('')
       .trim();
     return { reply: `${text || warmFallback}\n\n${SAFE_EMOTIONS_FOOTER}`, sources: [], safety: 'ok' };

@@ -108,8 +108,7 @@ export async function runTriage(messages: TriageMessage[], member?: MemberContex
     });
 
     const text = response.content
-      .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-      .map((b) => b.text)
+      .map((b) => (b.type === 'text' ? b.text : ''))
       .join('')
       .trim();
 

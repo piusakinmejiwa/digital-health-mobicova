@@ -105,7 +105,12 @@ function SystemAdmin() {
                     <td className="muted small">{m.model}</td>
                     <td><span className={`badge ${m.ok ? 'badge-green' : 'badge-red'}`}>{m.ok ? 'OK' : 'Error'}</span></td>
                     <td className="muted small">
-                      {m.ok ? '—' : (m.detail ? `${m.detail.status ?? ''} ${m.detail.type ?? ''} — ${m.detail.hint}` : 'Failed')}
+                      {m.ok ? '—' : (m.detail
+                        ? <>
+                            <div>{[m.detail.status, m.detail.type].filter(Boolean).join(' ')} {m.detail.message}</div>
+                            <div style={{ marginTop: 4 }}><strong>Fix:</strong> {m.detail.hint}</div>
+                          </>
+                        : 'Failed')}
                     </td>
                   </tr>
                 ))}

@@ -34,6 +34,8 @@ function diagnose(err: unknown): { status?: number; type?: string; message: stri
     hint = 'Rate limited. Usually transient — retry shortly, or check your account rate limits.';
   } else if (status === 529 || type === 'overloaded_error') {
     hint = 'Anthropic is temporarily overloaded. Transient — retry shortly.';
+  } else if (!status && /premature close|other side closed|terminated|ECONNRESET|fetch failed|socket hang up|ENOTFOUND|EAI_AGAIN/i.test(message)) {
+    hint = 'Network/transport error reaching api.anthropic.com (not a key or billing issue). On Render, set NODE_OPTIONS=--dns-result-order=ipv4first on the mobicova-api service and redeploy; ensure the Anthropic SDK is current.';
   }
   return { status, type, message, hint };
 }

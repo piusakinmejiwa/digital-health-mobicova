@@ -5,6 +5,7 @@ import type { Partner, InsurancePlan } from '../../types';
 import {
   adminListPartners, adminCreatePartner, adminUpdatePartner, adminDeletePartner,
   adminListPlans, adminCreatePlan, adminUpdatePlan, adminDeletePlan,
+  adminAiStatus,
 } from '../../api/admin';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
@@ -21,7 +22,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'audit';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'audit' | 'system';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
@@ -42,6 +43,7 @@ export default function AdminPage() {
         <button className={`tab ${tab === 'plans' ? 'active' : ''}`} onClick={() => setTab('plans')}>Insurance plans</button>
         <button className={`tab ${tab === 'partners' ? 'active' : ''}`} onClick={() => setTab('partners')}>Partners</button>
         <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
+        <button className={`tab ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
       </div>
 
       {tab === 'organisations' && <OrgsAdmin />}
@@ -50,6 +52,73 @@ export default function AdminPage() {
       {tab === 'plans' && <PlansAdmin />}
       {tab === 'partners' && <PartnersAdmin />}
       {tab === 'audit' && <AuditAdmin />}
+      {tab === 'system' && <SystemAdmin />}
+    </div>
+  );
+}
+
+/* ---------------- System (AI health) ---------------- */
+
+function SystemAdmin() {
+  const { data, isFetching, refetch, error } = useQuery({
+    queryKey: ['admin-ai-status'],
+    queryFn: adminAiStatus,
+    refetchOnWindowFocus: false,
+  });
+
+  const ok = data?.working;
+  const badgeClass = data
+    ? (ok ? 'badge-green' : (data.configured ? 'badge-red' : 'badge-gray'))
+    : 'badge-gray';
+  const badgeText = data
+    ? (ok ? 'Working' : (data.configured ? 'Failing' : 'Not configured'))
+    : '…';
+
+  return (
+    <div className="card">
+      <div className="admin-toolbar">
+        <span className="muted small">AI integration (Anthropic) — Health Buddy &amp; triage</span>
+        <button className="btn btn-secondary btn-sm" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? 'Checking…' : 'Re-check'}
+        </button>
+      </div>
+
+      {error && <div className="notice notice-error">Could not run the check. {errMessage(error, '')}</div>}
+
+      {data && (
+        <div style={{ padding: '4px 4px 8px' }}>
+          <p style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 10px' }}>
+            <span className={`badge ${badgeClass}`}>{badgeText}</span>
+            {data.keyPresent && <span className="muted small">key {data.keyMasked}</span>}
+          </p>
+          <p style={{ margin: '0 0 14px' }}>{data.summary}</p>
+
+          {data.models.length > 0 && (
+            <table className="table">
+              <thead>
+                <tr><th>Used for</th><th>Model</th><th>Status</th><th>Detail</th></tr>
+              </thead>
+              <tbody>
+                {data.models.map((m) => (
+                  <tr key={m.role}>
+                    <td><strong>{m.role === 'buddy' ? 'Health Buddy' : 'Symptom triage'}</strong></td>
+                    <td className="muted small">{m.model}</td>
+                    <td><span className={`badge ${m.ok ? 'badge-green' : 'badge-red'}`}>{m.ok ? 'OK' : 'Error'}</span></td>
+                    <td className="muted small">
+                      {m.ok ? '—' : (m.detail ? `${m.detail.status ?? ''} ${m.detail.type ?? ''} — ${m.detail.hint}` : 'Failed')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <p className="muted small" style={{ marginTop: 12 }}>
+            This makes a tiny live call to each model. The API key is read from the server and never shown in full.
+            If the Buddy is “Failing”, fix it on the <strong>mobicova-api</strong> service in Render, then Re-check.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

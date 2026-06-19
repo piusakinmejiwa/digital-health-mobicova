@@ -16,6 +16,7 @@ import {
 import { adminListAudit } from '../controllers/adminAudit.controller';
 import { adminListProspectFeedback } from '../controllers/prospectFeedback.controller';
 import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller';
+import { adminAiStatus } from '../controllers/adminDiagnostics.controller';
 import {
   adminListProviders, adminCreateProvider, adminUpdateProvider,
   adminResetProviderPassword, adminDeleteProvider,
@@ -67,5 +68,9 @@ router.get('/audit', asyncHandler(adminListAudit));
 
 // Prospect discovery / feature-priority feedback (read-only)
 router.get('/prospect-feedback', asyncHandler(adminListProspectFeedback));
+
+// AI integration health — makes a tiny live call to confirm Anthropic is working
+// (vs the Buddy silently running in fallback mode). Never exposes the key.
+router.get('/ai-status', asyncHandler(adminAiStatus));
 
 export default router;

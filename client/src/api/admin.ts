@@ -93,3 +93,22 @@ export async function adminDeleteUser(id: string): Promise<void> {
 export async function adminListAudit(orgId?: string): Promise<AuditEntry[]> {
   return (await api.get('/admin/audit', { params: orgId ? { orgId } : undefined })).data;
 }
+
+// AI integration health — live check that Anthropic is actually working.
+export type AiModelStatus = {
+  role: 'buddy' | 'triage';
+  model: string;
+  ok: boolean;
+  detail?: { status?: number; type?: string; message: string; hint: string };
+};
+export type AiStatus = {
+  configured: boolean;
+  working: boolean;
+  keyPresent: boolean;
+  keyMasked?: string;
+  summary: string;
+  models: AiModelStatus[];
+};
+export async function adminAiStatus(): Promise<AiStatus> {
+  return (await api.get('/admin/ai-status')).data;
+}

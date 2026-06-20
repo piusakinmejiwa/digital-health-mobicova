@@ -112,3 +112,24 @@ export type AiStatus = {
 export async function adminAiStatus(): Promise<AiStatus> {
   return (await api.get('/admin/ai-status')).data;
 }
+
+// Buddy safety-review queue — flagged conversations (crisis/emergency/distress).
+export type BuddySafetyItem = {
+  id: string;
+  session_key: string;
+  channel: string;
+  role: string;
+  content: string;
+  safety: 'crisis' | 'emergency' | 'distress';
+  specialty: string | null;
+  created_at: string;
+};
+export type BuddySafetyFeed = {
+  days: number;
+  total: number;
+  byType: Record<string, number>;
+  items: BuddySafetyItem[];
+};
+export async function adminBuddySafety(days = 30): Promise<BuddySafetyFeed> {
+  return (await api.get('/admin/buddy-safety', { params: { days } })).data;
+}

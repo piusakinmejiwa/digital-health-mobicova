@@ -20,6 +20,11 @@ const SAFE_EMOTIONS_SYSTEM = `You are "Safe Emotions", a warm, gentle companion 
 // Free tier runs on Haiku for cost; override from the dashboard if needed.
 const BUDDY_MODEL = process.env.ANTHROPIC_BUDDY_MODEL || 'claude-haiku-4-5';
 
+// Once the clinician has signed off the corpus (rows set reviewed=true), set
+// BUDDY_REQUIRE_REVIEWED=true so the Buddy can only quote approved passages.
+// Default off so the live Buddy keeps working while sign-off is in progress.
+const REQUIRE_REVIEWED = process.env.BUDDY_REQUIRE_REVIEWED === 'true';
+
 export type BuddySource = { name: string; url: string; title: string };
 export type BuddyMessage = { role: 'user' | 'assistant'; content: string };
 export type BuddyAnswer = { reply: string; sources: BuddySource[]; safety: Safety };
@@ -66,6 +71,7 @@ async function retrieve(text: string, limit = 5): Promise<Array<{ title: string;
     `SELECT title, body, source_name, source_url
      FROM buddy_sources
      WHERE tsv @@ to_tsquery('english', $1)
+       ${REQUIRE_REVIEWED ? 'AND reviewed = true' : ''}
      ORDER BY ts_rank(tsv, to_tsquery('english', $1)) DESC
      LIMIT $2`,
     [tsq, limit]

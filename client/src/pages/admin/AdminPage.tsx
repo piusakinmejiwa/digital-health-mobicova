@@ -5,7 +5,7 @@ import type { Partner, InsurancePlan } from '../../types';
 import {
   adminListPartners, adminCreatePartner, adminUpdatePartner, adminDeletePartner,
   adminListPlans, adminCreatePlan, adminUpdatePlan, adminDeletePlan,
-  adminAiStatus,
+  adminAiStatus, adminBuddySafety,
 } from '../../api/admin';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
@@ -22,7 +22,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'audit' | 'system';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'audit' | 'safety' | 'system';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
@@ -43,6 +43,7 @@ export default function AdminPage() {
         <button className={`tab ${tab === 'plans' ? 'active' : ''}`} onClick={() => setTab('plans')}>Insurance plans</button>
         <button className={`tab ${tab === 'partners' ? 'active' : ''}`} onClick={() => setTab('partners')}>Partners</button>
         <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
+        <button className={`tab ${tab === 'safety' ? 'active' : ''}`} onClick={() => setTab('safety')}>Buddy Safety</button>
         <button className={`tab ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
       </div>
 
@@ -52,7 +53,74 @@ export default function AdminPage() {
       {tab === 'plans' && <PlansAdmin />}
       {tab === 'partners' && <PartnersAdmin />}
       {tab === 'audit' && <AuditAdmin />}
+      {tab === 'safety' && <SafetyAdmin />}
       {tab === 'system' && <SystemAdmin />}
+    </div>
+  );
+}
+
+/* ---------------- Buddy Safety review ---------------- */
+
+function SafetyAdmin() {
+  const [days, setDays] = useState(30);
+  const { data, isFetching, refetch } = useQuery({
+    queryKey: ['admin-buddy-safety', days],
+    queryFn: () => adminBuddySafety(days),
+    refetchOnWindowFocus: false,
+  });
+
+  const badge = (s: string) =>
+    s === 'crisis' ? 'badge-red' : s === 'emergency' ? 'badge-red' : 'badge-amber';
+
+  return (
+    <div className="card">
+      <div className="admin-toolbar">
+        <span className="muted small">
+          Conversations the safety layer flagged — crisis / emergency / distress (read-only)
+        </span>
+        <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
+            <option value={7}>Last 7 days</option>
+            <option value={30}>Last 30 days</option>
+            <option value={90}>Last 90 days</option>
+          </select>
+          <button className="btn btn-secondary btn-sm" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching ? 'Loading…' : 'Refresh'}
+          </button>
+        </span>
+      </div>
+
+      {data && (
+        <p style={{ display: 'flex', gap: 8, margin: '4px 0 12px' }}>
+          <span className="badge badge-red">crisis {data.byType.crisis ?? 0}</span>
+          <span className="badge badge-red">emergency {data.byType.emergency ?? 0}</span>
+          <span className="badge badge-amber">distress {data.byType.distress ?? 0}</span>
+        </p>
+      )}
+
+      <table className="table">
+        <thead>
+          <tr><th>When</th><th>Type</th><th>Channel</th><th>Message</th><th>Session</th></tr>
+        </thead>
+        <tbody>
+          {data?.items.map((it) => (
+            <tr key={it.id}>
+              <td className="muted small" style={{ whiteSpace: 'nowrap' }}>{new Date(it.created_at).toLocaleString()}</td>
+              <td><span className={`badge ${badge(it.safety)}`}>{it.safety}</span></td>
+              <td className="muted small">{it.channel}</td>
+              <td>{it.content}</td>
+              <td className="muted small" title={it.session_key}>{it.session_key.slice(0, 8)}…</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {data && data.items.length === 0 && (
+        <p className="empty-state">No flagged conversations in this period. 🟢</p>
+      )}
+      <p className="muted small" style={{ marginTop: 12 }}>
+        These are anonymous sessions (no account, no personal details). Use this to monitor that the
+        safety net is firing and to spot patterns — not to identify individuals.
+      </p>
     </div>
   );
 }

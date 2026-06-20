@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { anthropic } from '../config/anthropic';
 import { env } from '../config/env';
+import { query } from '../config/database';
 
 // Platform-admin "AI status" check. Confirms — without ever exposing the key —
 // whether the Anthropic integration is actually working end-to-end, by making a
@@ -93,4 +94,35 @@ export async function adminAiStatus(_req: Request, res: Response): Promise<void>
       { role: 'triage', ...triage },
     ],
   });
+}
+
+// Buddy safety-review queue: surface conversations where the deterministic safety
+// layer fired (crisis / emergency / distress) so a human can monitor a tool that
+// touches vulnerable users. Read-only; anonymous session keys only (no PHI).
+export async function adminBuddySafety(req: Request, res: Response): Promise<void> {
+  const days = Math.min(Math.max(parseInt(String(req.query.days || '30'), 10) || 30, 1), 365);
+
+  const flagged = await query(
+    `SELECT id, session_key, channel, role, content, safety, specialty, created_at
+       FROM buddy_messages
+      WHERE safety <> 'ok'
+        AND created_at >= now() - ($1 || ' days')::interval
+      ORDER BY created_at DESC
+      LIMIT 300`,
+    [String(days)]
+  );
+
+  const counts = await query(
+    `SELECT safety, count(*)::int AS n
+       FROM buddy_messages
+      WHERE safety <> 'ok'
+        AND created_at >= now() - ($1 || ' days')::interval
+      GROUP BY safety`,
+    [String(days)]
+  );
+
+  const byType: Record<string, number> = { crisis: 0, emergency: 0, distress: 0 };
+  for (const r of counts.rows) byType[r.safety] = r.n;
+
+  res.json({ days, total: flagged.rows.length, byType, items: flagged.rows });
 }

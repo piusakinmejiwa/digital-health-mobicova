@@ -24,6 +24,7 @@ import activityRoutes from './activity.routes';
 import feedbackRoutes from './feedback.routes';
 import buddyRoutes from './buddy.routes';
 import assistantRoutes from './assistant.routes';
+import blogRoutes from './blog.routes';
 
 const router = Router();
 
@@ -52,5 +53,6 @@ router.use('/activity', activityRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/buddy', buddyRoutes);
 router.use('/assistant', assistantRoutes);
+router.use('/blog', blogRoutes);
 
 export default router;

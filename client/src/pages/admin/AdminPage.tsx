@@ -7,6 +7,9 @@ import {
   adminListPlans, adminCreatePlan, adminUpdatePlan, adminDeletePlan,
   adminAiStatus, adminBuddySafety,
 } from '../../api/admin';
+import {
+  adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, type AdminBlogPost,
+} from '../../api/blog';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
@@ -22,7 +25,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'audit' | 'safety' | 'system';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'audit' | 'safety' | 'system';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
@@ -42,6 +45,7 @@ export default function AdminPage() {
         <button className={`tab ${tab === 'providers' ? 'active' : ''}`} onClick={() => setTab('providers')}>Providers</button>
         <button className={`tab ${tab === 'plans' ? 'active' : ''}`} onClick={() => setTab('plans')}>Insurance plans</button>
         <button className={`tab ${tab === 'partners' ? 'active' : ''}`} onClick={() => setTab('partners')}>Partners</button>
+        <button className={`tab ${tab === 'blog' ? 'active' : ''}`} onClick={() => setTab('blog')}>Blog</button>
         <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
         <button className={`tab ${tab === 'safety' ? 'active' : ''}`} onClick={() => setTab('safety')}>Buddy Safety</button>
         <button className={`tab ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
@@ -52,9 +56,172 @@ export default function AdminPage() {
       {tab === 'providers' && <ProvidersAdmin />}
       {tab === 'plans' && <PlansAdmin />}
       {tab === 'partners' && <PartnersAdmin />}
+      {tab === 'blog' && <BlogAdmin />}
       {tab === 'audit' && <AuditAdmin />}
       {tab === 'safety' && <SafetyAdmin />}
       {tab === 'system' && <SystemAdmin />}
+    </div>
+  );
+}
+
+/* ---------------- Blog ---------------- */
+
+const emptyPost = {
+  id: '' as string | undefined, title: '', slug: '', excerpt: '', body: '', coverImageUrl: '',
+  author: 'MobiCova Health', tags: '', status: 'draft' as 'draft' | 'published',
+  publishedAt: '', metaTitle: '', metaDescription: '',
+};
+
+function toLocalInput(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function BlogAdmin() {
+  const qc = useQueryClient();
+  const { data: posts } = useQuery({ queryKey: ['admin-blog'], queryFn: adminListBlog });
+  const [editing, setEditing] = useState<null | typeof emptyPost>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const refresh = () => qc.invalidateQueries({ queryKey: ['admin-blog'] });
+  const openNew = () => { setError(''); setEditing({ ...emptyPost }); };
+  const openEdit = (p: AdminBlogPost) => {
+    setError('');
+    setEditing({
+      id: p.id, title: p.title, slug: p.slug, excerpt: p.excerpt, body: p.body,
+      coverImageUrl: p.cover_image_url, author: p.author, tags: (p.tags || []).join(', '),
+      status: p.status, publishedAt: toLocalInput(p.published_at),
+      metaTitle: p.meta_title, metaDescription: p.meta_description,
+    });
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    setBusy(true); setError('');
+    const payload = {
+      title: editing.title, slug: editing.slug, excerpt: editing.excerpt, body: editing.body,
+      coverImageUrl: editing.coverImageUrl, author: editing.author,
+      tags: editing.tags.split(',').map((t) => t.trim()).filter(Boolean),
+      status: editing.status,
+      publishedAt: editing.publishedAt ? new Date(editing.publishedAt).toISOString() : null,
+      metaTitle: editing.metaTitle, metaDescription: editing.metaDescription,
+    };
+    try {
+      if (editing.id) await adminUpdateBlog(editing.id, payload);
+      else await adminCreateBlog(payload);
+      setEditing(null);
+      refresh();
+    } catch (err) {
+      setError(errMessage(err, 'Could not save the post.'));
+    } finally { setBusy(false); }
+  };
+
+  const remove = async (p: AdminBlogPost) => {
+    if (!confirm(`Permanently delete "${p.title}"? This cannot be undone.`)) return;
+    await adminDeleteBlog(p.id);
+    refresh();
+  };
+
+  const stateBadge = (s: string) => s === 'live' ? 'badge-green' : s === 'scheduled' ? 'badge-amber' : 'badge-gray';
+
+  return (
+    <div className="card">
+      <div className="admin-toolbar">
+        <span className="muted small">{posts?.length ?? 0} posts · public blog at /blog</span>
+        <button className="btn btn-primary btn-sm" onClick={openNew}>+ New post</button>
+      </div>
+      <table className="table">
+        <thead>
+          <tr><th>Title</th><th>State</th><th>Publish date</th><th>Tags</th><th></th></tr>
+        </thead>
+        <tbody>
+          {posts?.map((p) => (
+            <tr key={p.id}>
+              <td><strong>{p.title}</strong><div className="muted small">/blog/{p.slug}</div></td>
+              <td><span className={`badge ${stateBadge(p.state)}`}>{p.state}</span></td>
+              <td className="muted small">{p.published_at ? new Date(p.published_at).toLocaleString() : '—'}</td>
+              <td className="muted small">{(p.tags || []).join(', ')}</td>
+              <td className="admin-actions">
+                <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}>Edit</button>
+                {p.state === 'live' && <a className="btn btn-secondary btn-sm" href={`/blog/${p.slug}`} target="_blank" rel="noreferrer">View</a>}
+                <button className="btn btn-danger btn-sm" onClick={() => remove(p)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {(!posts || posts.length === 0) && <p className="empty-state">No posts yet. Write your first one.</p>}
+
+      {editing && (
+        <div className="drawer-overlay" onClick={() => setEditing(null)}>
+          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+            <h3>{editing.id ? 'Edit post' : 'New post'}</h3>
+            {error && <div className="notice notice-error">{error}</div>}
+            <div className="form-grid">
+              <div className="form-group form-span-2">
+                <label>Title</label>
+                <input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Slug (URL) — leave blank to auto-generate</label>
+                <input value={editing.slug} onChange={(e) => setEditing({ ...editing, slug: e.target.value })} placeholder="from title" />
+              </div>
+              <div className="form-group">
+                <label>Author</label>
+                <input value={editing.author} onChange={(e) => setEditing({ ...editing, author: e.target.value })} />
+              </div>
+              <div className="form-group form-span-2">
+                <label>Cover image URL</label>
+                <input value={editing.coverImageUrl} onChange={(e) => setEditing({ ...editing, coverImageUrl: e.target.value })} placeholder="https://…/image.jpg" />
+              </div>
+              <div className="form-group form-span-2">
+                <label>Excerpt (short summary — also used for SEO if no meta description)</label>
+                <textarea rows={2} value={editing.excerpt} onChange={(e) => setEditing({ ...editing, excerpt: e.target.value })} />
+              </div>
+              <div className="form-group form-span-2">
+                <label>Body (Markdown — # heading, **bold**, ![alt](image-url), [link](url))</label>
+                <textarea rows={12} value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })} style={{ fontFamily: 'monospace' }} />
+              </div>
+              <div className="form-group form-span-2">
+                <label>Tags (comma-separated)</label>
+                <input value={editing.tags} onChange={(e) => setEditing({ ...editing, tags: e.target.value })} placeholder="health, malaria, partners" />
+              </div>
+              <div className="form-group">
+                <label>Status</label>
+                <select value={editing.status} onChange={(e) => setEditing({ ...editing, status: e.target.value as 'draft' | 'published' })}>
+                  <option value="draft">Draft (hidden)</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Publish date &amp; time (future = scheduled)</label>
+                <input type="datetime-local" value={editing.publishedAt} onChange={(e) => setEditing({ ...editing, publishedAt: e.target.value })} />
+              </div>
+              <div className="form-group form-span-2">
+                <label>SEO meta title (optional — defaults to title)</label>
+                <input value={editing.metaTitle} onChange={(e) => setEditing({ ...editing, metaTitle: e.target.value })} />
+              </div>
+              <div className="form-group form-span-2">
+                <label>SEO meta description (optional — defaults to excerpt)</label>
+                <textarea rows={2} value={editing.metaDescription} onChange={(e) => setEditing({ ...editing, metaDescription: e.target.value })} />
+              </div>
+            </div>
+            <p className="muted small" style={{ marginTop: 8 }}>
+              To <strong>schedule</strong>: set Status = Published and pick a future date — it appears automatically then.
+              Published with no date = live now.
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setEditing(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={save} disabled={busy || !editing.title}>
+                {busy ? 'Saving…' : 'Save post'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

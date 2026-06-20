@@ -106,6 +106,7 @@ export default function MarketingPage() {
             <a onClick={() => scrollTo('pricing')}>Pricing</a>
             <a onClick={() => navigate('/buddy')}>Health Buddy</a>
             <a onClick={() => navigate('/ask')}>Ask Eze</a>
+            <a onClick={() => navigate('/blog')}>Blog</a>
             <a onClick={() => navigate('/shape')}>Shape MobiCova</a>
           </nav>
           <div className="right">

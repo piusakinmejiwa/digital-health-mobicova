@@ -17,6 +17,7 @@ import { adminListAudit } from '../controllers/adminAudit.controller';
 import { adminListProspectFeedback } from '../controllers/prospectFeedback.controller';
 import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller';
 import { adminAiStatus, adminBuddySafety } from '../controllers/adminDiagnostics.controller';
+import { adminListPosts, adminCreatePost, adminUpdatePost, adminDeletePost } from '../controllers/blog.controller';
 import {
   adminListProviders, adminCreateProvider, adminUpdateProvider,
   adminResetProviderPassword, adminDeleteProvider,
@@ -75,5 +76,11 @@ router.get('/ai-status', asyncHandler(adminAiStatus));
 
 // Buddy safety-review queue — conversations the safety layer flagged (read-only).
 router.get('/buddy-safety', asyncHandler(adminBuddySafety));
+
+// Blog authoring (create/edit/schedule/delete posts)
+router.get('/blog', asyncHandler(adminListPosts));
+router.post('/blog', asyncHandler(adminCreatePost));
+router.patch('/blog/:id', asyncHandler(adminUpdatePost));
+router.delete('/blog/:id', asyncHandler(adminDeletePost));
 
 export default router;

@@ -45,6 +45,8 @@ import ProspectFeedbackPage from './pages/admin/ProspectFeedbackPage';
 import BuddyPage from './pages/buddy/BuddyPage';
 import { PrivacyPage, CookiePolicyPage, AiPolicyPage } from './pages/legal/LegalPages';
 import AskPage from './pages/ask/AskPage';
+import BlogIndexPage from './pages/blog/BlogIndexPage';
+import BlogPostPage from './pages/blog/BlogPostPage';
 
 export const router = createBrowserRouter([
   // Public marketing & pricing site (pre-login landing).
@@ -58,6 +60,10 @@ export const router = createBrowserRouter([
 
   // Public MobiCova Assistant (product/site Q&A; multilingual; hands off health to /buddy).
   { path: '/ask', element: <AskPage /> },
+
+  // Public blog (SEO).
+  { path: '/blog', element: <BlogIndexPage /> },
+  { path: '/blog/:slug', element: <BlogPostPage /> },
 
   // Public legal / policy pages.
   { path: '/privacy', element: <PrivacyPage /> },

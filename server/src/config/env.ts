@@ -61,4 +61,7 @@ export const env = {
   // IdP. Must be the externally reachable origin in production (e.g.
   // https://mobicova-api.onrender.com), with no trailing slash.
   serverUrl: (process.env.SERVER_URL || 'http://localhost:4000').replace(/\/$/, ''),
+  // Dedicated PUBLIC bucket for blog images (Supabase Storage; reuses the existing
+  // supabaseUrl + supabaseServiceRoleKey already configured for claim documents).
+  supabaseBlogBucket: process.env.SUPABASE_BLOG_BUCKET || 'blog',
 };

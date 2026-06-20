@@ -55,3 +55,9 @@ export async function adminUpdateBlog(id: string, data: Record<string, unknown>)
 export async function adminDeleteBlog(id: string): Promise<void> {
   await api.delete(`/admin/blog/${id}`);
 }
+export async function uploadBlogImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('image', file);
+  const { data } = await api.post('/admin/blog/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  return data.url as string;
+}

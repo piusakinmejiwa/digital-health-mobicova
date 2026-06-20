@@ -23,6 +23,17 @@ export default function BlogPostPage() {
     description: post?.meta_description || post?.excerpt,
     image: post?.cover_image_url,
     type: 'article',
+    jsonLd: post ? {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: post.title,
+      description: post.meta_description || post.excerpt,
+      image: post.cover_image_url || undefined,
+      datePublished: post.published_at,
+      author: { '@type': 'Organization', name: post.author },
+      publisher: { '@type': 'Organization', name: 'MobiCova Health' },
+      mainEntityOfPage: window.location.href,
+    } : null,
   });
 
   return (

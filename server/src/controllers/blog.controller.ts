@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { env } from '../config/env';
+import { uploadImage, storageConfigured } from '../lib/storage';
 
 // Blog: public read (published + due) and platform-admin authoring with scheduling.
 // A post is publicly visible when status='published' AND published_at <= now(),
@@ -153,4 +154,22 @@ export async function adminUpdatePost(req: Request, res: Response): Promise<void
 export async function adminDeletePost(req: Request, res: Response): Promise<void> {
   await query('DELETE FROM blog_posts WHERE id = $1', [String(req.params.id)]);
   res.json({ deleted: true });
+}
+
+// Image upload (cover or in-body) → Supabase Storage → returns a public URL.
+export async function adminUploadImage(req: Request & { file?: { buffer: Buffer; mimetype: string } }, res: Response): Promise<void> {
+  if (!storageConfigured()) {
+    res.status(503).json({ error: 'Image upload is not set up yet. Add SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY and a public bucket, or paste an image URL instead.' });
+    return;
+  }
+  if (!req.file) {
+    res.status(400).json({ error: 'No image provided.' });
+    return;
+  }
+  try {
+    const url = await uploadImage(req.file.buffer, req.file.mimetype);
+    res.json({ url });
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : 'Upload failed.' });
+  }
 }

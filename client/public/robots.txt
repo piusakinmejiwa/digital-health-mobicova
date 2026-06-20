@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Blog sitemap (served by the API). Update the host if you move to a custom domain.
+Sitemap: https://mobicova-api.onrender.com/api/v1/blog/sitemap.xml

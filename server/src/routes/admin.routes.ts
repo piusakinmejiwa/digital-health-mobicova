@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { requirePlatformAdmin } from '../middleware/platformAdmin';
@@ -17,7 +18,14 @@ import { adminListAudit } from '../controllers/adminAudit.controller';
 import { adminListProspectFeedback } from '../controllers/prospectFeedback.controller';
 import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller';
 import { adminAiStatus, adminBuddySafety } from '../controllers/adminDiagnostics.controller';
-import { adminListPosts, adminCreatePost, adminUpdatePost, adminDeletePost } from '../controllers/blog.controller';
+import { adminListPosts, adminCreatePost, adminUpdatePost, adminDeletePost, adminUploadImage } from '../controllers/blog.controller';
+
+// In-memory upload (image goes straight to Supabase Storage; 5 MB cap, images only).
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
+});
 import {
   adminListProviders, adminCreateProvider, adminUpdateProvider,
   adminResetProviderPassword, adminDeleteProvider,
@@ -82,5 +90,6 @@ router.get('/blog', asyncHandler(adminListPosts));
 router.post('/blog', asyncHandler(adminCreatePost));
 router.patch('/blog/:id', asyncHandler(adminUpdatePost));
 router.delete('/blog/:id', asyncHandler(adminDeletePost));
+router.post('/blog/upload', imageUpload.single('image'), asyncHandler(adminUploadImage));
 
 export default router;

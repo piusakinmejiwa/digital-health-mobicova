@@ -8,7 +8,7 @@ import {
   adminAiStatus, adminBuddySafety,
 } from '../../api/admin';
 import {
-  adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, type AdminBlogPost,
+  adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, uploadBlogImage, type AdminBlogPost,
 } from '../../api/blog';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
@@ -84,9 +84,22 @@ function BlogAdmin() {
   const { data: posts } = useQuery({ queryKey: ['admin-blog'], queryFn: adminListBlog });
   const [editing, setEditing] = useState<null | typeof emptyPost>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['admin-blog'] });
+
+  // Upload an image to storage, then hand the public URL to the caller.
+  const doUpload = async (file: File | undefined, onUrl: (url: string) => void) => {
+    if (!file) return;
+    setUploading(true); setError('');
+    try {
+      const url = await uploadBlogImage(file);
+      onUrl(url);
+    } catch (err) {
+      setError(errMessage(err, 'Upload failed. You can paste an image URL instead.'));
+    } finally { setUploading(false); }
+  };
   const openNew = () => { setError(''); setEditing({ ...emptyPost }); };
   const openEdit = (p: AdminBlogPost) => {
     setError('');
@@ -174,15 +187,30 @@ function BlogAdmin() {
                 <input value={editing.author} onChange={(e) => setEditing({ ...editing, author: e.target.value })} />
               </div>
               <div className="form-group form-span-2">
-                <label>Cover image URL</label>
-                <input value={editing.coverImageUrl} onChange={(e) => setEditing({ ...editing, coverImageUrl: e.target.value })} placeholder="https://…/image.jpg" />
+                <label>Cover image — upload or paste a URL</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input style={{ flex: '1 1 260px' }} value={editing.coverImageUrl} onChange={(e) => setEditing({ ...editing, coverImageUrl: e.target.value })} placeholder="https://…/image.jpg" />
+                  <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+                    {uploading ? 'Uploading…' : '⬆ Upload'}
+                    <input type="file" accept="image/*" hidden disabled={uploading}
+                      onChange={(e) => doUpload(e.target.files?.[0], (url) => setEditing((ed) => ed ? { ...ed, coverImageUrl: url } : ed))} />
+                  </label>
+                </div>
+                {editing.coverImageUrl && <img src={editing.coverImageUrl} alt="cover preview" style={{ maxHeight: 90, marginTop: 8, borderRadius: 8 }} />}
               </div>
               <div className="form-group form-span-2">
                 <label>Excerpt (short summary — also used for SEO if no meta description)</label>
                 <textarea rows={2} value={editing.excerpt} onChange={(e) => setEditing({ ...editing, excerpt: e.target.value })} />
               </div>
               <div className="form-group form-span-2">
-                <label>Body (Markdown — # heading, **bold**, ![alt](image-url), [link](url))</label>
+                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Body (Markdown — # heading, **bold**, ![alt](image-url), [link](url))</span>
+                  <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+                    {uploading ? 'Uploading…' : '⬆ Upload image into body'}
+                    <input type="file" accept="image/*" hidden disabled={uploading}
+                      onChange={(e) => doUpload(e.target.files?.[0], (url) => setEditing((ed) => ed ? { ...ed, body: `${ed.body}\n\n![image](${url})\n` } : ed))} />
+                  </label>
+                </label>
                 <textarea rows={12} value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })} style={{ fontFamily: 'monospace' }} />
               </div>
               <div className="form-group form-span-2">

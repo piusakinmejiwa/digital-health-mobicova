@@ -10,7 +10,7 @@ import {
 import {
   adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, uploadBlogImage, type AdminBlogPost,
 } from '../../api/blog';
-import { adminListContactMessages } from '../../api/contact';
+import { adminListContactMessages, adminDeleteContactMessage } from '../../api/contact';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
@@ -70,11 +70,17 @@ export default function AdminPage() {
 /* ---------------- Contact messages ---------------- */
 
 function MessagesAdmin() {
+  const qc = useQueryClient();
   const { data: messages, isFetching, refetch } = useQuery({
     queryKey: ['admin-contact-messages'],
     queryFn: adminListContactMessages,
     refetchOnWindowFocus: false,
   });
+  const remove = async (id: string, who: string) => {
+    if (!confirm(`Delete the message from ${who}? This cannot be undone.`)) return;
+    await adminDeleteContactMessage(id);
+    qc.invalidateQueries({ queryKey: ['admin-contact-messages'] });
+  };
   return (
     <div className="card">
       <div className="admin-toolbar">
@@ -85,7 +91,7 @@ function MessagesAdmin() {
       </div>
       <table className="table">
         <thead>
-          <tr><th>When</th><th>From</th><th>Type</th><th>Subject</th><th>Message</th></tr>
+          <tr><th>When</th><th>From</th><th>Type</th><th>Subject</th><th>Message</th><th></th></tr>
         </thead>
         <tbody>
           {messages?.map((m) => (
@@ -99,6 +105,9 @@ function MessagesAdmin() {
               <td className="muted small">{m.enquiry_type || '—'}</td>
               <td className="muted small">{m.subject || '—'}</td>
               <td style={{ maxWidth: 360 }}>{m.message}</td>
+              <td className="admin-actions">
+                <button className="btn btn-danger btn-sm" onClick={() => remove(m.id, m.name || m.email)}>Delete</button>
+              </td>
             </tr>
           ))}
         </tbody>

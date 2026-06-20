@@ -19,7 +19,7 @@ import { adminListProspectFeedback } from '../controllers/prospectFeedback.contr
 import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller';
 import { adminAiStatus, adminBuddySafety } from '../controllers/adminDiagnostics.controller';
 import { adminListPosts, adminCreatePost, adminUpdatePost, adminDeletePost, adminUploadImage } from '../controllers/blog.controller';
-import { adminListContactMessages } from '../controllers/contact.controller';
+import { adminListContactMessages, adminDeleteContactMessage } from '../controllers/contact.controller';
 
 // In-memory upload (image goes straight to Supabase Storage; 5 MB cap, images only).
 const imageUpload = multer({
@@ -93,7 +93,8 @@ router.patch('/blog/:id', asyncHandler(adminUpdatePost));
 router.delete('/blog/:id', asyncHandler(adminDeletePost));
 router.post('/blog/upload', imageUpload.single('image'), asyncHandler(adminUploadImage));
 
-// Contact-form submissions (read-only)
+// Contact-form submissions
 router.get('/contact-messages', asyncHandler(adminListContactMessages));
+router.delete('/contact-messages/:id', asyncHandler(adminDeleteContactMessage));
 
 export default router;

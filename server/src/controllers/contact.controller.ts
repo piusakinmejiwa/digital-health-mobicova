@@ -60,3 +60,8 @@ export async function adminListContactMessages(_req: Request, res: Response): Pr
   );
   res.json({ messages: r.rows, total: r.rows.length });
 }
+
+export async function adminDeleteContactMessage(req: Request, res: Response): Promise<void> {
+  await query('DELETE FROM contact_messages WHERE id = $1', [String(req.params.id)]);
+  res.json({ deleted: true });
+}

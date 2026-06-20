@@ -31,3 +31,7 @@ export type ContactMessage = {
 export async function adminListContactMessages(): Promise<ContactMessage[]> {
   return (await api.get('/admin/contact-messages')).data.messages;
 }
+
+export async function adminDeleteContactMessage(id: string): Promise<void> {
+  await api.delete(`/admin/contact-messages/${id}`);
+}

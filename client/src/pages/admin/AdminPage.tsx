@@ -234,9 +234,24 @@ function BlogAdmin() {
   const [editing, setEditing] = useState<null | typeof emptyPost>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [coverBusy, setCoverBusy] = useState(false);
   const [error, setError] = useState('');
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['admin-blog'] });
+
+  // Generate a cover image with AI (from the post title) → set it as the cover.
+  const genCover = async () => {
+    const title = (editing?.title || '').trim();
+    if (title.length < 4) { setError('Add a title first — it is used as the image prompt.'); return; }
+    setCoverBusy(true); setError('');
+    try {
+      const url = await adminGenerateImage(
+        `Editorial cover image for an African health article titled "${title}".${STYLE}`
+      );
+      setEditing((ed) => ed ? { ...ed, coverImageUrl: url } : ed);
+    } catch (e) { setError(errMessage(e, 'Generation failed.')); }
+    finally { setCoverBusy(false); }
+  };
 
   // Upload an image to storage, then hand the public URL to the caller.
   const doUpload = async (file: File | undefined, onUrl: (url: string) => void) => {
@@ -353,6 +368,9 @@ function BlogAdmin() {
                     <input type="file" accept="image/*" hidden disabled={uploading}
                       onChange={(e) => doUpload(e.target.files?.[0], (url) => setEditing((ed) => ed ? { ...ed, coverImageUrl: url } : ed))} />
                   </label>
+                  <button type="button" className="btn btn-secondary btn-sm" disabled={coverBusy || uploading} onClick={genCover}>
+                    {coverBusy ? 'Generating…' : '✨ Generate'}
+                  </button>
                 </div>
                 {editing.coverImageUrl && <img src={editing.coverImageUrl} alt="cover preview" style={{ maxHeight: 90, marginTop: 8, borderRadius: 8 }} />}
               </div>

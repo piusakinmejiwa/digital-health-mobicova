@@ -131,6 +131,9 @@ export default function MarketingPage() {
               <a className="hero-buddy" onClick={() => navigate('/buddy')} role="button">
                 💬 Or try the free <strong>Health Buddy</strong> — basic health tips, no sign-up →
               </a>
+              <a className="hero-buddy" onClick={() => navigate('/ask')} role="button">
+                🤖 Questions about MobiCova? <strong>Ask MobiCova</strong> →
+              </a>
             </div>
             <div className="hero-media">
               <img src={HERO_PHOTO} alt="A MobiCova member accessing health care in a Nigerian clinic" onError={hideImg} />

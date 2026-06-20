@@ -56,9 +56,9 @@ const TRUST = ['Insurers', 'HMOs', 'Employers', 'Telcos', 'Pharmacies'];
 
 // Footer columns. Each link scrolls to a section or navigates to a route — no dead links.
 const FOOT_COLS: { h: string; items: [string, string][] }[] = [
-  { h: 'Platform', items: [['Telemedicine', 'services'], ['AI Assistant', 'services'], ['Insurance', 'services'], ['Channels', 'services']] },
-  { h: 'Company', items: [['About', 'audiences'], ['Partners', 'audiences'], ['Careers', 'demo'], ['Contact', 'demo']] },
-  { h: 'Developers', items: [['API docs', '/login'], ['Webhooks', '/login'], ['Pricing', 'pricing'], ['Security', '/login']] },
+  { h: 'Platform', items: [['Telemedicine', '/telemedicine'], ['AI Assistant', '/ask'], ['Insurance', '/insurance'], ['Channels', '/channels']] },
+  { h: 'Company', items: [['About', '/about'], ['Partners', '/partners'], ['Careers', '/careers'], ['Contact', '/contact']] },
+  { h: 'Developers', items: [['API docs', '/developers'], ['Webhooks', '/webhooks'], ['Pricing', '/pricing'], ['Security', '/security']] },
 ];
 
 function scrollTo(id: string) {

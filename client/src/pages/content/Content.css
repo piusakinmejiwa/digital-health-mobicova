@@ -1,0 +1,23 @@
+.ct-wrap { max-width: 800px; margin: 0 auto; padding: 48px 20px 64px; }
+.ct-hero { margin-bottom: 26px; }
+.ct-eyebrow { display: inline-block; text-transform: uppercase; letter-spacing: .08em; font-size: .74rem; font-weight: 700; color: #0A7B7B; background: #e8f4f4; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
+.ct-hero h1 { font-size: 2.3rem; color: #0e2a2a; margin: 0 0 12px; line-height: 1.15; }
+.ct-intro { font-size: 1.12rem; color: #455652; line-height: 1.6; margin: 0; }
+
+.ct-section { margin: 26px 0; }
+.ct-section h2 { font-size: 1.3rem; color: #0e2a2a; margin: 0 0 8px; }
+.ct-section p { color: #36443f; line-height: 1.7; margin: 0 0 10px; }
+.ct-section ul { margin: 0; padding-left: 1.2em; color: #36443f; line-height: 1.8; }
+
+.ct-cta { margin-top: 38px; padding: 22px 24px; background: linear-gradient(135deg, #0e2a2a, #0A7B7B); border-radius: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; color: #fff; }
+.ct-cta span { font-size: 1.08rem; font-weight: 600; }
+
+.ct-back { color: #0A7B7B; cursor: pointer; }
+
+/* Contact form */
+.ct-form { background: #fff; border: 1px solid #e7eeee; border-radius: 14px; padding: 22px; margin: 8px 0 10px; display: flex; flex-direction: column; gap: 6px; max-width: 480px; }
+.ct-form label { font-size: .85rem; color: #455652; margin-top: 8px; }
+.ct-form input, .ct-form select { padding: 10px 12px; border: 1px solid #d6e0e0; border-radius: 8px; font-size: .95rem; }
+.ct-form .btn { margin-top: 14px; }
+.ct-form.ct-done { color: #0e2a2a; font-size: 1.05rem; }
+.ct-form .error-text { color: #c0392b; font-size: .88rem; margin-top: 8px; }

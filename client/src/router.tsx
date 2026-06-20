@@ -47,6 +47,7 @@ import { PrivacyPage, CookiePolicyPage, AiPolicyPage } from './pages/legal/Legal
 import AskPage from './pages/ask/AskPage';
 import BlogIndexPage from './pages/blog/BlogIndexPage';
 import BlogPostPage from './pages/blog/BlogPostPage';
+import ContentPage from './pages/content/ContentPage';
 
 export const router = createBrowserRouter([
   // Public marketing & pricing site (pre-login landing).
@@ -64,6 +65,19 @@ export const router = createBrowserRouter([
   // Public blog (SEO).
   { path: '/blog', element: <BlogIndexPage /> },
   { path: '/blog/:slug', element: <BlogPostPage /> },
+
+  // Public company / platform / developer content pages.
+  { path: '/about', element: <ContentPage slug="about" /> },
+  { path: '/partners', element: <ContentPage slug="partners" /> },
+  { path: '/careers', element: <ContentPage slug="careers" /> },
+  { path: '/contact', element: <ContentPage slug="contact" /> },
+  { path: '/telemedicine', element: <ContentPage slug="telemedicine" /> },
+  { path: '/insurance', element: <ContentPage slug="insurance" /> },
+  { path: '/channels', element: <ContentPage slug="channels" /> },
+  { path: '/developers', element: <ContentPage slug="developers" /> },
+  { path: '/webhooks', element: <ContentPage slug="webhooks" /> },
+  { path: '/pricing', element: <ContentPage slug="pricing" /> },
+  { path: '/security', element: <ContentPage slug="security" /> },
 
   // Public legal / policy pages.
   { path: '/privacy', element: <PrivacyPage /> },

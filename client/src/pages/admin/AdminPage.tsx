@@ -10,6 +10,7 @@ import {
 import {
   adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, uploadBlogImage, type AdminBlogPost,
 } from '../../api/blog';
+import { adminListContactMessages } from '../../api/contact';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
@@ -25,7 +26,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'audit' | 'safety' | 'system';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'messages' | 'audit' | 'safety' | 'system';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
@@ -46,6 +47,7 @@ export default function AdminPage() {
         <button className={`tab ${tab === 'plans' ? 'active' : ''}`} onClick={() => setTab('plans')}>Insurance plans</button>
         <button className={`tab ${tab === 'partners' ? 'active' : ''}`} onClick={() => setTab('partners')}>Partners</button>
         <button className={`tab ${tab === 'blog' ? 'active' : ''}`} onClick={() => setTab('blog')}>Blog</button>
+        <button className={`tab ${tab === 'messages' ? 'active' : ''}`} onClick={() => setTab('messages')}>Messages</button>
         <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
         <button className={`tab ${tab === 'safety' ? 'active' : ''}`} onClick={() => setTab('safety')}>Buddy Safety</button>
         <button className={`tab ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
@@ -57,9 +59,51 @@ export default function AdminPage() {
       {tab === 'plans' && <PlansAdmin />}
       {tab === 'partners' && <PartnersAdmin />}
       {tab === 'blog' && <BlogAdmin />}
+      {tab === 'messages' && <MessagesAdmin />}
       {tab === 'audit' && <AuditAdmin />}
       {tab === 'safety' && <SafetyAdmin />}
       {tab === 'system' && <SystemAdmin />}
+    </div>
+  );
+}
+
+/* ---------------- Contact messages ---------------- */
+
+function MessagesAdmin() {
+  const { data: messages, isFetching, refetch } = useQuery({
+    queryKey: ['admin-contact-messages'],
+    queryFn: adminListContactMessages,
+    refetchOnWindowFocus: false,
+  });
+  return (
+    <div className="card">
+      <div className="admin-toolbar">
+        <span className="muted small">{messages?.length ?? 0} contact-form messages</span>
+        <button className="btn btn-secondary btn-sm" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? 'Loading…' : 'Refresh'}
+        </button>
+      </div>
+      <table className="table">
+        <thead>
+          <tr><th>When</th><th>From</th><th>Type</th><th>Subject</th><th>Message</th></tr>
+        </thead>
+        <tbody>
+          {messages?.map((m) => (
+            <tr key={m.id}>
+              <td className="muted small" style={{ whiteSpace: 'nowrap' }}>{new Date(m.created_at).toLocaleString()}</td>
+              <td>
+                <strong>{m.name || '—'}</strong>
+                <div className="muted small">{m.email}{m.phone ? ` · ${m.phone}` : ''}</div>
+                {m.organisation && <div className="muted small">{m.organisation}</div>}
+              </td>
+              <td className="muted small">{m.enquiry_type || '—'}</td>
+              <td className="muted small">{m.subject || '—'}</td>
+              <td style={{ maxWidth: 360 }}>{m.message}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {messages && messages.length === 0 && <p className="empty-state">No messages yet.</p>}
     </div>
   );
 }

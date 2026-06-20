@@ -3,6 +3,7 @@
 .ct-eyebrow { display: inline-block; text-transform: uppercase; letter-spacing: .08em; font-size: .74rem; font-weight: 700; color: #0A7B7B; background: #e8f4f4; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
 .ct-hero h1 { font-size: 2.3rem; color: #0e2a2a; margin: 0 0 12px; line-height: 1.15; }
 .ct-intro { font-size: 1.12rem; color: #455652; line-height: 1.6; margin: 0; }
+.ct-lead { font-size: 1rem; color: #54635f; line-height: 1.65; margin: 12px 0 0; }
 
 .ct-section { margin: 26px 0; }
 .ct-section h2 { font-size: 1.3rem; color: #0e2a2a; margin: 0 0 8px; }
@@ -21,3 +22,18 @@
 .ct-form .btn { margin-top: 14px; }
 .ct-form.ct-done { color: #0e2a2a; font-size: 1.05rem; }
 .ct-form .error-text { color: #c0392b; font-size: .88rem; margin-top: 8px; }
+.ct-form-wide { max-width: 640px; }
+.ct-form .ct-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ct-form .ct-row > div { display: flex; flex-direction: column; gap: 4px; }
+.ct-form textarea { padding: 10px 12px; border: 1px solid #d6e0e0; border-radius: 8px; font: inherit; }
+.ct-consent { flex-direction: row !important; align-items: flex-start; gap: 8px; font-size: .85rem; color: #455652; margin-top: 12px; }
+.ct-consent input { margin-top: 3px; }
+.ct-consent a { color: #0A7B7B; text-decoration: underline; }
+@media (max-width: 560px) { .ct-form .ct-row { grid-template-columns: 1fr; } }
+
+/* FAQ */
+.ct-faq { margin-top: 34px; }
+.ct-faq h2 { font-size: 1.4rem; color: #0e2a2a; margin: 0 0 14px; }
+.ct-faq-item { border-top: 1px solid #e7eeee; padding: 14px 0; }
+.ct-faq-item h3 { font-size: 1.04rem; color: #15302f; margin: 0 0 6px; }
+.ct-faq-item p { color: #455652; line-height: 1.65; margin: 0; }

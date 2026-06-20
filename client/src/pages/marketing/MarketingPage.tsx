@@ -5,6 +5,7 @@ import { submitLead } from '../../api/marketing';
 import BrandLogo from '../../components/common/BrandLogo';
 import SocialLinks from '../../components/marketing/SocialLinks';
 import FloatingAssistant from '../../components/marketing/FloatingAssistant';
+import NewsletterSection from '../../components/marketing/NewsletterSection';
 import './Marketing.css';
 
 // Self-hosted photos (royalty-free, Pexels License) — files live in public/images/.
@@ -280,6 +281,8 @@ export default function MarketingPage() {
           </div>
         </div>
       </section>
+
+      <NewsletterSection />
 
       {/* Footer */}
       <footer className="mk-foot">

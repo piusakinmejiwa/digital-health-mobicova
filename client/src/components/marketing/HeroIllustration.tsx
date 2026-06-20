@@ -74,6 +74,13 @@ const ICONS: Record<string, ReactElement> = {
       <path d="M235 205l40-18" stroke="#F0A93C" />
     </g>
   ),
+  mail: ( // newsletter — envelope
+    <g fill="none" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="148" y="120" width="184" height="120" rx="14" />
+      <path d="M152 132l88 56 88-56" />
+      <path d="M300 100l18-18M312 124h26" stroke="#F0A93C" />
+    </g>
+  ),
   lock: ( // security — padlock
     <g fill="none" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round">
       <rect x="180" y="170" width="120" height="92" rx="14" />

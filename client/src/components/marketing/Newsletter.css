@@ -1,0 +1,17 @@
+.nl { padding: 56px 0; background: #f4fafa; }
+.nl-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 40px; align-items: center; }
+.nl-media img, .nl-media svg { width: 100%; border-radius: 18px; display: block; box-shadow: 0 16px 40px rgba(10,123,123,.18); }
+.nl-media img { aspect-ratio: 4 / 3; object-fit: cover; }
+.nl-card h2 { font-size: 1.9rem; color: #0e2a2a; margin: 0 0 8px; }
+.nl-card > p { color: #4a5a56; line-height: 1.6; margin: 0 0 18px; max-width: 460px; }
+.nl-form { display: flex; flex-direction: column; gap: 10px; max-width: 440px; }
+.nl-form input[type=text], .nl-form input:not([type]) , .nl-form input[type=email] { padding: 12px 14px; border: 1px solid #d6e0e0; border-radius: 10px; font-size: .98rem; }
+.nl-consent { display: flex; gap: 8px; align-items: flex-start; font-size: .84rem; color: #4a5a56; margin: 2px 0; }
+.nl-consent input { margin-top: 3px; }
+.nl-consent a { color: #0A7B7B; text-decoration: underline; }
+.nl-error { color: #c0392b; font-size: .88rem; }
+.nl-done { background: #e6f5ec; border: 1px solid #bfe6cd; color: #14622f; padding: 16px; border-radius: 12px; font-size: 1.02rem; max-width: 440px; }
+@media (max-width: 760px) {
+  .nl-grid { grid-template-columns: 1fr; gap: 24px; }
+  .nl-media { order: -1; max-width: 420px; }
+}

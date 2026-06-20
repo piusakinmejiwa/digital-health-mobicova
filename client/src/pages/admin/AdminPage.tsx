@@ -12,6 +12,7 @@ import {
 } from '../../api/blog';
 import { adminListContactMessages, adminDeleteContactMessage } from '../../api/contact';
 import { adminListPageAssets, adminSavePageAsset, adminGenerateImage } from '../../api/pageAssets';
+import { adminListNewsletter } from '../../api/newsletter';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
@@ -27,7 +28,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'audit' | 'safety' | 'system';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'newsletter' | 'audit' | 'safety' | 'system';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
@@ -50,6 +51,7 @@ export default function AdminPage() {
         <button className={`tab ${tab === 'blog' ? 'active' : ''}`} onClick={() => setTab('blog')}>Blog</button>
         <button className={`tab ${tab === 'images' ? 'active' : ''}`} onClick={() => setTab('images')}>Page Images</button>
         <button className={`tab ${tab === 'messages' ? 'active' : ''}`} onClick={() => setTab('messages')}>Messages</button>
+        <button className={`tab ${tab === 'newsletter' ? 'active' : ''}`} onClick={() => setTab('newsletter')}>Newsletter</button>
         <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
         <button className={`tab ${tab === 'safety' ? 'active' : ''}`} onClick={() => setTab('safety')}>Buddy Safety</button>
         <button className={`tab ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
@@ -63,6 +65,7 @@ export default function AdminPage() {
       {tab === 'blog' && <BlogAdmin />}
       {tab === 'images' && <PageImagesAdmin />}
       {tab === 'messages' && <MessagesAdmin />}
+      {tab === 'newsletter' && <NewsletterAdmin />}
       {tab === 'audit' && <AuditAdmin />}
       {tab === 'safety' && <SafetyAdmin />}
       {tab === 'system' && <SystemAdmin />}
@@ -85,6 +88,7 @@ const PAGE_IMAGES: { slug: string; label: string; prompt: string }[] = [
   { slug: 'webhooks', label: 'Webhooks', prompt: 'An African developer at multiple monitors with data dashboards in a modern dev workspace.' },
   { slug: 'pricing', label: 'Pricing', prompt: 'An African business owner reviewing pricing options on a tablet, thoughtful, in a bright office.' },
   { slug: 'security', label: 'Security', prompt: 'A confident African IT / security professional in a modern, secure office environment, trustworthy.' },
+  { slug: 'newsletter', label: 'Newsletter (home)', prompt: 'A happy young Nigerian person reading good news on their phone with a coffee, bright and inviting, lifestyle.' },
 ];
 
 function PageImagesAdmin() {
@@ -158,6 +162,47 @@ function PageImagesAdmin() {
         Generate creates an image, uploads it to your storage bucket, and shows a preview. Click <strong>Use this image</strong> to set it
         as the page hero. You can also edit the prompt and regenerate until you’re happy.
       </p>
+    </div>
+  );
+}
+
+/* ---------------- Newsletter ---------------- */
+
+function NewsletterAdmin() {
+  const { data: signups, isFetching, refetch } = useQuery({
+    queryKey: ['admin-newsletter'],
+    queryFn: adminListNewsletter,
+    refetchOnWindowFocus: false,
+  });
+  const csv = () => {
+    const rows = [['Name', 'Email', 'Phone', 'Signed up'], ...(signups || []).map((s) => [s.name, s.email, s.phone, new Date(s.created_at).toISOString()])];
+    const blob = new Blob([rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'mobicova-newsletter.csv'; a.click();
+  };
+  return (
+    <div className="card">
+      <div className="admin-toolbar">
+        <span className="muted small">{signups?.length ?? 0} newsletter subscribers</span>
+        <span style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary btn-sm" onClick={csv} disabled={!signups?.length}>Export CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => refetch()} disabled={isFetching}>{isFetching ? 'Loading…' : 'Refresh'}</button>
+        </span>
+      </div>
+      <table className="table">
+        <thead><tr><th>Signed up</th><th>Name</th><th>Email</th><th>Phone</th></tr></thead>
+        <tbody>
+          {signups?.map((s) => (
+            <tr key={s.id}>
+              <td className="muted small" style={{ whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleString()}</td>
+              <td>{s.name || '—'}</td>
+              <td>{s.email}</td>
+              <td className="muted small">{s.phone || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {signups && signups.length === 0 && <p className="empty-state">No subscribers yet.</p>}
     </div>
   );
 }

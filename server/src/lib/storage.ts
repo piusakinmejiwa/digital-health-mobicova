@@ -25,6 +25,8 @@ export async function uploadImage(buffer: Buffer, contentType: string): Promise<
   const res = await fetch(`${base}/storage/v1/object/${bucket}/${path}`, {
     method: 'POST',
     headers: {
+      // Supabase's gateway requires the apikey header in addition to Authorization.
+      apikey: env.supabaseServiceRoleKey,
       Authorization: `Bearer ${env.supabaseServiceRoleKey}`,
       'Content-Type': contentType,
       'x-upsert': 'true',

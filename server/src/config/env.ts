@@ -68,4 +68,8 @@ export const env = {
   // matching key to enable the "Generate with AI" buttons (images upload to the bucket).
   imageProvider: (process.env.IMAGE_PROVIDER || 'openai').toLowerCase(),
   openaiApiKey: process.env.OPENAI_API_KEY || '',
+  // Cost controls for OpenAI image generation. quality: low (~$0.015) | medium
+  // (~$0.06) | high (~$0.20). low is fine for web hero images.
+  imageQuality: (process.env.IMAGE_QUALITY || 'low').toLowerCase(),
+  imageSize: process.env.IMAGE_SIZE || '1536x1024',
 };

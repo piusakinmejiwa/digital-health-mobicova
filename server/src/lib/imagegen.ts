@@ -17,8 +17,8 @@ async function generateOpenAI(prompt: string): Promise<{ buffer: Buffer; content
   const res = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.openaiApiKey}`, 'Content-Type': 'application/json' },
-    // 1536x1024 = landscape, a good fit for a hero panel.
-    body: JSON.stringify({ model: 'gpt-image-1', prompt, size: '1536x1024', n: 1 }),
+    // Size + quality are configurable to control cost (IMAGE_SIZE / IMAGE_QUALITY).
+    body: JSON.stringify({ model: 'gpt-image-1', prompt, size: env.imageSize, quality: env.imageQuality, n: 1 }),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');

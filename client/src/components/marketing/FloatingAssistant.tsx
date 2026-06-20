@@ -1,17 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { askAssistant, type AssistantMessage } from '../../api/assistant';
 
-// Always-visible "Ask MobiCova" chat launcher for public pages. A floating bubble
-// that opens a compact chat panel grounded on the MobiCova FAQ (product/site Q&A).
+// Always-visible "Ask Eze" chat launcher for public pages. A floating bubble that
+// opens a compact chat panel grounded on the MobiCova FAQ (product/site Q&A).
 // Health questions are handed off to the Health Buddy.
 type Msg = AssistantMessage & { handoff?: 'buddy' };
 
-const GREETING = "Hi! I'm the MobiCova Assistant. Ask me anything about MobiCova — how it works, enrolling, channels or plans.";
+const GREETING = "Hi! I'm Eze, your MobiCova assistant. Ask me anything about MobiCova — how it works, enrolling, channels or plans.";
 
 export default function FloatingAssistant() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([{ role: 'assistant', content: GREETING }]);
@@ -38,11 +39,14 @@ export default function FloatingAssistant() {
     }
   }
 
+  // Don't show the launcher on the dedicated full-page assistant (/ask).
+  if (pathname === '/ask') return null;
+
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        aria-label="Ask MobiCova"
+        aria-label="Ask Eze"
         style={{
           position: 'fixed', right: 20, bottom: 20, zIndex: 8500,
           background: '#0A7B7B', color: '#fff', border: 0, borderRadius: 999,
@@ -50,7 +54,7 @@ export default function FloatingAssistant() {
           boxShadow: '0 8px 24px rgba(10,123,123,.4)', display: 'flex', alignItems: 'center', gap: 8,
         }}
       >
-        <span style={{ fontSize: 18 }}>💬</span> Ask MobiCova
+        <span style={{ fontSize: 18 }}>💬</span> Ask Eze
       </button>
     );
   }
@@ -63,7 +67,7 @@ export default function FloatingAssistant() {
       border: '1px solid #e2e8e8',
     }}>
       <div style={{ background: '#0A7B7B', color: '#fff', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <strong>Ask MobiCova</strong>
+        <strong>Ask Eze</strong>
         <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: 'transparent', border: 0, color: '#fff', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
 

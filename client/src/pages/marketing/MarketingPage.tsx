@@ -105,7 +105,7 @@ export default function MarketingPage() {
             <a onClick={() => scrollTo('audiences')}>Who it’s for</a>
             <a onClick={() => scrollTo('pricing')}>Pricing</a>
             <a onClick={() => navigate('/buddy')}>Health Buddy</a>
-            <a onClick={() => navigate('/ask')}>Ask MobiCova</a>
+            <a onClick={() => navigate('/ask')}>Ask Eze</a>
             <a onClick={() => navigate('/shape')}>Shape MobiCova</a>
           </nav>
           <div className="right">
@@ -135,7 +135,7 @@ export default function MarketingPage() {
                 💬 Or try the free <strong>Health Buddy</strong> — basic health tips, no sign-up →
               </a>
               <a className="hero-buddy" onClick={() => navigate('/ask')} role="button">
-                🤖 Questions about MobiCova? <strong>Ask MobiCova</strong> →
+                🤖 Questions about MobiCova? <strong>Ask Eze</strong> →
               </a>
             </div>
             <div className="hero-media">

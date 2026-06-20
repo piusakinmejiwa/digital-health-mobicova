@@ -8,7 +8,7 @@ import { askAssistant, type AssistantMessage } from '../../api/assistant';
 type Msg = AssistantMessage & { handoff?: 'buddy' };
 
 const GREETING =
-  "Hi! I'm the MobiCova Assistant. Ask me anything about MobiCova — how it works, enrolling, our channels, plans, or data safety. (For a health question, I'll point you to the free Health Buddy.)";
+  "Hi! I'm Eze, your MobiCova assistant. Ask me anything about MobiCova — how it works, enrolling, our channels, plans, or data safety. (For a health question, I'll point you to the free Health Buddy.)";
 
 const SUGGESTIONS = ['What is MobiCova?', 'How do I enrol?', 'Do I need a smartphone?', 'Is my data safe?'];
 
@@ -44,8 +44,8 @@ export default function AskPage() {
       <SiteHeader />
       <div className="mk">
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px 56px' }}>
-          <h1 style={{ marginBottom: 4 }}>Ask MobiCova</h1>
-          <p style={{ color: '#5e6e6e', marginTop: 0 }}>Questions about the platform, answered.</p>
+          <h1 style={{ marginBottom: 4 }}>Ask Eze</h1>
+          <p style={{ color: '#5e6e6e', marginTop: 0 }}>Your MobiCova assistant — questions about the platform, answered.</p>
 
           <div style={{ border: '1px solid #e2e8e8', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
             <div style={{ maxHeight: 460, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>

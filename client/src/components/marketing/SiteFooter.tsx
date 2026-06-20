@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import BrandLogo from '../common/BrandLogo';
 import SocialLinks from './SocialLinks';
+import FloatingAssistant from './FloatingAssistant';
 import '../../pages/marketing/Marketing.css';
 
 // Shared marketing footer for standalone public pages (/shape, /buddy) so they
@@ -41,6 +42,7 @@ export default function SiteFooter() {
           </div>
         </div>
       </footer>
+      <FloatingAssistant />
     </div>
   );
 }

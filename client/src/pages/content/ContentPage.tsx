@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SiteHeader from '../../components/marketing/SiteHeader';
 import SiteFooter from '../../components/marketing/SiteFooter';
+import { useQuery } from '@tanstack/react-query';
 import { submitContact } from '../../api/contact';
+import { getPageAssets } from '../../api/pageAssets';
 import { useDocumentMeta } from '../../lib/useDocumentMeta';
 import HeroIllustration from '../../components/marketing/HeroIllustration';
 import { CONTENT } from './contentData';
@@ -75,6 +77,9 @@ function ContactForm() {
 export default function ContentPage({ slug }: { slug: string }) {
   const navigate = useNavigate();
   const page = CONTENT[slug];
+  // Admin-managed hero images (cached); falls back to a static heroImage, then the illustration.
+  const { data: assets } = useQuery({ queryKey: ['page-assets'], queryFn: getPageAssets, staleTime: 5 * 60 * 1000 });
+  const heroImage = assets?.[slug] || page?.heroImage;
 
   useDocumentMeta({
     title: page ? `${page.title} — MobiCova Health` : 'MobiCova Health',
@@ -113,8 +118,8 @@ export default function ContentPage({ slug }: { slug: string }) {
               {page.lead && <p className="ct-lead">{page.lead}</p>}
             </div>
             <div className="ct-hero-media">
-              {page.heroImage
-                ? <img src={page.heroImage} alt={page.title} loading="eager" />
+              {heroImage
+                ? <img src={heroImage} alt={page.title} loading="eager" />
                 : <HeroIllustration kind={page.illustration} />}
             </div>
           </header>

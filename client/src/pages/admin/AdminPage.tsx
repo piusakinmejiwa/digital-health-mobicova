@@ -11,6 +11,7 @@ import {
   adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, uploadBlogImage, type AdminBlogPost,
 } from '../../api/blog';
 import { adminListContactMessages, adminDeleteContactMessage } from '../../api/contact';
+import { adminListPageAssets, adminSavePageAsset, adminGenerateImage } from '../../api/pageAssets';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
@@ -26,7 +27,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'messages' | 'audit' | 'safety' | 'system';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'audit' | 'safety' | 'system';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
@@ -47,6 +48,7 @@ export default function AdminPage() {
         <button className={`tab ${tab === 'plans' ? 'active' : ''}`} onClick={() => setTab('plans')}>Insurance plans</button>
         <button className={`tab ${tab === 'partners' ? 'active' : ''}`} onClick={() => setTab('partners')}>Partners</button>
         <button className={`tab ${tab === 'blog' ? 'active' : ''}`} onClick={() => setTab('blog')}>Blog</button>
+        <button className={`tab ${tab === 'images' ? 'active' : ''}`} onClick={() => setTab('images')}>Page Images</button>
         <button className={`tab ${tab === 'messages' ? 'active' : ''}`} onClick={() => setTab('messages')}>Messages</button>
         <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
         <button className={`tab ${tab === 'safety' ? 'active' : ''}`} onClick={() => setTab('safety')}>Buddy Safety</button>
@@ -59,10 +61,103 @@ export default function AdminPage() {
       {tab === 'plans' && <PlansAdmin />}
       {tab === 'partners' && <PartnersAdmin />}
       {tab === 'blog' && <BlogAdmin />}
+      {tab === 'images' && <PageImagesAdmin />}
       {tab === 'messages' && <MessagesAdmin />}
       {tab === 'audit' && <AuditAdmin />}
       {tab === 'safety' && <SafetyAdmin />}
       {tab === 'system' && <SystemAdmin />}
+    </div>
+  );
+}
+
+/* ---------------- Page hero images (AI generate) ---------------- */
+
+const STYLE = ' Photorealistic, 3:2 landscape, warm natural light, authentic Nigerian / West African setting, hopeful and professional, no text or logos.';
+const PAGE_IMAGES: { slug: string; label: string; prompt: string }[] = [
+  { slug: 'about', label: 'About', prompt: 'Diverse Nigerian healthcare workers and community members smiling together outside a modern clinic, documentary style.' },
+  { slug: 'partners', label: 'Partners', prompt: 'Two African business professionals (insurer / HMO) shaking hands in a bright modern Lagos office, warm and corporate.' },
+  { slug: 'careers', label: 'Careers', prompt: 'A young, diverse African tech team collaborating around laptops in a bright modern startup office, energetic.' },
+  { slug: 'contact', label: 'Contact', prompt: 'A friendly African customer-support professional wearing a headset and smiling in a modern office.' },
+  { slug: 'telemedicine', label: 'Telemedicine', prompt: 'A Nigerian doctor in a white coat conducting a video consultation on a smartphone, and a patient at home using a phone.' },
+  { slug: 'insurance', label: 'Insurance', prompt: 'A relieved African family reviewing a health plan on a phone with a friendly agent, reassuring and bright.' },
+  { slug: 'channels', label: 'Channels', prompt: 'Close-up of African hands holding a basic feature phone showing a menu, next to a smartphone, in a market setting.' },
+  { slug: 'developers', label: 'Developers', prompt: 'Over-the-shoulder view of an African software developer coding on a laptop with a phone showing an app, focused.' },
+  { slug: 'webhooks', label: 'Webhooks', prompt: 'An African developer at multiple monitors with data dashboards in a modern dev workspace.' },
+  { slug: 'pricing', label: 'Pricing', prompt: 'An African business owner reviewing pricing options on a tablet, thoughtful, in a bright office.' },
+  { slug: 'security', label: 'Security', prompt: 'A confident African IT / security professional in a modern, secure office environment, trustworthy.' },
+];
+
+function PageImagesAdmin() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['admin-page-assets'], queryFn: adminListPageAssets });
+  const ready = !!data?.generatorReady;
+  const saved = new Map((data?.assets || []).map((a) => [a.slug, a]));
+  const [draft, setDraft] = useState<Record<string, { prompt: string; preview: string }>>({});
+  const [busy, setBusy] = useState('');
+  const [error, setError] = useState('');
+
+  const get = (slug: string, fallback: string) => draft[slug] || { prompt: saved.get(slug)?.prompt || fallback, preview: '' };
+  const patch = (slug: string, fallback: string, p: Partial<{ prompt: string; preview: string }>) =>
+    setDraft((d) => ({ ...d, [slug]: { ...get(slug, fallback), ...p } }));
+  const refresh = () => { qc.invalidateQueries({ queryKey: ['admin-page-assets'] }); qc.invalidateQueries({ queryKey: ['page-assets'] }); };
+
+  const generate = async (slug: string, fallback: string) => {
+    setBusy(`${slug}:gen`); setError('');
+    try { const url = await adminGenerateImage(get(slug, fallback).prompt + STYLE); patch(slug, fallback, { preview: url }); }
+    catch (e) { setError(errMessage(e, 'Generation failed.')); }
+    finally { setBusy(''); }
+  };
+  const save = async (slug: string, fallback: string, url: string) => {
+    setBusy(`${slug}:save`); setError('');
+    try { await adminSavePageAsset(slug, url, get(slug, fallback).prompt); patch(slug, fallback, { preview: '' }); refresh(); }
+    catch (e) { setError(errMessage(e, 'Could not save.')); }
+    finally { setBusy(''); }
+  };
+
+  return (
+    <div className="card">
+      <div className="admin-toolbar">
+        <span className="muted small">Hero images for the public content pages</span>
+        <span className={`badge ${ready ? 'badge-green' : 'badge-amber'}`}>
+          {ready ? `AI generator: ${data?.provider}` : 'AI generator off — set OPENAI_API_KEY'}
+        </span>
+      </div>
+      {error && <div className="notice notice-error">{error}</div>}
+
+      {PAGE_IMAGES.map((p) => {
+        const cur = saved.get(p.slug)?.image_url;
+        const d = get(p.slug, p.prompt);
+        return (
+          <div key={p.slug} style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 16, padding: '14px 0', borderTop: '1px solid #eef2f2', alignItems: 'start' }}>
+            <div>
+              <strong>{p.label}</strong>
+              <div className="muted small">/{p.slug}</div>
+              {(d.preview || cur)
+                ? <img src={d.preview || cur} alt={p.label} style={{ width: 150, height: 100, objectFit: 'cover', borderRadius: 8, marginTop: 6 }} />
+                : <div style={{ width: 150, height: 100, borderRadius: 8, marginTop: 6, background: 'linear-gradient(135deg,#0A7B7B,#0E2A2A)' }} />}
+              {d.preview && <div className="muted small" style={{ color: '#b8860b' }}>preview — not saved</div>}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <textarea rows={2} value={d.prompt} onChange={(e) => patch(p.slug, p.prompt, { prompt: e.target.value })} />
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-secondary btn-sm" disabled={!ready || !!busy} onClick={() => generate(p.slug, p.prompt)}>
+                  {busy === `${p.slug}:gen` ? 'Generating…' : '✨ Generate'}
+                </button>
+                {d.preview && (
+                  <button className="btn btn-primary btn-sm" disabled={!!busy} onClick={() => save(p.slug, p.prompt, d.preview)}>
+                    {busy === `${p.slug}:save` ? 'Saving…' : 'Use this image'}
+                  </button>
+                )}
+                {cur && <button className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => save(p.slug, p.prompt, '')}>Remove (use illustration)</button>}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <p className="muted small" style={{ marginTop: 12 }}>
+        Generate creates an image, uploads it to your storage bucket, and shows a preview. Click <strong>Use this image</strong> to set it
+        as the page hero. You can also edit the prompt and regenerate until you’re happy.
+      </p>
     </div>
   );
 }

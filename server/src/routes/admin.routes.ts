@@ -20,6 +20,7 @@ import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller
 import { adminAiStatus, adminBuddySafety } from '../controllers/adminDiagnostics.controller';
 import { adminListPosts, adminCreatePost, adminUpdatePost, adminDeletePost, adminUploadImage } from '../controllers/blog.controller';
 import { adminListContactMessages, adminDeleteContactMessage } from '../controllers/contact.controller';
+import { adminListPageAssets, adminUpsertPageAsset, adminGenerateImage } from '../controllers/pageAssets.controller';
 
 // In-memory upload (image goes straight to Supabase Storage; 5 MB cap, images only).
 const imageUpload = multer({
@@ -96,5 +97,10 @@ router.post('/blog/upload', imageUpload.single('image'), asyncHandler(adminUploa
 // Contact-form submissions
 router.get('/contact-messages', asyncHandler(adminListContactMessages));
 router.delete('/contact-messages/:id', asyncHandler(adminDeleteContactMessage));
+
+// Page hero images + AI image generation
+router.get('/page-assets', asyncHandler(adminListPageAssets));
+router.put('/page-assets/:slug', asyncHandler(adminUpsertPageAsset));
+router.post('/generate-image', asyncHandler(adminGenerateImage));
 
 export default router;

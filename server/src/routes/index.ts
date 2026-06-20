@@ -26,6 +26,7 @@ import buddyRoutes from './buddy.routes';
 import assistantRoutes from './assistant.routes';
 import blogRoutes from './blog.routes';
 import contactRoutes from './contact.routes';
+import pageAssetRoutes from './page.routes';
 
 const router = Router();
 
@@ -56,5 +57,6 @@ router.use('/buddy', buddyRoutes);
 router.use('/assistant', assistantRoutes);
 router.use('/blog', blogRoutes);
 router.use('/contact', contactRoutes);
+router.use('/page-assets', pageAssetRoutes);
 
 export default router;

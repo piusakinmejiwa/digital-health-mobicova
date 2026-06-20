@@ -64,4 +64,8 @@ export const env = {
   // Dedicated PUBLIC bucket for blog images (Supabase Storage; reuses the existing
   // supabaseUrl + supabaseServiceRoleKey already configured for claim documents).
   supabaseBlogBucket: process.env.SUPABASE_BLOG_BUCKET || 'blog',
+  // AI image generation (optional). Provider-agnostic; defaults to OpenAI. Add the
+  // matching key to enable the "Generate with AI" buttons (images upload to the bucket).
+  imageProvider: (process.env.IMAGE_PROVIDER || 'openai').toLowerCase(),
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
 };

@@ -1,5 +1,13 @@
-.ct-wrap { max-width: 800px; margin: 0 auto; padding: 48px 20px 64px; }
+.ct-wrap { max-width: 880px; margin: 0 auto; padding: 48px 20px 64px; }
 .ct-hero { margin-bottom: 26px; }
+.ct-hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 34px; align-items: center; }
+.ct-hero-text { min-width: 0; }
+.ct-hero-media img, .ct-hero-media svg { width: 100%; border-radius: 16px; display: block; box-shadow: 0 14px 34px rgba(10,123,123,.18); }
+.ct-hero-media img { aspect-ratio: 4 / 3; object-fit: cover; }
+@media (max-width: 720px) {
+  .ct-hero-grid { grid-template-columns: 1fr; gap: 22px; }
+  .ct-hero-media { order: -1; }
+}
 .ct-eyebrow { display: inline-block; text-transform: uppercase; letter-spacing: .08em; font-size: .74rem; font-weight: 700; color: #0A7B7B; background: #e8f4f4; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
 .ct-hero h1 { font-size: 2.3rem; color: #0e2a2a; margin: 0 0 12px; line-height: 1.15; }
 .ct-intro { font-size: 1.12rem; color: #455652; line-height: 1.6; margin: 0; }

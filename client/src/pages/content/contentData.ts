@@ -12,6 +12,8 @@ export type PageContent = {
   ctaText?: string;
   ctaTo?: string;
   contactForm?: boolean;
+  illustration?: string;  // HeroIllustration kind, shown when no heroImage is set
+  heroImage?: string;     // paste a photo URL here to replace the illustration
 };
 
 export const CONTENT: Record<string, PageContent> = {
@@ -237,3 +239,13 @@ export const CONTENT: Record<string, PageContent> = {
     ctaText: 'Talk to us', ctaTo: '/contact',
   },
 };
+
+// Which illustration each page uses (until a real photo URL is added via heroImage).
+const ILLUSTRATIONS: Record<string, string> = {
+  about: 'people', partners: 'network', careers: 'people', contact: 'message',
+  telemedicine: 'care', insurance: 'shield', channels: 'devices',
+  developers: 'code', webhooks: 'webhook', pricing: 'tag', security: 'lock',
+};
+for (const [k, v] of Object.entries(ILLUSTRATIONS)) {
+  if (CONTENT[k]) CONTENT[k].illustration = v;
+}

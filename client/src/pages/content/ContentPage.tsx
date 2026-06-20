@@ -4,6 +4,7 @@ import SiteHeader from '../../components/marketing/SiteHeader';
 import SiteFooter from '../../components/marketing/SiteFooter';
 import { submitContact } from '../../api/contact';
 import { useDocumentMeta } from '../../lib/useDocumentMeta';
+import HeroIllustration from '../../components/marketing/HeroIllustration';
 import { CONTENT } from './contentData';
 import './Content.css';
 
@@ -104,11 +105,18 @@ export default function ContentPage({ slug }: { slug: string }) {
       <SiteHeader />
       <div className="mk">
         <div className="ct-wrap">
-          <header className="ct-hero">
-            {page.eyebrow && <span className="ct-eyebrow">{page.eyebrow}</span>}
-            <h1>{page.title}</h1>
-            <p className="ct-intro">{page.intro}</p>
-            {page.lead && <p className="ct-lead">{page.lead}</p>}
+          <header className="ct-hero ct-hero-grid">
+            <div className="ct-hero-text">
+              {page.eyebrow && <span className="ct-eyebrow">{page.eyebrow}</span>}
+              <h1>{page.title}</h1>
+              <p className="ct-intro">{page.intro}</p>
+              {page.lead && <p className="ct-lead">{page.lead}</p>}
+            </div>
+            <div className="ct-hero-media">
+              {page.heroImage
+                ? <img src={page.heroImage} alt={page.title} loading="eager" />
+                : <HeroIllustration kind={page.illustration} />}
+            </div>
           </header>
 
           {page.contactForm && <ContactForm />}

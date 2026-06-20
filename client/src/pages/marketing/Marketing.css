@@ -130,6 +130,7 @@
 .mk-foot { background: var(--dark); color: #a9d0d0; padding: 3rem 0 2rem; }
 .mk-foot .cols { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 2rem; }
 .mk-foot .brand { display: flex; align-items: center; gap: .6rem; color: #fff; font-weight: 700; font-size: 1.05rem; }
+.mk-nav .brand, .mk-foot .brand { cursor: pointer; }
 .mk-foot .brand .m { width: 34px; height: 34px; border-radius: 9px; background: var(--primary); display: grid; place-items: center; font-weight: 800; }
 .mk-foot .foot-blurb { font-size: .88rem; margin-top: .9rem; max-width: 260px; }
 .mk-foot h5 { color: #fff; font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .9rem; }

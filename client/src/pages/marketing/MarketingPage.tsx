@@ -99,7 +99,7 @@ export default function MarketingPage() {
       {/* Nav */}
       <header className="mk-nav">
         <div className="mk-wrap in">
-          <div className="brand"><BrandLogo /></div>
+          <div className="brand" onClick={() => navigate('/')} role="button"><BrandLogo /></div>
           <nav className="links">
             <a onClick={() => scrollTo('services')}>Platform</a>
             <a onClick={() => scrollTo('audiences')}>Who it’s for</a>
@@ -285,7 +285,7 @@ export default function MarketingPage() {
         <div className="mk-wrap">
           <div className="cols">
             <div>
-              <div className="brand"><BrandLogo /></div>
+              <div className="brand" onClick={() => navigate('/')} role="button"><BrandLogo /></div>
               <p className="foot-blurb">Digital health infrastructure connecting Africans to care, on any phone.</p>
               <SocialLinks />
             </div>

@@ -21,7 +21,7 @@ export default function SiteFooter() {
         <div className="mk-wrap">
           <div className="cols">
             <div>
-              <div className="brand"><BrandLogo /></div>
+              <div className="brand" onClick={() => navigate('/')} role="button"><BrandLogo /></div>
               <p className="foot-blurb">Digital health infrastructure connecting Africans to care, on any phone.</p>
               <SocialLinks />
             </div>

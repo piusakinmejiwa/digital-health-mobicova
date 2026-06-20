@@ -21,7 +21,7 @@ import { adminAiStatus, adminBuddySafety } from '../controllers/adminDiagnostics
 import { adminListPosts, adminCreatePost, adminUpdatePost, adminDeletePost, adminUploadImage } from '../controllers/blog.controller';
 import { adminListContactMessages, adminDeleteContactMessage } from '../controllers/contact.controller';
 import { adminListPageAssets, adminUpsertPageAsset, adminGenerateImage } from '../controllers/pageAssets.controller';
-import { adminListNewsletterSignups } from '../controllers/newsletter.controller';
+import { adminListNewsletterSignups, adminDeleteNewsletterSignup } from '../controllers/newsletter.controller';
 
 // In-memory upload (image goes straight to Supabase Storage; 5 MB cap, images only).
 const imageUpload = multer({
@@ -104,7 +104,8 @@ router.get('/page-assets', asyncHandler(adminListPageAssets));
 router.put('/page-assets/:slug', asyncHandler(adminUpsertPageAsset));
 router.post('/generate-image', asyncHandler(adminGenerateImage));
 
-// Newsletter sign-ups (read-only)
+// Newsletter sign-ups
 router.get('/newsletter', asyncHandler(adminListNewsletterSignups));
+router.delete('/newsletter/:id', asyncHandler(adminDeleteNewsletterSignup));
 
 export default router;

@@ -13,3 +13,7 @@ export type NewsletterSignup = {
 export async function adminListNewsletter(): Promise<NewsletterSignup[]> {
   return (await api.get('/admin/newsletter')).data.signups;
 }
+
+export async function adminDeleteNewsletter(id: string): Promise<void> {
+  await api.delete(`/admin/newsletter/${id}`);
+}

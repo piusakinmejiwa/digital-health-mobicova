@@ -70,3 +70,8 @@ export async function adminListNewsletterSignups(_req: Request, res: Response): 
   );
   res.json({ signups: r.rows, total: r.rows.length });
 }
+
+export async function adminDeleteNewsletterSignup(req: Request, res: Response): Promise<void> {
+  await query('DELETE FROM newsletter_signups WHERE id = $1', [String(req.params.id)]);
+  res.json({ deleted: true });
+}

@@ -12,7 +12,7 @@ import {
 } from '../../api/blog';
 import { adminListContactMessages, adminDeleteContactMessage } from '../../api/contact';
 import { adminListPageAssets, adminSavePageAsset, adminGenerateImage } from '../../api/pageAssets';
-import { adminListNewsletter } from '../../api/newsletter';
+import { adminListNewsletter, adminDeleteNewsletter } from '../../api/newsletter';
 import { naira } from '../../lib/format';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
@@ -169,11 +169,17 @@ function PageImagesAdmin() {
 /* ---------------- Newsletter ---------------- */
 
 function NewsletterAdmin() {
+  const qc = useQueryClient();
   const { data: signups, isFetching, refetch } = useQuery({
     queryKey: ['admin-newsletter'],
     queryFn: adminListNewsletter,
     refetchOnWindowFocus: false,
   });
+  const remove = async (id: string, email: string) => {
+    if (!confirm(`Remove ${email} from the newsletter list?`)) return;
+    await adminDeleteNewsletter(id);
+    qc.invalidateQueries({ queryKey: ['admin-newsletter'] });
+  };
   const csv = () => {
     const rows = [['Name', 'Email', 'Phone', 'Signed up'], ...(signups || []).map((s) => [s.name, s.email, s.phone, new Date(s.created_at).toISOString()])];
     const blob = new Blob([rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv' });
@@ -190,7 +196,7 @@ function NewsletterAdmin() {
         </span>
       </div>
       <table className="table">
-        <thead><tr><th>Signed up</th><th>Name</th><th>Email</th><th>Phone</th></tr></thead>
+        <thead><tr><th>Signed up</th><th>Name</th><th>Email</th><th>Phone</th><th></th></tr></thead>
         <tbody>
           {signups?.map((s) => (
             <tr key={s.id}>
@@ -198,6 +204,7 @@ function NewsletterAdmin() {
               <td>{s.name || '—'}</td>
               <td>{s.email}</td>
               <td className="muted small">{s.phone || '—'}</td>
+              <td className="admin-actions"><button className="btn btn-danger btn-sm" onClick={() => remove(s.id, s.email)}>Delete</button></td>
             </tr>
           ))}
         </tbody>

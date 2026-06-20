@@ -294,7 +294,11 @@ export default function MarketingPage() {
           </div>
           <div className="bottom">
             <span>© 2026 MobiCova Health. All rights reserved.</span>
-            <span>Privacy · Terms · NDPR</span>
+            <span className="foot-legal">
+              <a onClick={() => navigate('/privacy')}>Privacy</a>
+              <a onClick={() => navigate('/cookies')}>Cookies</a>
+              <a onClick={() => navigate('/ai')}>AI Policy</a>
+            </span>
           </div>
         </div>
       </footer>

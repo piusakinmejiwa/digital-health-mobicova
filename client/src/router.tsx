@@ -43,6 +43,8 @@ import ProviderHome from './pages/provider/ProviderHome';
 import ShapePage from './pages/feedback/ShapePage';
 import ProspectFeedbackPage from './pages/admin/ProspectFeedbackPage';
 import BuddyPage from './pages/buddy/BuddyPage';
+import { PrivacyPage, CookiePolicyPage, AiPolicyPage } from './pages/legal/LegalPages';
+import AskPage from './pages/ask/AskPage';
 
 export const router = createBrowserRouter([
   // Public marketing & pricing site (pre-login landing).
@@ -53,6 +55,14 @@ export const router = createBrowserRouter([
 
   // Public free AI Health Buddy (grounded, cited basic health info).
   { path: '/buddy', element: <BuddyPage /> },
+
+  // Public MobiCova Assistant (product/site Q&A; multilingual; hands off health to /buddy).
+  { path: '/ask', element: <AskPage /> },
+
+  // Public legal / policy pages.
+  { path: '/privacy', element: <PrivacyPage /> },
+  { path: '/cookies', element: <CookiePolicyPage /> },
+  { path: '/ai', element: <AiPolicyPage /> },
 
   { path: '/login', element: <LoginPage /> },
   // Branded per-organisation login (themed to the org's white-label branding).

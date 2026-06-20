@@ -138,6 +138,9 @@
 .mk-foot .cols a:hover { color: #fff; }
 .mk-foot .bottom { border-top: 1px solid rgba(255, 255, 255, .08); margin-top: 2.4rem; padding-top: 1.4rem; font-size: .82rem; color: #7fb0b0; display: flex; justify-content: space-between; flex-wrap: wrap; gap: .6rem; }
 .mk-foot .bottom span { display: inline; }
+.mk-foot .foot-legal a { color: #7fb0b0; cursor: pointer; margin-left: 1.1rem; }
+.mk-foot .foot-legal a:first-child { margin-left: 0; }
+.mk-foot .foot-legal a:hover { color: #cfeaea; text-decoration: underline; }
 
 @media (max-width: 900px) {
   .mk .hero h1 { font-size: 2.3rem; }

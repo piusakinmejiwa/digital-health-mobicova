@@ -23,6 +23,7 @@ import publicOrgRoutes from './publicOrg.routes';
 import activityRoutes from './activity.routes';
 import feedbackRoutes from './feedback.routes';
 import buddyRoutes from './buddy.routes';
+import assistantRoutes from './assistant.routes';
 
 const router = Router();
 
@@ -50,5 +51,6 @@ router.use('/orgs', publicOrgRoutes);
 router.use('/activity', activityRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/buddy', buddyRoutes);
+router.use('/assistant', assistantRoutes);
 
 export default router;

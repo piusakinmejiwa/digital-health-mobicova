@@ -20,6 +20,7 @@ export default function SiteHeader() {
             <a onClick={() => navigate('/')}>{t('nav.whoFor')}</a>
             <a onClick={() => navigate('/')}>{t('nav.pricing')}</a>
             <a onClick={() => navigate('/buddy')}>{t('nav.healthBuddy')}</a>
+            <a onClick={() => navigate('/ask')}>{t('nav.ask')}</a>
             <a onClick={() => navigate('/shape')}>{t('nav.shape')}</a>
           </nav>
           <div className="right">

@@ -66,10 +66,11 @@ export default function AdminPage() {
 
 /* ---------------- Blog ---------------- */
 
+type PublishMode = 'draft' | 'now' | 'schedule';
 const emptyPost = {
   id: '' as string | undefined, title: '', slug: '', excerpt: '', body: '', coverImageUrl: '',
-  author: 'MobiCova Health', tags: '', status: 'draft' as 'draft' | 'published',
-  publishedAt: '', metaTitle: '', metaDescription: '',
+  author: 'MobiCova Health', tags: '', publishMode: 'draft' as PublishMode,
+  scheduleAt: '', origPublishedAt: null as string | null, metaTitle: '', metaDescription: '',
 };
 
 function toLocalInput(iso: string | null): string {
@@ -103,23 +104,32 @@ function BlogAdmin() {
   const openNew = () => { setError(''); setEditing({ ...emptyPost }); };
   const openEdit = (p: AdminBlogPost) => {
     setError('');
+    const mode: PublishMode = p.state === 'scheduled' ? 'schedule' : p.state === 'live' ? 'now' : 'draft';
     setEditing({
       id: p.id, title: p.title, slug: p.slug, excerpt: p.excerpt, body: p.body,
       coverImageUrl: p.cover_image_url, author: p.author, tags: (p.tags || []).join(', '),
-      status: p.status, publishedAt: toLocalInput(p.published_at),
-      metaTitle: p.meta_title, metaDescription: p.meta_description,
+      publishMode: mode, scheduleAt: p.state === 'scheduled' ? toLocalInput(p.published_at) : '',
+      origPublishedAt: p.published_at, metaTitle: p.meta_title, metaDescription: p.meta_description,
     });
   };
 
   const save = async () => {
     if (!editing) return;
+    if (editing.publishMode === 'schedule' && !editing.scheduleAt) {
+      setError('Pick a date and time to schedule this post.');
+      return;
+    }
     setBusy(true); setError('');
+    // Map the friendly publish choice → status + published_at.
+    const status = editing.publishMode === 'draft' ? 'draft' : 'published';
+    let publishedAt: string | null = null;
+    if (editing.publishMode === 'schedule') publishedAt = new Date(editing.scheduleAt).toISOString();
+    else if (editing.publishMode === 'now') publishedAt = editing.origPublishedAt ?? new Date().toISOString();
     const payload = {
       title: editing.title, slug: editing.slug, excerpt: editing.excerpt, body: editing.body,
       coverImageUrl: editing.coverImageUrl, author: editing.author,
       tags: editing.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      status: editing.status,
-      publishedAt: editing.publishedAt ? new Date(editing.publishedAt).toISOString() : null,
+      status, publishedAt,
       metaTitle: editing.metaTitle, metaDescription: editing.metaDescription,
     };
     try {
@@ -217,16 +227,35 @@ function BlogAdmin() {
                 <label>Tags (comma-separated)</label>
                 <input value={editing.tags} onChange={(e) => setEditing({ ...editing, tags: e.target.value })} placeholder="health, malaria, partners" />
               </div>
-              <div className="form-group">
-                <label>Status</label>
-                <select value={editing.status} onChange={(e) => setEditing({ ...editing, status: e.target.value as 'draft' | 'published' })}>
-                  <option value="draft">Draft (hidden)</option>
-                  <option value="published">Published</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Publish date &amp; time (future = scheduled)</label>
-                <input type="datetime-local" value={editing.publishedAt} onChange={(e) => setEditing({ ...editing, publishedAt: e.target.value })} />
+              <div className="form-group form-span-2">
+                <label>Publishing</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 400 }}>
+                    <input type="radio" name="pubmode" checked={editing.publishMode === 'draft'}
+                      onChange={() => setEditing({ ...editing, publishMode: 'draft' })} />
+                    <span><strong>Draft</strong> — hidden, not on the site</span>
+                  </label>
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 400 }}>
+                    <input type="radio" name="pubmode" checked={editing.publishMode === 'now'}
+                      onChange={() => setEditing({ ...editing, publishMode: 'now' })} />
+                    <span><strong>Publish now</strong> — live immediately</span>
+                  </label>
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 400 }}>
+                    <input type="radio" name="pubmode" checked={editing.publishMode === 'schedule'}
+                      onChange={() => setEditing({ ...editing, publishMode: 'schedule' })} />
+                    <span><strong>Schedule for later</strong> — goes live automatically at a chosen time</span>
+                  </label>
+                </div>
+                {editing.publishMode === 'schedule' && (
+                  <div style={{ marginTop: 10 }}>
+                    <label>Go live on (your local time)</label>
+                    <input type="datetime-local" value={editing.scheduleAt}
+                      onChange={(e) => setEditing({ ...editing, scheduleAt: e.target.value })} />
+                    <p className="muted small" style={{ margin: '6px 0 0' }}>
+                      The post stays hidden until this time, then appears on the blog on its own — no further action needed.
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="form-group form-span-2">
                 <label>SEO meta title (optional — defaults to title)</label>
@@ -237,10 +266,6 @@ function BlogAdmin() {
                 <textarea rows={2} value={editing.metaDescription} onChange={(e) => setEditing({ ...editing, metaDescription: e.target.value })} />
               </div>
             </div>
-            <p className="muted small" style={{ marginTop: 8 }}>
-              To <strong>schedule</strong>: set Status = Published and pick a future date — it appears automatically then.
-              Published with no date = live now.
-            </p>
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setEditing(null)}>Cancel</button>
               <button className="btn btn-primary" onClick={save} disabled={busy || !editing.title}>

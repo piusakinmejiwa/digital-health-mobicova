@@ -2,7 +2,7 @@ import { query } from '../config/database';
 
 // Membership IDs: a human-friendly identifier shown to members and used to
 // confirm/register them (e.g. over USSD). Format: <3-letter org prefix><6 digits>,
-// e.g. "AXA204517". The prefix groups members by their organisation; the random
+// e.g. "ACM204517". The prefix groups members by their organisation; the random
 // suffix + a global unique index keep each ID unique.
 
 export function membershipPrefix(orgName: string): string {

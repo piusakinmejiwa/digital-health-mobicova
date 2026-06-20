@@ -13,7 +13,7 @@ const partners = [
   ['Reliance HMO', 'telemedicine', 'Telemedicine and managed care with specialist referral', 'Multi-state', 'MDCN / NHIA'],
   ['DrConsult', 'telemedicine', 'Video and voice consultations with licensed doctors', 'National', 'MDCN-registered'],
   // Insurers / HMOs
-  ['AXA Mansard', 'insurer', 'Underwriting, risk capital, claims processing, hospital panels', 'National', 'NAICOM / NHIA'],
+  ['Acme Health HMO', 'insurer', 'Underwriting, risk capital, claims processing, hospital panels', 'National', 'NAICOM / NHIA'],
   ['Leadway', 'insurer', 'Health and accident underwriting at scale', 'National', 'NAICOM'],
   ['Hygeia HMO', 'insurer', 'Managed health insurance and hospital networks', 'Multi-state', 'NHIA'],
   ['Avon HMO', 'insurer', 'Family and corporate health plans', 'Multi-state', 'NHIA'],
@@ -36,12 +36,12 @@ const partners = [
 const plans: [string, string, string, number, number, string[], string, number][] = [
   // name, type, underwriter, monthly_premium, cover_amount, benefits, description, commission
   [
-    'Essential Health Cover', 'individual', 'AXA Mansard', 2500, 1500000,
+    'Essential Health Cover', 'individual', 'Acme Health HMO', 2500, 1500000,
     ['Telemedicine consultations', 'Outpatient care', 'Basic diagnostics', 'Prescription discounts'],
     'Entry-level individual health protection with telemedicine access.', 20,
   ],
   [
-    'Family Health Plan', 'family', 'AXA Mansard', 7500, 5000000,
+    'Family Health Plan', 'family', 'Acme Health HMO', 7500, 5000000,
     ['Cover for up to 5 dependants', 'Telemedicine + specialist referrals', 'Maternal care', 'Diagnostics & pharmacy'],
     'Comprehensive cover for the whole family across all MobiCova channels.', 18,
   ],
@@ -88,14 +88,14 @@ async function seed() {
   }
 
   // Demo partner organisation + admin
-  const demoEmail = 'admin@axamansard.demo';
+  const demoEmail = 'admin@acme-health.demo';
   const existing = await query('SELECT id FROM users WHERE email = $1', [demoEmail]);
   if (existing.rows.length === 0) {
     console.log('Seeding demo organisation + admin...');
     const org = await query(
       `INSERT INTO organisations (name, slug, type, plan_tier, join_code)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      ['AXA Mansard Health', 'axa-mansard-health', 'underwriter', 'growth', '100200']
+      ['Acme Health HMO', 'acme-health', 'underwriter', 'growth', '100200']
     );
     const orgId = org.rows[0].id;
     const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
@@ -128,7 +128,7 @@ async function seed() {
     await query('UPDATE users SET is_platform_admin = true, password_hash = $2 WHERE email = $1', [demoEmail, passwordHash]);
     // Ensure the demo org has a join code so USSD/WhatsApp enrolment works.
     await query(
-      "UPDATE organisations SET join_code = '100200' WHERE slug = 'axa-mansard-health' AND (join_code IS NULL OR join_code = '')"
+      "UPDATE organisations SET join_code = '100200' WHERE slug = 'acme-health' AND (join_code IS NULL OR join_code = '')"
     );
   }
 
@@ -241,7 +241,7 @@ async function seedProviders() {
   }
 
   // Find the demo org + a member to attach queue data to.
-  const org = await query(`SELECT id FROM organisations WHERE slug = 'axa-mansard-health' LIMIT 1`);
+  const org = await query(`SELECT id FROM organisations WHERE slug = 'acme-health' LIMIT 1`);
   const orgId = org.rows[0]?.id;
   if (!orgId) return;
   const member = await query(`SELECT id FROM members WHERE org_id = $1 ORDER BY created_at LIMIT 1`, [orgId]);

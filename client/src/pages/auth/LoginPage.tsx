@@ -212,7 +212,7 @@ export default function LoginPage() {
                 <input
                   value={workspace}
                   onChange={(e) => setWorkspace(e.target.value)}
-                  placeholder="e.g. axa-mansard"
+                  placeholder="e.g. acme-health"
                   autoFocus
                   onKeyDown={(e) => { if (e.key === 'Enter') onSso(); }}
                 />

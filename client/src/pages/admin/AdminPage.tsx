@@ -308,7 +308,7 @@ function PlansAdmin() {
               </div>
               <div className="form-group">
                 <label>Underwriter</label>
-                <input value={editing.underwriter} onChange={(e) => setEditing({ ...editing, underwriter: e.target.value })} placeholder="e.g. AXA Mansard" />
+                <input value={editing.underwriter} onChange={(e) => setEditing({ ...editing, underwriter: e.target.value })} placeholder="e.g. Acme Health HMO" />
               </div>
               <div className="form-group">
                 <label>Currency</label>

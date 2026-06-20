@@ -49,8 +49,9 @@ const PRICING = [
   { name: 'Enterprise', price: 'Custom', features: ['Unlimited members', 'SSO + custom SLA', 'Dedicated CSM', 'On-prem option'], cta: 'Contact sales', cls: 'btn-primary' },
 ];
 
-// Real partner names from the ecosystem — shown as wordmarks (no logo files needed).
-const TRUST = ['AXA Mansard', 'Leadway', 'Hygeia HMO', 'MTN', 'HealthPlus'];
+// The partner types MobiCova serves — shown as wordmarks (insurer-agnostic; no
+// specific company names, to avoid implying partnerships that aren't in place).
+const TRUST = ['Insurers', 'HMOs', 'Employers', 'Telcos', 'Pharmacies'];
 
 // Footer columns. Each link scrolls to a section or navigates to a route — no dead links.
 const FOOT_COLS: { h: string; items: [string, string][] }[] = [
@@ -140,7 +141,7 @@ export default function MarketingPage() {
             </div>
           </div>
           <div className="trust">
-            <div className="lb">Trusted by partners across the ecosystem</div>
+            <div className="lb">Built for partners across the ecosystem</div>
             <div className="logos">
               {TRUST.map((n) => <span key={n} className="logo-chip">{n}</span>)}
             </div>

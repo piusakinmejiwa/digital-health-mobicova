@@ -10,7 +10,7 @@ import { uniqueSlug, generateJoinCode } from '../lib/org';
 // What it does:
 //   1. Normalises legacy type values (employer→company, insurer→underwriter).
 //   2. Creates one organisation per partner (deduping insurers onto the existing
-//      underwriter org instead of making a second AXA Mansard, etc.).
+//      underwriter org instead of making a second copy of the same insurer, etc.).
 //   3. Links providers to their org (many-to-many; a doctor may span clinics).
 //   4. Backfills org-based routing on consultations / prescriptions / plans.
 

@@ -59,7 +59,7 @@ export default function BrandingPage() {
           <div className="bf-group">
             <label className="bf-label">Display name</label>
             <input className="bf-input" value={form.displayName} maxLength={120}
-              onChange={(e) => set({ displayName: e.target.value })} placeholder="e.g. AXA Mansard Health" />
+              onChange={(e) => set({ displayName: e.target.value })} placeholder="e.g. Acme Health HMO" />
           </div>
 
           <div className="bf-group">
@@ -92,14 +92,14 @@ export default function BrandingPage() {
           <div className="bf-group">
             <label className="bf-label">Support contact</label>
             <input className="bf-input" value={form.supportContact} maxLength={160}
-              onChange={(e) => set({ supportContact: e.target.value })} placeholder="e.g. support@axamansard.com" />
+              onChange={(e) => set({ supportContact: e.target.value })} placeholder="e.g. support@acme-health.com" />
           </div>
 
           <div className="bf-group">
             <label className="bf-label">WhatsApp greeting</label>
             <textarea className="bf-input" rows={2} value={form.whatsappGreeting} maxLength={1000}
               onChange={(e) => set({ whatsappGreeting: e.target.value })}
-              placeholder="Welcome to AXA Mansard Health on MobiCova…" />
+              placeholder="Welcome to Acme Health HMO on MobiCova…" />
           </div>
 
           <div className="brand-actions">

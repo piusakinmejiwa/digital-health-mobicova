@@ -21,7 +21,10 @@ export async function uploadImage(buffer: Buffer, contentType: string): Promise<
 
   const path = `${randomUUID()}.${ext}`;
   const bucket = env.supabaseBlogBucket;
-  const base = (env.supabaseUrl || '').replace(/\/$/, '');
+  // Use only the project origin (strip any path like /rest/v1 so we hit Storage,
+  // not PostgREST — which returns PGRST125 "Invalid path").
+  let base: string;
+  try { base = new URL(env.supabaseUrl).origin; } catch { base = (env.supabaseUrl || '').replace(/\/+$/, ''); }
   const res = await fetch(`${base}/storage/v1/object/${bucket}/${path}`, {
     method: 'POST',
     headers: {

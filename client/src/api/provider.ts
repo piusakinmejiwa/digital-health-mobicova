@@ -38,9 +38,16 @@ export async function acceptConsultation(id: string): Promise<void> {
 // yet — the caller falls back to the demo call screen.
 export async function getConsultationCallToken(
   id: string
-): Promise<{ roomUrl: string; token: string; mode?: 'video' | 'voice' }> {
+): Promise<{ roomUrl: string; token: string; mode?: 'video' | 'voice'; recording?: boolean; recordingConsent?: boolean }> {
   const res = await providerApi.post(`/provider/consultations/${id}/call`);
   return res.data;
+}
+
+// Fresh signed link to a consultation's recording (PHI; short-lived).
+export async function getConsultationRecording(
+  id: string
+): Promise<{ available: boolean; consent: boolean; status?: string; durationSeconds?: number; link?: string | null }> {
+  return (await providerApi.get(`/provider/consultations/${id}/recording`)).data;
 }
 
 export async function updateConsultation(
@@ -58,9 +65,11 @@ export async function addPrescription(
   await providerApi.post(`/provider/consultations/${id}/prescriptions`, data);
 }
 
-// Pharmacy partners a doctor can route a prescription to.
-export async function getPharmacies(): Promise<{ pharmacies: { id: string; name: string }[] }> {
-  const res = await providerApi.get('/provider/pharmacies');
+// Pharmacies a doctor can route a prescription to. Pass a consultId to get them
+// ranked nearest-first to that patient (each with a distance in km).
+export type PharmacyOption = { id: string; name: string; city?: string; distanceKm?: number | null };
+export async function getPharmacies(consultId?: string): Promise<{ pharmacies: PharmacyOption[] }> {
+  const res = await providerApi.get('/provider/pharmacies', { params: consultId ? { consultId } : {} });
   return res.data;
 }
 

@@ -87,6 +87,10 @@ export interface Organisation {
   created_at: string;
   member_count: number;
   user_count: number;
+  address?: string;
+  city?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface AdminUser {
@@ -477,6 +481,10 @@ export interface MemberProfile {
   allergies: string[];
   chronic_conditions: string[];
   current_medications: string[];
+  address?: string;
+  city?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   status: string;
   created_at: string;
   org_name: string;
@@ -491,7 +499,7 @@ export interface MemberOverview {
   prescriptions: Prescription[];
   triageSessions: TriageSession[];
   // Which live-call channels are switched on server-side.
-  capabilities?: { video: boolean; phoneCalls: boolean };
+  capabilities?: { video: boolean; phoneCalls: boolean; recording: boolean };
 }
 
 export interface OtpRequestResult {

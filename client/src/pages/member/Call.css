@@ -138,6 +138,10 @@
 .vcall-who b { font-size: 16px; }
 .vcall-who span { font-size: 12px; opacity: .8; }
 .vcall-timer { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; font-size: 14px; }
+.vcall-recbar {
+  background: #b42318; color: #fff; text-align: center;
+  font-size: 13px; font-weight: 600; padding: 7px 12px;
+}
 .vcall-frame { flex: 1; width: 100%; border: 0; background: #0b1f1f; }
 .vcall-controls {
   display: flex; justify-content: center;

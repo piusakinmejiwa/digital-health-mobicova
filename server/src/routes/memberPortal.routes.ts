@@ -5,7 +5,7 @@ import {
   requestOtp, verifyOtp, getMemberMe, getMemberOverview,
   listMemberClaims, getMemberClaim, createMemberClaim, memberTriage, createMemberConsultation,
   startMemberConsultation, completeMemberConsultation, startMemberPhoneCall,
-  getMemberDoctors, setPrescriptionFulfilment,
+  updateMemberLocation, getMemberDoctors, setPrescriptionFulfilment,
 } from '../controllers/memberPortal.controller';
 import { authenticateMember } from '../middleware/memberAuth';
 import { validate } from '../middleware/validate';
@@ -39,6 +39,7 @@ router.post('/consultations', authenticateMember, asyncHandler(createMemberConsu
 router.post('/consultations/start', authenticateMember, asyncHandler(startMemberConsultation));
 router.post('/consultations/:id/complete', authenticateMember, asyncHandler(completeMemberConsultation));
 router.post('/consultations/phone-call', authenticateMember, asyncHandler(startMemberPhoneCall));
+router.patch('/profile/location', authenticateMember, asyncHandler(updateMemberLocation));
 router.post('/prescriptions/:id/fulfilment', authenticateMember, [body('method').trim().notEmpty()], validate, asyncHandler(setPrescriptionFulfilment));
 
 export default router;

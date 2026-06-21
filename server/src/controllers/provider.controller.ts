@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import { signProviderToken } from '../lib/providerAuth';
-import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult } from '../lib/daily';
+import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult, recordingConfigured, listRoomRecordings, getRecordingAccessLink } from '../lib/daily';
+import { haversineKm } from '../lib/geo';
 
 // ── Provider org context (unified model; a clinician may span several orgs) ──
 export interface ProviderOrg { id: string; name: string; type: string; is_primary: boolean }
@@ -192,7 +193,7 @@ export async function providerConsultationCall(req: Request, res: Response): Pro
   const activeOrgId = await resolveActiveOrgId(providerId, requestedOrg ? String(requestedOrg) : null);
 
   const c = await query(
-    `SELECT id, video_room, mode FROM consultations
+    `SELECT id, video_room, mode, recording_consent FROM consultations
       WHERE id = $1 AND (provider_org_id = $2::uuid OR partner_id = $3)`,
     [id, activeOrgId, partnerId]
   );
@@ -208,10 +209,17 @@ export async function providerConsultationCall(req: Request, res: Response): Pro
     await query('UPDATE consultations SET video_room = $1 WHERE id = $2', [roomUrl, id]);
   }
 
+  // Record only if the member consented AND recording is enabled. The doctor is
+  // the room owner, so auto-start rides on their token.
+  const willRecord = recordingConfigured() && c.rows[0].recording_consent === true;
+  if (willRecord) {
+    await query(`UPDATE consultations SET recording_status = 'recording' WHERE id = $1`, [id]);
+  }
+
   const me = await query('SELECT full_name FROM providers WHERE id = $1', [providerId]);
   // Voice consults join the same room with the camera off (audio-first).
-  const token = await createMeetingToken(roomName, true, me.rows[0]?.full_name || 'Doctor', c.rows[0].mode === 'voice');
-  res.json({ roomUrl, token, mode: c.rows[0].mode });
+  const token = await createMeetingToken(roomName, true, me.rows[0]?.full_name || 'Doctor', c.rows[0].mode === 'voice', willRecord);
+  res.json({ roomUrl, token, mode: c.rows[0].mode, recording: willRecord, recordingConsent: c.rows[0].recording_consent === true });
 }
 
 // PATCH /provider/consultations/:id — update notes / diagnosis / status (e.g.
@@ -249,18 +257,76 @@ export async function updateProviderConsultation(req: Request, res: Response): P
 // GET /provider/pharmacies — the pharmacy ORGANISATIONS a doctor can route a
 // script to (unified org model). Falls back to legacy pharmacy partners if the
 // org-model data migration hasn't run yet.
-export async function listPharmacies(_req: Request, res: Response): Promise<void> {
+// GET /provider/pharmacies?consultId= — pharmacies a doctor can route a script
+// to. When a consult id is given and both the member and pharmacies are geo-located,
+// the list is sorted nearest-first (each with a distance) so the doctor's default
+// pick is the closest pharmacy to that patient.
+export async function listPharmacies(req: Request, res: Response): Promise<void> {
   const orgs = await query(
-    `SELECT id, name FROM organisations WHERE type = 'pharmacy' AND is_active = true ORDER BY name`
+    `SELECT id, name, city, latitude, longitude FROM organisations WHERE type = 'pharmacy' AND is_active = true ORDER BY name`
   );
-  if (orgs.rows.length > 0) {
-    res.json({ pharmacies: orgs.rows });
-    return;
+  let rows: any[] = orgs.rows;
+  if (rows.length === 0) {
+    const legacy = await query(
+      `SELECT id, name, NULL::text AS city, NULL::float8 AS latitude, NULL::float8 AS longitude
+         FROM partners WHERE category = 'pharmacy' AND status = 'active' ORDER BY name`
+    );
+    rows = legacy.rows;
   }
-  const legacy = await query(
-    `SELECT id, name FROM partners WHERE category = 'pharmacy' AND status = 'active' ORDER BY name`
+
+  // If we know the member's location, rank by distance.
+  const consultId = req.query.consultId ? String(req.query.consultId) : '';
+  if (consultId) {
+    const m = await query(
+      `SELECT mem.latitude, mem.longitude FROM consultations c
+         JOIN members mem ON mem.id = c.member_id WHERE c.id = $1`,
+      [consultId]
+    );
+    const lat = m.rows[0]?.latitude;
+    const lng = m.rows[0]?.longitude;
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      const here = { lat, lng };
+      rows = rows
+        .map((p) => ({
+          ...p,
+          distanceKm: (typeof p.latitude === 'number' && typeof p.longitude === 'number')
+            ? haversineKm(here, { lat: p.latitude, lng: p.longitude })
+            : null,
+        }))
+        .sort((a, b) => {
+          if (a.distanceKm == null) return 1;
+          if (b.distanceKm == null) return -1;
+          return a.distanceKm - b.distanceKm;
+        });
+    }
+  }
+
+  res.json({ pharmacies: rows.map(({ latitude, longitude, ...rest }) => rest) });
+}
+
+// GET /provider/consultations/:id/recording — a fresh signed link to the
+// consultation's recording (if any). PHI: links are short-lived, never stored.
+export async function getConsultationRecording(req: Request, res: Response): Promise<void> {
+  const partnerId = req.provider!.partnerId;
+  const activeOrgId = await resolveActiveOrgId(req.provider!.providerId, req.query.orgId ? String(req.query.orgId) : null);
+  const id = String(req.params.id);
+  const owns = await query(
+    `SELECT recording_consent FROM consultations WHERE id = $1 AND (provider_org_id = $2::uuid OR partner_id = $3)`,
+    [id, activeOrgId, partnerId]
   );
-  res.json({ pharmacies: legacy.rows });
+  if (owns.rows.length === 0) { res.status(404).json({ error: 'Consultation not found' }); return; }
+
+  const recs = await listRoomRecordings(roomNameForConsult(id));
+  const latest = recs[0];
+  if (!latest) { res.json({ available: false, consent: owns.rows[0].recording_consent === true }); return; }
+  const link = await getRecordingAccessLink(latest.id);
+  res.json({
+    available: true,
+    consent: owns.rows[0].recording_consent === true,
+    status: latest.status,
+    durationSeconds: latest.duration,
+    link,
+  });
 }
 
 // POST /provider/consultations/:id/prescriptions — issue an e-prescription.

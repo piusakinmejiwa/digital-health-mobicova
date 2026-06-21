@@ -21,6 +21,7 @@ export default function MemberCarePage() {
   const { data: overview } = useQuery({ queryKey: ['member-overview'], queryFn: getMemberOverview });
   const prescriptions = overview?.prescriptions ?? [];
   const phoneCallsEnabled = overview?.capabilities?.phoneCalls ?? false;
+  const recordingEnabled = overview?.capabilities?.recording ?? false;
   // Status card for an in-flight masked phone call (the call happens on the
   // member's actual phone line, so there's no in-browser call UI).
   const [phoneCall, setPhoneCall] = useState<{ doctorName: string; maskedNumber: string; error?: string } | null>(null);
@@ -28,7 +29,9 @@ export default function MemberCarePage() {
   // `consultId` is set when the call already has a consultation row to close out.
   const [call, setCall] = useState<{ mode: 'video' | 'voice'; provider: CallProvider; consultId?: string } | null>(null);
   // Real Daily call (member + doctor join the same room). Voice = camera-off variant.
-  const [videoCall, setVideoCall] = useState<{ id: string; mode: 'video' | 'voice'; roomUrl: string; token: string; provider: CallProvider } | null>(null);
+  const [videoCall, setVideoCall] = useState<{ id: string; mode: 'video' | 'voice'; roomUrl: string; token: string; provider: CallProvider; recording: boolean } | null>(null);
+  // Recording-consent prompt shown before a video call when recording is enabled.
+  const [consentFor, setConsentFor] = useState<CallProvider | null>(null);
 
   const refreshCare = () => {
     qc.invalidateQueries({ queryKey: ['member-overview'] });
@@ -39,11 +42,12 @@ export default function MemberCarePage() {
   // sees it), then open the real Daily room. Voice joins the same room camera-off.
   // If Daily isn't configured server-side, fall back to the demo screen but still
   // close out the consult on end.
-  const startCall = async (mode: 'video' | 'voice', provider: CallProvider) => {
+  const startCall = async (mode: 'video' | 'voice', provider: CallProvider, recordingConsent = false) => {
+    setConsentFor(null);
     try {
-      const r = await startConsultation({ mode, doctorName: provider.name });
+      const r = await startConsultation({ mode, doctorName: provider.name, recordingConsent });
       if (r.video) {
-        setVideoCall({ id: r.consultation.id, mode, roomUrl: r.video.roomUrl, token: r.video.token, provider });
+        setVideoCall({ id: r.consultation.id, mode, roomUrl: r.video.roomUrl, token: r.video.token, provider, recording: r.recording });
       } else {
         setCall({ mode, provider, consultId: r.consultation.id });
       }
@@ -51,6 +55,12 @@ export default function MemberCarePage() {
       // Couldn't reach the start endpoint — use the self-contained demo screen.
       setCall({ mode, provider });
     }
+  };
+
+  // Video tap: ask for recording consent first if recording is enabled, else start.
+  const onVideoTap = (provider: CallProvider) => {
+    if (recordingEnabled) setConsentFor(provider);
+    else startCall('video', provider, false);
   };
 
   // Place a real masked phone call: the member's phone rings, then bridges to
@@ -105,7 +115,7 @@ export default function MemberCarePage() {
                 </div>
               </div>
               <div className="m-doc-actions">
-                <button className="m-doc-btn video" onClick={() => startCall('video', provider)}>📹 Video call</button>
+                <button className="m-doc-btn video" onClick={() => onVideoTap(provider)}>📹 Video call</button>
                 <button className="m-doc-btn voice" onClick={() => startCall('voice', provider)}>📞 Voice call</button>
                 {phoneCallsEnabled && (
                   <button className="m-doc-btn voice" onClick={() => callPhone(provider)}>📱 Call my phone</button>
@@ -153,8 +163,24 @@ export default function MemberCarePage() {
           subtitle={videoCall.mode === 'voice'
             ? 'Voice consultation · MobiCova Telemedicine'
             : `${videoCall.provider.role} · MobiCova Telemedicine`}
+          recording={videoCall.recording}
           onEnd={endVideo}
         />
+      )}
+
+      {consentFor && (
+        <div className="m-phonecall-backdrop" onClick={() => setConsentFor(null)}>
+          <div className="m-phonecall" onClick={(e) => e.stopPropagation()}>
+            <div className="m-phonecall-ico" style={{ animation: 'none' }}>🔴</div>
+            <h3>Record this consultation?</h3>
+            <p className="m-muted">
+              For your medical records and quality assurance, this video consultation with <strong>{consentFor.name}</strong> can
+              be recorded. Both you and the doctor will be notified during the call. See our <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
+            </p>
+            <button className="m-doc-btn video" onClick={() => startCall('video', consentFor, true)}>Agree &amp; start recorded call</button>
+            <button className="m-doc-btn voice" style={{ marginTop: 8 }} onClick={() => startCall('video', consentFor, false)}>Start without recording</button>
+          </div>
+        </div>
       )}
 
       {phoneCall && (

@@ -10,8 +10,9 @@ import { generateClaimReference, isClaimType } from '../lib/claims';
 import { emitEvent } from '../lib/webhooks';
 import { runTriage, TriageMessage } from '../services/triage.service';
 import { getOrgBranding } from '../lib/branding';
-import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult } from '../lib/daily';
+import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult, recordingConfigured } from '../lib/daily';
 import { voiceConfigured, originateCall, maskingNumber } from '../lib/voice';
+import { geocode } from '../lib/geo';
 
 // ── Identity resolution ─────────────────────────────────────────────────
 // A member identifies with either a phone number or an email already on their
@@ -172,6 +173,7 @@ export async function getMemberMe(req: Request, res: Response): Promise<void> {
   const result = await query(
     `SELECT m.id, m.membership_id, m.full_name, m.phone, m.email, m.date_of_birth, m.gender, m.channel,
             m.blood_group, m.allergies, m.chronic_conditions, m.current_medications,
+            m.address, m.city, m.latitude, m.longitude,
             m.status, m.created_at, o.name AS org_name, o.type AS partner_type
      FROM members m JOIN organisations o ON m.org_id = o.id
      WHERE m.id = $1`,
@@ -269,7 +271,7 @@ export async function getMemberOverview(req: Request, res: Response): Promise<vo
     prescriptions: prescriptions.rows,
     triageSessions: triage.rows,
     // Which live-call channels are switched on (drives the Care page buttons).
-    capabilities: { video: dailyConfigured(), phoneCalls: voiceConfigured() },
+    capabilities: { video: dailyConfigured(), phoneCalls: voiceConfigured(), recording: recordingConfigured() },
   });
 }
 
@@ -505,12 +507,20 @@ export async function startMemberConsultation(req: Request, res: Response): Prom
 
   const { providerId, partnerId } = await resolveDoctorRouting(name);
 
+  // Recording consent (NDPR/GDPR): captured before the call. Recording only
+  // actually happens if the member consented AND recording is enabled+paid.
+  const recordingConsent = Boolean(req.body?.recordingConsent);
+  const willRecord = recordingConsent && recordingConfigured();
+
   const result = await query(
     `INSERT INTO consultations
-       (org_id, member_id, partner_id, provider_id, mode, channel, reason, scheduled_at, status, doctor_name, notes)
-     VALUES ($1, $2, $3, $4, $5, 'app', 'Telemedicine consultation', NOW(), 'in_progress', $6, '')
+       (org_id, member_id, partner_id, provider_id, mode, channel, reason, scheduled_at, status, doctor_name, notes,
+        recording_consent, recording_consent_at, recording_status)
+     VALUES ($1, $2, $3, $4, $5, 'app', 'Telemedicine consultation', NOW(), 'in_progress', $6, '',
+        $7, CASE WHEN $7 THEN NOW() ELSE NULL END, $8)
      RETURNING *`,
-    [orgId, memberId, partnerId, providerId, m, name]
+    [orgId, memberId, partnerId, providerId, m, name,
+     recordingConsent, recordingConsent ? 'consented' : 'declined']
   );
   const consultation = result.rows[0];
 
@@ -532,7 +542,28 @@ export async function startMemberConsultation(req: Request, res: Response): Prom
     }
   }
 
-  res.status(201).json({ consultation, video });
+  res.status(201).json({ consultation, video, recording: willRecord });
+}
+
+// PATCH /member/profile/location — member sets their address so prescriptions can
+// route to the nearest pharmacy. Geocoded to coordinates when a key is configured.
+export async function updateMemberLocation(req: Request, res: Response): Promise<void> {
+  const memberId = req.member!.memberId;
+  const address = String(req.body?.address || '').trim().slice(0, 500);
+  const city = String(req.body?.city || '').trim().slice(0, 120);
+
+  let lat: number | null = null;
+  let lng: number | null = null;
+  const coords = await geocode([address, city].filter(Boolean).join(', '));
+  if (coords) { lat = coords.lat; lng = coords.lng; }
+
+  await query(
+    `UPDATE members SET address = $2, city = $3,
+            latitude = COALESCE($4, latitude), longitude = COALESCE($5, longitude), updated_at = NOW()
+      WHERE id = $1`,
+    [memberId, address, city, lat, lng]
+  );
+  res.json({ saved: true, geocoded: lat != null });
 }
 
 // POST /member/consultations/phone-call — place a real masked phone call: ring

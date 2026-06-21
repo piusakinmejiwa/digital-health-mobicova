@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getProviderConsultations, getProviderConsultation, acceptConsultation,
-  updateConsultation, addPrescription, getPharmacies, getConsultationCallToken,
+  updateConsultation, addPrescription, getPharmacies, getConsultationCallToken, getConsultationRecording,
 } from '../../api/provider';
 import { formatDateTime, badgeClass, age } from '../../lib/format';
 import CallScreen from '../../components/member/CallScreen';
@@ -85,8 +85,14 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [rx, setRx] = useState({ medication: '', dosage: '', instructions: '', pharmacyPartnerId: '' });
   const [call, setCall] = useState<'video' | 'voice' | null>(null);
-  const [videoCall, setVideoCall] = useState<{ roomUrl: string; token: string } | null>(null);
-  const { data: pharmaciesData } = useQuery({ queryKey: ['provider-pharmacies'], queryFn: getPharmacies });
+  const [videoCall, setVideoCall] = useState<{ roomUrl: string; token: string; recording?: boolean } | null>(null);
+  const [rec, setRec] = useState<{ loading?: boolean; available?: boolean; link?: string | null; error?: string } | null>(null);
+  const fetchRecording = async () => {
+    setRec({ loading: true });
+    try { setRec(await getConsultationRecording(id)); }
+    catch { setRec({ error: 'Could not fetch the recording.' }); }
+  };
+  const { data: pharmaciesData } = useQuery({ queryKey: ['provider-pharmacies', id], queryFn: () => getPharmacies(id) });
   const pharmacies = pharmaciesData?.pharmacies ?? [];
 
   const refresh = () => {
@@ -102,7 +108,7 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   // Join the live Daily room (video or voice); fall back to the demo screen if
   // Daily isn't set up. The server picks camera-on/off from the consult's mode.
   const joinCall = async (mode: 'video' | 'voice') => {
-    try { setVideoCall(await getConsultationCallToken(id)); }
+    try { const r = await getConsultationCallToken(id); setVideoCall({ roomUrl: r.roomUrl, token: r.token, recording: r.recording }); }
     catch { setCall(mode); }
   };
   const save = async (status?: string) => {
@@ -142,6 +148,20 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               <div><span className="prov-label">Reason</span>{c.reason || '—'}</div>
               <div><span className="prov-label">Allergies</span>{c.allergies?.length ? c.allergies.join(', ') : 'None recorded'}</div>
               <div><span className="prov-label">Chronic conditions</span>{c.chronic_conditions?.length ? c.chronic_conditions.join(', ') : 'None recorded'}</div>
+              <div>
+                <span className="prov-label">Recording</span>
+                {(c as { recording_consent?: boolean }).recording_consent ? (
+                  <>
+                    Patient consented ·{' '}
+                    <a style={{ cursor: 'pointer', color: '#0a7b7b' }} onClick={fetchRecording}>
+                      {rec?.loading ? 'Fetching…' : 'Get recording link'}
+                    </a>
+                    {rec?.link && <> · <a href={rec.link} target="_blank" rel="noreferrer">Download</a></>}
+                    {rec?.available === false && <span className="muted small"> · not ready yet</span>}
+                    {rec?.error && <span className="muted small"> · {rec.error}</span>}
+                  </>
+                ) : 'Not recorded (no consent)'}
+              </div>
             </div>
 
             {c.status !== 'completed' && (
@@ -204,7 +224,11 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                           title="Fulfilling pharmacy"
                         >
                           {pharmacies.length === 0 && <option value="">No pharmacies available</option>}
-                          {pharmacies.map((ph) => <option key={ph.id} value={ph.id}>{ph.name}</option>)}
+                          {pharmacies.map((ph, i) => (
+                            <option key={ph.id} value={ph.id}>
+                              {ph.name}{ph.distanceKm != null ? ` · ${ph.distanceKm} km${i === 0 ? ' (nearest)' : ''}` : ''}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <input placeholder="Instructions" value={rx.instructions} onChange={(e) => setRx({ ...rx, instructions: e.target.value })} />
@@ -229,6 +253,7 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 token={videoCall.token}
                 title={c.member_name}
                 subtitle="Patient · MobiCova Telemedicine"
+                recording={videoCall.recording}
                 onEnd={() => setVideoCall(null)}
               />
             )}

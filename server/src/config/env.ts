@@ -103,4 +103,14 @@ export const env = {
   // Shared secret a scheduler presents to POST /health-tips/run-daily so only
   // your cron (Render Cron / cron-job.org / GitHub Actions) can trigger sends.
   healthTipsCronSecret: process.env.HEALTH_TIPS_CRON_SECRET || '',
+  // Google Geocoding API key — turns pharmacy/member addresses into coordinates
+  // so prescriptions can route to the nearest pharmacy. Absent ⇒ geocoding is
+  // skipped (coords can still be set directly); distance ranking just needs coords.
+  geocodeApiKey: process.env.GEOCODE_API_KEY || process.env.GOOGLE_MAPS_API_KEY || '',
+  // Consent-gated call recording (Daily cloud recording — a paid Daily feature).
+  // Only records when the member consents AND this is on. Absent ⇒ no recording,
+  // but consent is still captured for the record.
+  dailyRecordingEnabled: process.env.DAILY_RECORDING_ENABLED === 'true',
+  // Guards the public Daily recording webhook (?token= on the URL set in Daily).
+  dailyWebhookToken: process.env.DAILY_WEBHOOK_TOKEN || '',
 };

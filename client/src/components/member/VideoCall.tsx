@@ -9,13 +9,14 @@ import '../../pages/member/Call.css';
 // Our own header (timer) + "End call" bar sit above the iframe and own the
 // close, so the parent can log the consultation duration.
 export default function VideoCall({
-  roomUrl, token, title, subtitle, onEnd,
+  roomUrl, token, title, subtitle, onEnd, recording = false,
 }: {
   roomUrl: string;
   token: string;
   title: string;
   subtitle?: string;
   onEnd: (seconds: number) => void;
+  recording?: boolean;
 }) {
   const [seconds, setSeconds] = useState(0);
   const startRef = useRef<number>(Date.now());
@@ -40,6 +41,9 @@ export default function VideoCall({
         </div>
         <div className="vcall-timer"><span className="call-rec" /> {fmt(seconds)}</div>
       </div>
+      {recording && (
+        <div className="vcall-recbar">🔴 This consultation is being recorded — both parties have been notified.</div>
+      )}
       <iframe
         className="vcall-frame"
         title="MobiCova video consultation"

@@ -6,6 +6,7 @@ import { passwordIssue } from '../lib/password';
 import { randomPlaceholderSecret } from '../lib/invites';
 import { sendAdminWelcome } from '../lib/onboarding';
 import { recordAudit } from '../lib/audit';
+import { geocode } from '../lib/geo';
 
 // Platform-admin management of partner organisations (tenants). Behind
 // authenticate + requirePlatformAdmin (see admin.routes.ts).
@@ -113,9 +114,21 @@ export async function adminUpdateOrg(req: Request, res: Response): Promise<void>
     return;
   }
 
+  // Location (used to route prescriptions to the nearest pharmacy). Geocode when
+  // the address/city changes and a geocoding key is configured.
+  const address = b.address !== undefined ? String(b.address).slice(0, 500) : cur.address;
+  const city = b.city !== undefined ? String(b.city).slice(0, 120) : cur.city;
+  let lat = cur.latitude;
+  let lng = cur.longitude;
+  if ((b.address !== undefined || b.city !== undefined) && (address || city)) {
+    const coords = await geocode([address, city].filter(Boolean).join(', '));
+    if (coords) { lat = coords.lat; lng = coords.lng; }
+  }
+
   const result = await query(
     `UPDATE organisations
         SET name = $2, type = $3, plan_tier = $4, country = $5, is_active = $6,
+            address = $7, city = $8, latitude = $9, longitude = $10,
             updated_at = NOW()
       WHERE id = $1 RETURNING *`,
     [
@@ -125,6 +138,7 @@ export async function adminUpdateOrg(req: Request, res: Response): Promise<void>
       b.plan_tier ?? cur.plan_tier,
       b.country ?? cur.country,
       b.is_active ?? cur.is_active,
+      address, city, lat, lng,
     ]
   );
   const updated = result.rows[0];

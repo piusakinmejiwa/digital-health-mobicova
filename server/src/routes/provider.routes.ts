@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import {
   providerLogin, getProviderMe,
   listProviderConsultations, getProviderConsultation, acceptConsultation,
-  providerConsultationCall,
+  providerConsultationCall, getConsultationRecording,
   updateProviderConsultation, addProviderPrescription, listPharmacies,
   listProviderPrescriptions, advancePrescription,
 } from '../controllers/provider.controller';
@@ -29,6 +29,7 @@ router.get('/consultations', doctorOnly, asyncHandler(listProviderConsultations)
 router.get('/consultations/:id', doctorOnly, asyncHandler(getProviderConsultation));
 router.post('/consultations/:id/accept', doctorOnly, asyncHandler(acceptConsultation));
 router.post('/consultations/:id/call', doctorOnly, asyncHandler(providerConsultationCall));
+router.get('/consultations/:id/recording', doctorOnly, asyncHandler(getConsultationRecording));
 router.patch('/consultations/:id', doctorOnly, asyncHandler(updateProviderConsultation));
 router.get('/pharmacies', doctorOnly, asyncHandler(listPharmacies));
 router.post(

@@ -1,16 +1,27 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { getMemberMe, getMemberOverview } from '../../api/member';
+import { getMemberMe, getMemberOverview, updateMemberLocation } from '../../api/member';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import { naira, formatDate, badgeClass } from '../../lib/format';
 import './Member.css';
 
 export default function MemberProfilePage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { logout } = useMemberAuth();
   const { data: me } = useQuery({ queryKey: ['member-me'], queryFn: getMemberMe });
   const { data: overview } = useQuery({ queryKey: ['member-overview'], queryFn: getMemberOverview });
   const cover = overview?.enrolments[0];
+
+  const [addr, setAddr] = useState({ address: '', city: '' });
+  const [locState, setLocState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  useEffect(() => { if (me) setAddr({ address: me.address || '', city: me.city || '' }); }, [me]);
+  const saveLocation = async () => {
+    setLocState('saving');
+    try { await updateMemberLocation(addr); setLocState('saved'); qc.invalidateQueries({ queryKey: ['member-me'] }); }
+    catch { setLocState('idle'); }
+  };
 
   const signOut = () => { logout(); navigate('/member/login'); };
 
@@ -61,6 +72,16 @@ export default function MemberProfilePage() {
         ) : (
           <p className="m-muted">No active cover.</p>
         )}
+
+        <div className="m-sec-h">Your location</div>
+        <div className="m-statc m-kv-card">
+          <p className="m-muted" style={{ margin: '0 0 10px' }}>So prescriptions can be sent to the pharmacy nearest you.</p>
+          <input className="m-input" placeholder="Address (street, area)" value={addr.address} onChange={(e) => { setAddr({ ...addr, address: e.target.value }); setLocState('idle'); }} />
+          <input className="m-input m-mt-s" placeholder="City / town" value={addr.city} onChange={(e) => { setAddr({ ...addr, city: e.target.value }); setLocState('idle'); }} />
+          <button className="m-btn primary m-mt-s" onClick={saveLocation} disabled={locState === 'saving'}>
+            {locState === 'saving' ? 'Saving…' : locState === 'saved' ? 'Saved ✓' : 'Save location'}
+          </button>
+        </div>
 
         <button className="m-btn ghost m-mt" disabled title="Coming soon">Download member card</button>
         <button className="m-btn ghost m-mt-s m-signout" onClick={signOut}>Sign out</button>

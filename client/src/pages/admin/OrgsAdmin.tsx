@@ -80,6 +80,7 @@ export default function OrgsAdmin() {
       await adminUpdateOrg(editing.id, {
         name: editing.name, type: editing.type,
         plan_tier: editing.plan_tier, country: editing.country,
+        address: editing.address ?? '', city: editing.city ?? '',
       });
       setEditing(null);
       refresh();
@@ -256,6 +257,18 @@ export default function OrgsAdmin() {
                   {PLAN_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              {editing.type === 'pharmacy' && (
+                <>
+                  <div className="form-group form-span-2">
+                    <label>Address (geocoded to route prescriptions to the nearest pharmacy)</label>
+                    <input value={editing.address ?? ''} onChange={(e) => setEditing({ ...editing, address: e.target.value })} placeholder="e.g. 12 Awolowo Rd, Ikoyi" />
+                  </div>
+                  <div className="form-group">
+                    <label>City</label>
+                    <input value={editing.city ?? ''} onChange={(e) => setEditing({ ...editing, city: e.target.value })} placeholder="e.g. Lagos" />
+                  </div>
+                </>
+              )}
             </div>
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setEditing(null)}>Cancel</button>

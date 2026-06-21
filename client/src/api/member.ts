@@ -78,13 +78,20 @@ export async function logMemberConsultation(data: {
 export interface StartConsultResult {
   consultation: { id: string; mode: 'video' | 'voice'; doctor_name: string; status: string };
   video: { roomUrl: string; token: string } | null;
+  recording: boolean;
 }
 export async function startConsultation(data: {
   mode: 'video' | 'voice';
   doctorName: string;
+  recordingConsent?: boolean;
 }): Promise<StartConsultResult> {
   const res = await memberApi.post('/member/consultations/start', data);
   return res.data;
+}
+
+// Member sets their address so prescriptions can route to the nearest pharmacy.
+export async function updateMemberLocation(data: { address: string; city: string }): Promise<{ saved: boolean; geocoded: boolean }> {
+  return (await memberApi.patch('/member/profile/location', data)).data;
 }
 
 // Close out a started consultation with its duration (marks it completed).

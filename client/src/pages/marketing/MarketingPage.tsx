@@ -107,6 +107,7 @@ export default function MarketingPage() {
             <a onClick={() => scrollTo('pricing')}>Pricing</a>
             <a onClick={() => navigate('/buddy')}>Health Buddy</a>
             <a onClick={() => navigate('/ask')}>Ask Eze</a>
+            <a onClick={() => navigate('/health-tips')}>Health Tips</a>
             <a onClick={() => navigate('/blog')}>Blog</a>
             <a onClick={() => navigate('/shape')}>Shape MobiCova</a>
           </nav>
@@ -138,6 +139,9 @@ export default function MarketingPage() {
               </a>
               <a className="hero-buddy" onClick={() => navigate('/ask')} role="button">
                 🤖 Questions about MobiCova? <strong>Ask Eze</strong> →
+              </a>
+              <a className="hero-buddy" onClick={() => navigate('/health-tips')} role="button">
+                📲 Get free <strong>Daily Health Tips</strong> by SMS, WhatsApp or email →
               </a>
             </div>
             <div className="hero-media">

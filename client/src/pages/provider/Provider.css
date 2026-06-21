@@ -1,6 +1,24 @@
 /* Provider portal — clinician & pharmacist workspace. */
 .prov-app { min-height: 100vh; background: var(--bg, #f6f8fb); }
 
+/* Incoming-call badge (a member is waiting in a live call) */
+.prov-incoming { display: flex; flex-direction: column; gap: .5rem; margin: 0 0 1rem; }
+.prov-incoming-row {
+  display: flex; align-items: center; gap: .7rem;
+  background: #fff4f3; border: 1.5px solid #f3c0bc; border-left: 4px solid #e5484d;
+  border-radius: 12px; padding: .7rem .9rem;
+}
+.prov-incoming-txt { flex: 1; font-size: .92rem; color: #3a2a29; }
+.prov-incoming-row .btn { white-space: nowrap; }
+.prov-incoming-dot {
+  width: 11px; height: 11px; border-radius: 50%; background: #e5484d;
+  box-shadow: 0 0 0 0 rgba(229,72,77,.5); animation: prov-incoming-pulse 1.3s ease-out infinite;
+}
+@keyframes prov-incoming-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(229,72,77,.5); }
+  100% { box-shadow: 0 0 0 9px rgba(229,72,77,0); }
+}
+
 .prov-topbar {
   display: flex;
   align-items: center;

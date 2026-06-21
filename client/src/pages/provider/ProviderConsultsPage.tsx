@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getProviderConsultations, getProviderConsultation, acceptConsultation,
   updateConsultation, addPrescription, getPharmacies, getConsultationCallToken, getConsultationRecording,
+  getIncomingCalls,
 } from '../../api/provider';
 import { formatDateTime, badgeClass, age } from '../../lib/format';
 import CallScreen from '../../components/member/CallScreen';
@@ -19,12 +20,24 @@ const STATUS_TABS = [
 export default function ProviderConsultsPage() {
   const [tab, setTab] = useState('scheduled');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [autoJoinId, setAutoJoinId] = useState<string | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['prov-consults', tab],
     queryFn: () => getProviderConsultations(tab || undefined),
+    refetchInterval: 10000, // keep the queue fresh so waiting calls appear
   });
+  // Poll for members waiting in a live call — drives the incoming-call banner.
+  const { data: incomingData } = useQuery({
+    queryKey: ['prov-incoming'],
+    queryFn: getIncomingCalls,
+    refetchInterval: 5000,
+  });
+  const incoming = incomingData?.calls ?? [];
 
   const counts = Object.fromEntries((data?.counts || []).map((c) => [c.status, c.count]));
+
+  // Open a waiting consult and auto-join its call in one click.
+  const answer = (id: string) => { setAutoJoinId(id); setOpenId(id); };
 
   return (
     <div className="prov-page">
@@ -32,6 +45,22 @@ export default function ProviderConsultsPage() {
         <h1>Consultations</h1>
         <p className="muted">Accept consults, record your assessment, and issue e-prescriptions.</p>
       </div>
+
+      {incoming.length > 0 && (
+        <div className="prov-incoming">
+          {incoming.map((call) => (
+            <div key={call.id} className="prov-incoming-row">
+              <span className="prov-incoming-dot" />
+              <span className="prov-incoming-txt">
+                <strong>{call.member_name}</strong> is waiting in a {call.mode} call
+              </span>
+              <button className="btn btn-primary btn-sm" onClick={() => answer(call.id)}>
+                {call.mode === 'voice' ? '📞' : '📹'} Answer now
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="prov-tabs">
         {STATUS_TABS.map((t) => (
@@ -68,12 +97,18 @@ export default function ProviderConsultsPage() {
         <p className="muted">Nothing here right now.</p>
       )}
 
-      {openId && <ConsultDrawer id={openId} onClose={() => setOpenId(null)} />}
+      {openId && (
+        <ConsultDrawer
+          id={openId}
+          autoJoin={openId === autoJoinId}
+          onClose={() => { setOpenId(null); setAutoJoinId(null); }}
+        />
+      )}
     </div>
   );
 }
 
-function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+function ConsultDrawer({ id, autoJoin, onClose }: { id: string; autoJoin?: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const { data: c, isLoading } = useQuery({
     queryKey: ['prov-consult', id],
@@ -111,6 +146,16 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
     try { const r = await getConsultationCallToken(id); setVideoCall({ roomUrl: r.roomUrl, token: r.token, recording: r.recording }); }
     catch { setCall(mode); }
   };
+
+  // When opened from the incoming-call badge, join straight away (once the consult loads).
+  const autoJoinedRef = useRef(false);
+  useEffect(() => {
+    if (autoJoin && c && !autoJoinedRef.current) {
+      autoJoinedRef.current = true;
+      joinCall(c.mode === 'voice' ? 'voice' : 'video');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoJoin, c]);
   const save = async (status?: string) => {
     setBusy(true);
     try {

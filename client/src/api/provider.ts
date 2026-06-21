@@ -43,6 +43,12 @@ export async function getConsultationCallToken(
   return res.data;
 }
 
+// Live calls where a member is waiting to be joined (for the incoming-call badge).
+export type IncomingCall = { id: string; mode: 'video' | 'voice'; member_name: string; created_at: string };
+export async function getIncomingCalls(): Promise<{ calls: IncomingCall[] }> {
+  return (await providerApi.get('/provider/incoming-calls')).data;
+}
+
 // Fresh signed link to a consultation's recording (PHI; short-lived).
 export async function getConsultationRecording(
   id: string

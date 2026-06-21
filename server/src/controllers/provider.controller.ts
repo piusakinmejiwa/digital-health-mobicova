@@ -222,6 +222,25 @@ export async function providerConsultationCall(req: Request, res: Response): Pro
   res.json({ roomUrl, token, mode: c.rows[0].mode, recording: willRecord, recordingConsent: c.rows[0].recording_consent === true });
 }
 
+// GET /provider/incoming-calls — consults where a member has started a live
+// call and is waiting to be joined (in-progress, has a room, started recently).
+// Polled by the doctor's page to surface an "incoming call" badge.
+export async function getIncomingCalls(req: Request, res: Response): Promise<void> {
+  const partnerId = req.provider!.partnerId;
+  const activeOrgId = await resolveActiveOrgId(req.provider!.providerId, req.query.orgId ? String(req.query.orgId) : null);
+  const r = await query(
+    `SELECT c.id, c.mode, c.created_at, m.full_name AS member_name
+       FROM consultations c JOIN members m ON m.id = c.member_id
+      WHERE (c.provider_org_id = $1::uuid OR c.partner_id = $2)
+        AND c.status = 'in_progress'
+        AND c.video_room IS NOT NULL
+        AND c.created_at > NOW() - INTERVAL '15 minutes'
+      ORDER BY c.created_at DESC`,
+    [activeOrgId, partnerId]
+  );
+  res.json({ calls: r.rows });
+}
+
 // PATCH /provider/consultations/:id — update notes / diagnosis / status (e.g.
 // complete). Only the partner's own consults; a clinician can't reopen a closed one.
 export async function updateProviderConsultation(req: Request, res: Response): Promise<void> {

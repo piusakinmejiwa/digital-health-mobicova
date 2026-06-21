@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  getMember, listPlans, bookConsultation, enrolMember, checkoutPremium,
+  getMember, listPlans, bookConsultation, enrolMember, checkoutPremium, updateMember,
 } from '../../api/resources';
 import { naira, formatDate, formatDateTime, age, triageLabel, badgeClass } from '../../lib/format';
 import { useAuth } from '../../context/AuthContext';
@@ -23,10 +23,25 @@ export default function MemberDetailPage() {
   const [planId, setPlanId] = useState('');
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState('');
+  const [loc, setLoc] = useState({ address: '', city: '' });
+  const [locBusy, setLocBusy] = useState(false);
+  const [locSaved, setLocSaved] = useState(false);
+  useEffect(() => {
+    if (member) setLoc({ address: (member as { address?: string }).address || '', city: (member as { city?: string }).city || '' });
+  }, [member]);
 
   if (isLoading || !member) {
     return <div className="page"><p className="muted">Loading member…</p></div>;
   }
+
+  const saveLocation = async () => {
+    setLocBusy(true); setLocSaved(false);
+    try {
+      await updateMember(member.id, { address: loc.address, city: loc.city });
+      setLocSaved(true);
+      queryClient.invalidateQueries({ queryKey: ['member', id] });
+    } finally { setLocBusy(false); }
+  };
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['member', id] });
 
@@ -222,6 +237,24 @@ export default function MemberDetailPage() {
             <ProfileTags label="Chronic conditions" items={member.chronic_conditions} empty="None recorded" />
             <ProfileTags label="Current medications" items={member.current_medications} empty="None recorded" />
           </div>
+
+          {canWrite && (
+            <div className="card card-pad">
+              <h3 className="card-title">Location</h3>
+              <p className="muted small" style={{ marginTop: 0 }}>Routes e-prescriptions to the nearest pharmacy.</p>
+              <div className="form-group">
+                <label>Address</label>
+                <input value={loc.address} onChange={(e) => { setLoc({ ...loc, address: e.target.value }); setLocSaved(false); }} placeholder="e.g. 12 Awolowo Rd, Ikoyi" />
+              </div>
+              <div className="form-group">
+                <label>City / town</label>
+                <input value={loc.city} onChange={(e) => { setLoc({ ...loc, city: e.target.value }); setLocSaved(false); }} placeholder="e.g. Lagos" />
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={saveLocation} disabled={locBusy}>
+                {locBusy ? 'Saving…' : locSaved ? 'Saved ✓' : 'Save location'}
+              </button>
+            </div>
+          )}
         </aside>
       </div>
     </div>

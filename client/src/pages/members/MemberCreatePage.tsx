@@ -17,6 +17,8 @@ interface FormValues {
   allergies: string;
   chronicConditions: string;
   currentMedications: string;
+  address: string;
+  city: string;
 }
 
 const toArray = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
@@ -49,6 +51,8 @@ export default function MemberCreatePage() {
         allergies: toArray(values.allergies),
         chronicConditions: toArray(values.chronicConditions),
         currentMedications: toArray(values.currentMedications),
+        address: values.address,
+        city: values.city,
       });
       queryClient.invalidateQueries({ queryKey: ['members'] });
       navigate(`/members/${member.id}`);
@@ -107,6 +111,17 @@ export default function MemberCreatePage() {
               <option value="ussd">USSD</option>
               <option value="web">Web</option>
             </select>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Address <span className="muted">(for nearest-pharmacy routing)</span></label>
+            <input {...register('address')} placeholder="e.g. 12 Awolowo Rd, Ikoyi" />
+          </div>
+          <div className="form-group">
+            <label>City / town</label>
+            <input {...register('city')} placeholder="e.g. Lagos" />
           </div>
         </div>
 

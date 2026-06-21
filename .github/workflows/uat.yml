@@ -34,11 +34,16 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
+      # These steps only run if the Render deploy-hook secrets are configured.
+      # We deploy via Render's native GitHub auto-deploy, so when the hooks are
+      # absent these skip (and CI stays green) rather than failing the run.
       - name: Trigger Render UAT API deploy
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_API != '' }}
         env:
           HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
         run: curl -fsS -X POST "$HOOK"
       - name: Trigger Render UAT web deploy
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_WEB != '' }}
         env:
           HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_WEB }}
         run: curl -fsS -X POST "$HOOK"

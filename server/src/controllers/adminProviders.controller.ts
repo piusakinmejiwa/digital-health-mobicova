@@ -12,7 +12,7 @@ const ROLES = ['doctor', 'pharmacist'];
 export async function adminListProviders(req: Request, res: Response): Promise<void> {
   const result = await query(
     `SELECT pr.id, pr.partner_id, p.name AS partner_name, p.category AS partner_category,
-            pr.full_name, pr.email, pr.role, pr.specialty, pr.photo_url, pr.is_active, pr.created_at
+            pr.full_name, pr.email, pr.role, pr.specialty, pr.photo_url, pr.phone, pr.is_active, pr.created_at
        FROM providers pr JOIN partners p ON pr.partner_id = p.id
       ORDER BY pr.created_at DESC`
   );
@@ -20,7 +20,7 @@ export async function adminListProviders(req: Request, res: Response): Promise<v
 }
 
 export async function adminCreateProvider(req: Request, res: Response): Promise<void> {
-  const { partnerId, fullName, email, password, role = 'doctor', specialty = '', photoUrl = '' } = req.body;
+  const { partnerId, fullName, email, password, role = 'doctor', specialty = '', photoUrl = '', phone = '' } = req.body;
 
   if (!partnerId || !fullName || !email) {
     res.status(400).json({ error: 'partnerId, fullName and email are required' });
@@ -48,10 +48,10 @@ export async function adminCreateProvider(req: Request, res: Response): Promise<
 
   const passwordHash = await bcrypt.hash(password, 12);
   const result = await query(
-    `INSERT INTO providers (partner_id, full_name, email, password_hash, role, specialty, photo_url)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
-     RETURNING id, partner_id, full_name, email, role, specialty, photo_url, is_active, created_at`,
-    [partnerId, fullName, email, passwordHash, role, String(specialty).slice(0, 120), String(photoUrl).slice(0, 500)]
+    `INSERT INTO providers (partner_id, full_name, email, password_hash, role, specialty, photo_url, phone)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id, partner_id, full_name, email, role, specialty, photo_url, phone, is_active, created_at`,
+    [partnerId, fullName, email, passwordHash, role, String(specialty).slice(0, 120), String(photoUrl).slice(0, 500), String(phone).slice(0, 40)]
   );
   const created = result.rows[0];
   await recordAudit(req, {
@@ -78,9 +78,9 @@ export async function adminUpdateProvider(req: Request, res: Response): Promise<
 
   const result = await query(
     `UPDATE providers
-        SET partner_id = $2, full_name = $3, role = $4, specialty = $5, photo_url = $6, is_active = $7
+        SET partner_id = $2, full_name = $3, role = $4, specialty = $5, photo_url = $6, is_active = $7, phone = $8
       WHERE id = $1
-      RETURNING id, partner_id, full_name, email, role, specialty, photo_url, is_active, created_at`,
+      RETURNING id, partner_id, full_name, email, role, specialty, photo_url, phone, is_active, created_at`,
     [
       id,
       b.partnerId ?? cur.partner_id,
@@ -89,6 +89,7 @@ export async function adminUpdateProvider(req: Request, res: Response): Promise<
       b.specialty ?? cur.specialty,
       b.photoUrl ?? b.photo_url ?? cur.photo_url,
       b.is_active ?? cur.is_active,
+      (b.phone ?? cur.phone ?? '').toString().slice(0, 40),
     ]
   );
   await recordAudit(req, {

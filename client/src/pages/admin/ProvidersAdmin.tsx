@@ -17,7 +17,7 @@ function errMessage(err: unknown, fallback: string): string {
 }
 
 const emptyProvider = {
-  partnerId: '', fullName: '', email: '', password: '', role: 'doctor', specialty: '', photoUrl: '',
+  partnerId: '', fullName: '', email: '', password: '', role: 'doctor', specialty: '', photoUrl: '', phone: '',
 };
 
 export default function ProvidersAdmin() {
@@ -47,7 +47,8 @@ export default function ProvidersAdmin() {
     try {
       await adminCreateProvider({
         partnerId: creating.partnerId, fullName: creating.fullName.trim(), email: creating.email.trim(),
-        password: creating.password, role: creating.role, specialty: creating.specialty.trim(), photoUrl: creating.photoUrl.trim(),
+        password: creating.password, role: creating.role, specialty: creating.specialty.trim(),
+        photoUrl: creating.photoUrl.trim(), phone: creating.phone.trim(),
       });
       setCreating(null);
       refresh();
@@ -63,6 +64,7 @@ export default function ProvidersAdmin() {
       await adminUpdateProvider(editing.id, {
         partnerId: editing.partner_id, fullName: editing.full_name, role: editing.role,
         specialty: editing.specialty, photoUrl: editing.photo_url, is_active: editing.is_active,
+        phone: editing.phone ?? '',
       });
       setEditing(null);
       refresh();
@@ -159,6 +161,12 @@ export default function ProvidersAdmin() {
                 <label>Password (min 8 characters)</label>
                 <input type="text" value={creating.password} onChange={(e) => setCreating({ ...creating, password: e.target.value })} placeholder="Temporary password" />
               </div>
+              {creating.role === 'doctor' && (
+                <div className="form-group">
+                  <label>Phone (for masked calls)</label>
+                  <input value={creating.phone} onChange={(e) => setCreating({ ...creating, phone: e.target.value })} placeholder="+2348012345678" />
+                </div>
+              )}
               <div className="form-group form-span-2">
                 <label>Photo URL (optional)</label>
                 <input value={creating.photoUrl} onChange={(e) => setCreating({ ...creating, photoUrl: e.target.value })} placeholder="/images/doctor.jpg or https://…" />
@@ -202,6 +210,12 @@ export default function ProvidersAdmin() {
                 <label>Specialty</label>
                 <input value={editing.specialty} onChange={(e) => setEditing({ ...editing, specialty: e.target.value })} />
               </div>
+              {editing.role === 'doctor' && (
+                <div className="form-group">
+                  <label>Phone (for masked calls)</label>
+                  <input value={editing.phone ?? ''} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} placeholder="+2348012345678" />
+                </div>
+              )}
               <div className="form-group form-span-2">
                 <label>Photo URL</label>
                 <input value={editing.photo_url} onChange={(e) => setEditing({ ...editing, photo_url: e.target.value })} placeholder="/images/doctor.jpg or https://…" />

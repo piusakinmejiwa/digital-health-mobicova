@@ -10,6 +10,8 @@ import { generateClaimReference, isClaimType } from '../lib/claims';
 import { emitEvent } from '../lib/webhooks';
 import { runTriage, TriageMessage } from '../services/triage.service';
 import { getOrgBranding } from '../lib/branding';
+import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult } from '../lib/daily';
+import { voiceConfigured, originateCall, maskingNumber } from '../lib/voice';
 
 // ── Identity resolution ─────────────────────────────────────────────────
 // A member identifies with either a phone number or an email already on their
@@ -266,6 +268,8 @@ export async function getMemberOverview(req: Request, res: Response): Promise<vo
     consultations: consultations.rows,
     prescriptions: prescriptions.rows,
     triageSessions: triage.rows,
+    // Which live-call channels are switched on (drives the Care page buttons).
+    capabilities: { video: dailyConfigured(), phoneCalls: voiceConfigured() },
   });
 }
 
@@ -467,4 +471,145 @@ export async function createMemberConsultation(req: Request, res: Response): Pro
     [orgId, memberId, partnerId, providerId, m, name, notes]
   );
   res.status(201).json(result.rows[0]);
+}
+
+// Resolve the provider + partner for a named doctor, mirroring the booking
+// logic above so a consultation routes to the right clinician/telemedicine
+// partner (and therefore shows up in that provider's portal queue).
+async function resolveDoctorRouting(name: string): Promise<{ providerId: string | null; partnerId: string | null }> {
+  let providerId: string | null = null;
+  let partnerId: string | null = null;
+  const prov = await query('SELECT id, partner_id FROM providers WHERE full_name = $1 LIMIT 1', [name]);
+  if (prov.rows.length > 0) {
+    providerId = prov.rows[0].id;
+    partnerId = prov.rows[0].partner_id;
+  }
+  if (!partnerId) {
+    const p = await query(`SELECT id FROM partners WHERE category = 'telemedicine' ORDER BY name LIMIT 1`);
+    partnerId = p.rows[0]?.id ?? null;
+  }
+  return { providerId, partnerId };
+}
+
+// POST /member/consultations/start — begin a live consultation. Creates the
+// consultation up-front (status 'in_progress' so it appears in the doctor's
+// queue), and — when Daily is configured — provisions a private video room and
+// returns the member's join token. If Daily isn't set up yet, `video` is null
+// and the client falls back to the demo call screen.
+export async function startMemberConsultation(req: Request, res: Response): Promise<void> {
+  const memberId = req.member!.memberId;
+  const orgId = req.member!.orgId;
+  const { mode, doctorName } = req.body;
+  const m = ['video', 'voice'].includes(String(mode)) ? String(mode) : 'video';
+  const name = (doctorName ? String(doctorName) : 'MobiCova Doctor').slice(0, 255);
+
+  const { providerId, partnerId } = await resolveDoctorRouting(name);
+
+  const result = await query(
+    `INSERT INTO consultations
+       (org_id, member_id, partner_id, provider_id, mode, channel, reason, scheduled_at, status, doctor_name, notes)
+     VALUES ($1, $2, $3, $4, $5, 'app', 'Telemedicine consultation', NOW(), 'in_progress', $6, '')
+     RETURNING *`,
+    [orgId, memberId, partnerId, providerId, m, name]
+  );
+  const consultation = result.rows[0];
+
+  // Provision a Daily room for both video and voice (voice = same room, camera
+  // off — an app-to-app VoIP call until Phase 2 adds masked PSTN calling).
+  let video: { roomUrl: string; token: string } | null = null;
+  if (dailyConfigured()) {
+    try {
+      const roomName = roomNameForConsult(consultation.id);
+      const roomUrl = await ensureRoom(roomName);
+      await query('UPDATE consultations SET video_room = $1 WHERE id = $2', [roomUrl, consultation.id]);
+      consultation.video_room = roomUrl;
+      const mem = await query('SELECT full_name FROM members WHERE id = $1', [memberId]);
+      const token = await createMeetingToken(roomName, false, mem.rows[0]?.full_name || 'Patient', m === 'voice');
+      video = { roomUrl, token };
+    } catch (err) {
+      console.error('[consult] daily room/token failed:', err);
+      // Leave video null → client uses the demo call screen; consult still logged.
+    }
+  }
+
+  res.status(201).json({ consultation, video });
+}
+
+// POST /member/consultations/phone-call — place a real masked phone call: ring
+// the member's phone from the MobiCova number, then (on answer) bridge to the
+// doctor's number. Creates the consult up-front so it shows in the queue and
+// logs; the call duration is stamped later by the /voice/event webhook.
+export async function startMemberPhoneCall(req: Request, res: Response): Promise<void> {
+  if (!voiceConfigured()) {
+    res.status(503).json({ error: 'Phone calling is not set up yet.' });
+    return;
+  }
+  const memberId = req.member!.memberId;
+  const orgId = req.member!.orgId;
+  const doctorName = (req.body?.doctorName ? String(req.body.doctorName) : 'MobiCova Doctor').slice(0, 255);
+
+  const mem = await query('SELECT phone FROM members WHERE id = $1', [memberId]);
+  const memberPhone = (mem.rows[0]?.phone || '').trim();
+  if (!memberPhone) {
+    res.status(400).json({ error: 'No phone number on file for your account — add one to receive calls.' });
+    return;
+  }
+
+  const { providerId, partnerId } = await resolveDoctorRouting(doctorName);
+  let doctorPhone = '';
+  if (providerId) {
+    const p = await query('SELECT phone FROM providers WHERE id = $1', [providerId]);
+    doctorPhone = (p.rows[0]?.phone || '').trim();
+  }
+  if (!doctorPhone) {
+    res.status(400).json({ error: 'This doctor is not set up for phone calls yet.' });
+    return;
+  }
+
+  const result = await query(
+    `INSERT INTO consultations
+       (org_id, member_id, partner_id, provider_id, mode, channel, reason, scheduled_at, status, doctor_name, notes)
+     VALUES ($1, $2, $3, $4, 'voice', 'phone', 'Telemedicine phone consultation', NOW(), 'in_progress', $5, '')
+     RETURNING id`,
+    [orgId, memberId, partnerId, providerId, doctorName]
+  );
+  const consultId = result.rows[0].id;
+
+  try {
+    const { ref } = await originateCall(memberPhone);
+    await query(`UPDATE consultations SET call_ref = $1, call_status = 'ringing' WHERE id = $2`, [ref, consultId]);
+    res.status(201).json({ consultationId: consultId, status: 'ringing', maskedNumber: maskingNumber(), doctorName });
+  } catch (err) {
+    console.error('[voice] originate failed:', err);
+    await query(`UPDATE consultations SET call_status = 'failed' WHERE id = $1`, [consultId]);
+    res.status(502).json({ error: 'Could not place the call right now. Please try again.' });
+  }
+}
+
+// POST /member/consultations/:id/complete — close out a live consultation the
+// member started: record the duration and mark it completed. Member-scoped.
+export async function completeMemberConsultation(req: Request, res: Response): Promise<void> {
+  const memberId = req.member!.memberId;
+  const id = String(req.params.id);
+  const secs = Math.max(0, Math.floor(Number(req.body?.durationSeconds) || 0));
+
+  const existing = await query(
+    `SELECT mode FROM consultations WHERE id = $1 AND member_id = $2`,
+    [id, memberId]
+  );
+  if (existing.rows.length === 0) {
+    res.status(404).json({ error: 'Consultation not found' });
+    return;
+  }
+  const mode = existing.rows[0].mode;
+  const notes = `${mode === 'voice' ? 'Voice' : 'Video'} consultation · ${Math.floor(secs / 60)}m ${secs % 60}s`;
+
+  const result = await query(
+    `UPDATE consultations
+        SET status = 'completed', notes = $1, updated_at = NOW()
+      WHERE id = $2 AND member_id = $3
+      RETURNING *`,
+    [notes, id, memberId]
+  );
+  res.json(result.rows[0]);
 }

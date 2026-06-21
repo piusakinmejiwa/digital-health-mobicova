@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import { signProviderToken } from '../lib/providerAuth';
+import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult } from '../lib/daily';
 
 // ── Provider org context (unified model; a clinician may span several orgs) ──
 export interface ProviderOrg { id: string; name: string; type: string; is_primary: boolean }
@@ -173,6 +174,44 @@ export async function acceptConsultation(req: Request, res: Response): Promise<v
     return;
   }
   res.json({ accepted: true });
+}
+
+// POST /provider/consultations/:id/call — join the live video room for a consult.
+// Ensures the Daily room exists (creating it if the member hasn't yet), stores it
+// on the consultation, and returns the clinician's host token. 503 if Daily isn't
+// configured. Scoped to the doctor's own org/partner.
+export async function providerConsultationCall(req: Request, res: Response): Promise<void> {
+  if (!dailyConfigured()) {
+    res.status(503).json({ error: 'Video calling is not set up yet. Add DAILY_API_KEY to enable it.' });
+    return;
+  }
+  const partnerId = req.provider!.partnerId;
+  const providerId = req.provider!.providerId;
+  const id = String(req.params.id);
+  const requestedOrg = req.body?.orgId || req.query.orgId;
+  const activeOrgId = await resolveActiveOrgId(providerId, requestedOrg ? String(requestedOrg) : null);
+
+  const c = await query(
+    `SELECT id, video_room, mode FROM consultations
+      WHERE id = $1 AND (provider_org_id = $2::uuid OR partner_id = $3)`,
+    [id, activeOrgId, partnerId]
+  );
+  if (c.rows.length === 0) {
+    res.status(404).json({ error: 'Consultation not found' });
+    return;
+  }
+
+  const roomName = roomNameForConsult(id);
+  let roomUrl: string = c.rows[0].video_room;
+  if (!roomUrl) {
+    roomUrl = await ensureRoom(roomName);
+    await query('UPDATE consultations SET video_room = $1 WHERE id = $2', [roomUrl, id]);
+  }
+
+  const me = await query('SELECT full_name FROM providers WHERE id = $1', [providerId]);
+  // Voice consults join the same room with the camera off (audio-first).
+  const token = await createMeetingToken(roomName, true, me.rows[0]?.full_name || 'Doctor', c.rows[0].mode === 'voice');
+  res.json({ roomUrl, token, mode: c.rows[0].mode });
 }
 
 // PATCH /provider/consultations/:id — update notes / diagnosis / status (e.g.

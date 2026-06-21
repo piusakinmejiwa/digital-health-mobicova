@@ -18,6 +18,7 @@ import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
 import ProvidersAdmin from './ProvidersAdmin';
 import AuditAdmin from './AuditAdmin';
+import HealthTipsAdmin from './HealthTipsAdmin';
 import './Admin.css';
 
 const PLAN_TYPES = ['individual', 'family', 'hospital_cash', 'group', 'wellness'];
@@ -28,7 +29,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'newsletter' | 'audit' | 'safety' | 'system';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'newsletter' | 'healthtips' | 'audit' | 'safety' | 'system';
 
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
@@ -52,6 +53,7 @@ export default function AdminPage() {
         <button className={`tab ${tab === 'images' ? 'active' : ''}`} onClick={() => setTab('images')}>Page Images</button>
         <button className={`tab ${tab === 'messages' ? 'active' : ''}`} onClick={() => setTab('messages')}>Messages</button>
         <button className={`tab ${tab === 'newsletter' ? 'active' : ''}`} onClick={() => setTab('newsletter')}>Newsletter</button>
+        <button className={`tab ${tab === 'healthtips' ? 'active' : ''}`} onClick={() => setTab('healthtips')}>Health Tips</button>
         <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
         <button className={`tab ${tab === 'safety' ? 'active' : ''}`} onClick={() => setTab('safety')}>Buddy Safety</button>
         <button className={`tab ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
@@ -66,6 +68,7 @@ export default function AdminPage() {
       {tab === 'images' && <PageImagesAdmin />}
       {tab === 'messages' && <MessagesAdmin />}
       {tab === 'newsletter' && <NewsletterAdmin />}
+      {tab === 'healthtips' && <HealthTipsAdmin />}
       {tab === 'audit' && <AuditAdmin />}
       {tab === 'safety' && <SafetyAdmin />}
       {tab === 'system' && <SystemAdmin />}
@@ -78,6 +81,7 @@ export default function AdminPage() {
 const STYLE = ' Photorealistic, 3:2 landscape, warm natural light, authentic Nigerian / West African setting, hopeful and professional, no text or logos.';
 const PAGE_IMAGES: { slug: string; label: string; prompt: string }[] = [
   { slug: 'about', label: 'About', prompt: 'Diverse Nigerian healthcare workers and community members smiling together outside a modern clinic, documentary style.' },
+  { slug: 'health-tips', label: 'Daily Health Tips', prompt: 'A happy young Nigerian person reading a friendly health tip notification on their phone, bright cheerful lifestyle, wellness.' },
   { slug: 'partners', label: 'Partners', prompt: 'Two African business professionals (insurer / HMO) shaking hands in a bright modern Lagos office, warm and corporate.' },
   { slug: 'careers', label: 'Careers', prompt: 'A young, diverse African tech team collaborating around laptops in a bright modern startup office, energetic.' },
   { slug: 'contact', label: 'Contact', prompt: 'A friendly African customer-support professional wearing a headset and smiling in a modern office.' },

@@ -28,6 +28,8 @@ import blogRoutes from './blog.routes';
 import contactRoutes from './contact.routes';
 import pageAssetRoutes from './page.routes';
 import newsletterRoutes from './newsletter.routes';
+import voiceRoutes from './voice.routes';
+import healthTipsRoutes from './healthTips.routes';
 
 const router = Router();
 
@@ -60,5 +62,7 @@ router.use('/blog', blogRoutes);
 router.use('/contact', contactRoutes);
 router.use('/page-assets', pageAssetRoutes);
 router.use('/newsletter', newsletterRoutes);
+router.use('/voice', voiceRoutes);
+router.use('/health-tips', healthTipsRoutes);
 
 export default router;

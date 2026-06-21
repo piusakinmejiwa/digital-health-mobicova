@@ -22,6 +22,10 @@ import { adminListPosts, adminCreatePost, adminUpdatePost, adminDeletePost, admi
 import { adminListContactMessages, adminDeleteContactMessage } from '../controllers/contact.controller';
 import { adminListPageAssets, adminUpsertPageAsset, adminGenerateImage } from '../controllers/pageAssets.controller';
 import { adminListNewsletterSignups, adminDeleteNewsletterSignup } from '../controllers/newsletter.controller';
+import {
+  adminListSubscribers, adminDeleteSubscriber, adminListTips, adminCreateTip,
+  adminUpdateTip, adminDeleteTip, adminListTipSends, adminSendDailyTipNow,
+} from '../controllers/healthTips.controller';
 
 // In-memory upload (image goes straight to Supabase Storage; 5 MB cap, images only).
 const imageUpload = multer({
@@ -107,5 +111,15 @@ router.post('/generate-image', asyncHandler(adminGenerateImage));
 // Newsletter sign-ups
 router.get('/newsletter', asyncHandler(adminListNewsletterSignups));
 router.delete('/newsletter/:id', asyncHandler(adminDeleteNewsletterSignup));
+
+// Daily Health Tips — subscribers, tip library, send history + manual send
+router.get('/health-tips/subscribers', asyncHandler(adminListSubscribers));
+router.delete('/health-tips/subscribers/:id', asyncHandler(adminDeleteSubscriber));
+router.get('/health-tips/tips', asyncHandler(adminListTips));
+router.post('/health-tips/tips', asyncHandler(adminCreateTip));
+router.patch('/health-tips/tips/:id', asyncHandler(adminUpdateTip));
+router.delete('/health-tips/tips/:id', asyncHandler(adminDeleteTip));
+router.get('/health-tips/sends', asyncHandler(adminListTipSends));
+router.post('/health-tips/send-now', asyncHandler(adminSendDailyTipNow));
 
 export default router;

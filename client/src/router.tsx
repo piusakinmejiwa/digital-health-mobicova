@@ -47,6 +47,7 @@ import { PrivacyPage, CookiePolicyPage, AiPolicyPage } from './pages/legal/Legal
 import AskPage from './pages/ask/AskPage';
 import BlogIndexPage from './pages/blog/BlogIndexPage';
 import BlogPostPage from './pages/blog/BlogPostPage';
+import HealthTipsPage from './pages/healthtips/HealthTipsPage';
 import ContentPage from './pages/content/ContentPage';
 
 export const router = createBrowserRouter([
@@ -65,6 +66,9 @@ export const router = createBrowserRouter([
   // Public blog (SEO).
   { path: '/blog', element: <BlogIndexPage /> },
   { path: '/blog/:slug', element: <BlogPostPage /> },
+
+  // Free public service: Daily Health Tips registration (+ ?token= unsubscribe).
+  { path: '/health-tips', element: <HealthTipsPage /> },
 
   // Public company / platform / developer content pages.
   { path: '/about', element: <ContentPage slug="about" /> },

@@ -311,6 +311,7 @@ export interface AdminProvider {
   role: 'doctor' | 'pharmacist';
   specialty: string;
   photo_url: string;
+  phone?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -489,6 +490,8 @@ export interface MemberOverview {
   consultations: Consultation[];
   prescriptions: Prescription[];
   triageSessions: TriageSession[];
+  // Which live-call channels are switched on server-side.
+  capabilities?: { video: boolean; phoneCalls: boolean };
 }
 
 export interface OtpRequestResult {

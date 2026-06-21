@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getProviderConsultations, getProviderConsultation, acceptConsultation,
-  updateConsultation, addPrescription, getPharmacies,
+  updateConsultation, addPrescription, getPharmacies, getConsultationCallToken,
 } from '../../api/provider';
 import { formatDateTime, badgeClass, age } from '../../lib/format';
 import CallScreen from '../../components/member/CallScreen';
+import VideoCall from '../../components/member/VideoCall';
 import './Provider.css';
 
 const STATUS_TABS = [
@@ -84,6 +85,7 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [rx, setRx] = useState({ medication: '', dosage: '', instructions: '', pharmacyPartnerId: '' });
   const [call, setCall] = useState<'video' | 'voice' | null>(null);
+  const [videoCall, setVideoCall] = useState<{ roomUrl: string; token: string } | null>(null);
   const { data: pharmaciesData } = useQuery({ queryKey: ['provider-pharmacies'], queryFn: getPharmacies });
   const pharmacies = pharmaciesData?.pharmacies ?? [];
 
@@ -97,6 +99,12 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const nt = notes || c?.notes || '';
 
   const accept = async () => { setBusy(true); try { await acceptConsultation(id); refresh(); } finally { setBusy(false); } };
+  // Join the live Daily room (video or voice); fall back to the demo screen if
+  // Daily isn't set up. The server picks camera-on/off from the consult's mode.
+  const joinCall = async (mode: 'video' | 'voice') => {
+    try { setVideoCall(await getConsultationCallToken(id)); }
+    catch { setCall(mode); }
+  };
   const save = async (status?: string) => {
     setBusy(true);
     try {
@@ -138,8 +146,8 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 
             {c.status !== 'completed' && (
               <div className="prov-callbar">
-                <button className="btn btn-primary" onClick={() => setCall('video')}>📹 Join video call</button>
-                <button className="btn btn-secondary" onClick={() => setCall('voice')}>📞 Voice call</button>
+                <button className="btn btn-primary" onClick={() => joinCall('video')}>📹 Join video call</button>
+                <button className="btn btn-secondary" onClick={() => joinCall('voice')}>📞 Voice call</button>
               </div>
             )}
 
@@ -213,6 +221,15 @@ function ConsultDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 provider={{ name: c.member_name, role: 'Patient' }}
                 endNote="add your notes and complete the consult"
                 onEnd={() => setCall(null)}
+              />
+            )}
+            {videoCall && (
+              <VideoCall
+                roomUrl={videoCall.roomUrl}
+                token={videoCall.token}
+                title={c.member_name}
+                subtitle="Patient · MobiCova Telemedicine"
+                onEnd={() => setVideoCall(null)}
               />
             )}
           </>

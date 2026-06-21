@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import {
   providerLogin, getProviderMe,
   listProviderConsultations, getProviderConsultation, acceptConsultation,
+  providerConsultationCall,
   updateProviderConsultation, addProviderPrescription, listPharmacies,
   listProviderPrescriptions, advancePrescription,
 } from '../controllers/provider.controller';
@@ -27,6 +28,7 @@ const doctorOnly = [authenticateProvider, requireProviderRole('doctor')];
 router.get('/consultations', doctorOnly, asyncHandler(listProviderConsultations));
 router.get('/consultations/:id', doctorOnly, asyncHandler(getProviderConsultation));
 router.post('/consultations/:id/accept', doctorOnly, asyncHandler(acceptConsultation));
+router.post('/consultations/:id/call', doctorOnly, asyncHandler(providerConsultationCall));
 router.patch('/consultations/:id', doctorOnly, asyncHandler(updateProviderConsultation));
 router.get('/pharmacies', doctorOnly, asyncHandler(listPharmacies));
 router.post(

@@ -73,6 +73,39 @@ export async function logMemberConsultation(data: {
   await memberApi.post('/member/consultations', data);
 }
 
+// Start a live consultation. Creates the consult (so the doctor sees it in their
+// queue) and, when Daily video is configured, returns the member's join token.
+export interface StartConsultResult {
+  consultation: { id: string; mode: 'video' | 'voice'; doctor_name: string; status: string };
+  video: { roomUrl: string; token: string } | null;
+}
+export async function startConsultation(data: {
+  mode: 'video' | 'voice';
+  doctorName: string;
+}): Promise<StartConsultResult> {
+  const res = await memberApi.post('/member/consultations/start', data);
+  return res.data;
+}
+
+// Close out a started consultation with its duration (marks it completed).
+export async function completeConsultation(id: string, durationSeconds: number): Promise<void> {
+  await memberApi.post(`/member/consultations/${id}/complete`, { durationSeconds });
+}
+
+// Place a real masked phone call: MobiCova rings the member's phone, then bridges
+// to the doctor — both see only the MobiCova number. Returns once the call is
+// queued (the member's phone then rings); duration is logged via webhook.
+export interface PhoneCallResult {
+  consultationId: string;
+  status: string;
+  maskedNumber: string;
+  doctorName: string;
+}
+export async function startPhoneCall(doctorName: string): Promise<PhoneCallResult> {
+  const res = await memberApi.post('/member/consultations/phone-call', { doctorName });
+  return res.data;
+}
+
 // Doctors a member can call (live from the providers directory).
 export async function getMemberDoctors(): Promise<{ doctors: import('../types').MemberDoctor[] }> {
   const res = await memberApi.get('/member/doctors');

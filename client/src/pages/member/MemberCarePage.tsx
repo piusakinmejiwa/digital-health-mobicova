@@ -2,8 +2,12 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CallScreen, { type CallProvider } from '../../components/member/CallScreen';
+import VideoCall from '../../components/member/VideoCall';
 import PrescriptionTracker from '../../components/member/PrescriptionTracker';
-import { logMemberConsultation, getMemberDoctors, getMemberOverview } from '../../api/member';
+import {
+  logMemberConsultation, completeConsultation, startConsultation, startPhoneCall,
+  getMemberDoctors, getMemberOverview,
+} from '../../api/member';
 import './Member.css';
 import './Call.css';
 
@@ -16,19 +20,68 @@ export default function MemberCarePage() {
   const doctors = data?.doctors ?? [];
   const { data: overview } = useQuery({ queryKey: ['member-overview'], queryFn: getMemberOverview });
   const prescriptions = overview?.prescriptions ?? [];
-  const [call, setCall] = useState<{ mode: 'video' | 'voice'; provider: CallProvider } | null>(null);
+  const phoneCallsEnabled = overview?.capabilities?.phoneCalls ?? false;
+  // Status card for an in-flight masked phone call (the call happens on the
+  // member's actual phone line, so there's no in-browser call UI).
+  const [phoneCall, setPhoneCall] = useState<{ doctorName: string; maskedNumber: string; error?: string } | null>(null);
+  // Demo call screen (voice, and the video fallback when Daily isn't configured).
+  // `consultId` is set when the call already has a consultation row to close out.
+  const [call, setCall] = useState<{ mode: 'video' | 'voice'; provider: CallProvider; consultId?: string } | null>(null);
+  // Real Daily call (member + doctor join the same room). Voice = camera-off variant.
+  const [videoCall, setVideoCall] = useState<{ id: string; mode: 'video' | 'voice'; roomUrl: string; token: string; provider: CallProvider } | null>(null);
 
-  // When a call ends, log it as a consultation (shows in Recent care + the partner dashboard).
+  const refreshCare = () => {
+    qc.invalidateQueries({ queryKey: ['member-overview'] });
+    qc.invalidateQueries({ queryKey: ['member-me'] });
+  };
+
+  // Start a live consultation (video or voice): create the consult (so the doctor
+  // sees it), then open the real Daily room. Voice joins the same room camera-off.
+  // If Daily isn't configured server-side, fall back to the demo screen but still
+  // close out the consult on end.
+  const startCall = async (mode: 'video' | 'voice', provider: CallProvider) => {
+    try {
+      const r = await startConsultation({ mode, doctorName: provider.name });
+      if (r.video) {
+        setVideoCall({ id: r.consultation.id, mode, roomUrl: r.video.roomUrl, token: r.video.token, provider });
+      } else {
+        setCall({ mode, provider, consultId: r.consultation.id });
+      }
+    } catch {
+      // Couldn't reach the start endpoint — use the self-contained demo screen.
+      setCall({ mode, provider });
+    }
+  };
+
+  // Place a real masked phone call: the member's phone rings, then bridges to
+  // the doctor. We show a status card; the actual call is on the phone line.
+  const callPhone = async (provider: CallProvider) => {
+    setPhoneCall({ doctorName: provider.name, maskedNumber: '' });
+    try {
+      const r = await startPhoneCall(provider.name);
+      setPhoneCall({ doctorName: r.doctorName, maskedNumber: r.maskedNumber });
+      refreshCare();
+    } catch (err) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+        || 'Could not place the call. Please try again.';
+      setPhoneCall({ doctorName: provider.name, maskedNumber: '', error: msg });
+    }
+  };
+
+  // When a call ends, log/close it as a consultation (shows in Recent care + the partner dashboard).
   const endCall = (seconds: number) => {
     if (call) {
-      logMemberConsultation({ mode: call.mode, doctorName: call.provider.name, durationSeconds: seconds })
-        .then(() => {
-          qc.invalidateQueries({ queryKey: ['member-overview'] });
-          qc.invalidateQueries({ queryKey: ['member-me'] });
-        })
-        .catch(() => { /* best-effort; don't block the UI */ });
+      const done = call.consultId
+        ? completeConsultation(call.consultId, seconds)
+        : logMemberConsultation({ mode: call.mode, doctorName: call.provider.name, durationSeconds: seconds });
+      done.then(refreshCare).catch(() => { /* best-effort; don't block the UI */ });
     }
     setCall(null);
+  };
+
+  const endVideo = (seconds: number) => {
+    if (videoCall) completeConsultation(videoCall.id, seconds).then(refreshCare).catch(() => {});
+    setVideoCall(null);
   };
 
   return (
@@ -52,8 +105,11 @@ export default function MemberCarePage() {
                 </div>
               </div>
               <div className="m-doc-actions">
-                <button className="m-doc-btn video" onClick={() => setCall({ mode: 'video', provider })}>📹 Video call</button>
-                <button className="m-doc-btn voice" onClick={() => setCall({ mode: 'voice', provider })}>📞 Voice call</button>
+                <button className="m-doc-btn video" onClick={() => startCall('video', provider)}>📹 Video call</button>
+                <button className="m-doc-btn voice" onClick={() => startCall('voice', provider)}>📞 Voice call</button>
+                {phoneCallsEnabled && (
+                  <button className="m-doc-btn voice" onClick={() => callPhone(provider)}>📱 Call my phone</button>
+                )}
               </div>
             </div>
           );
@@ -88,6 +144,44 @@ export default function MemberCarePage() {
 
       {call && (
         <CallScreen mode={call.mode} provider={call.provider} onEnd={endCall} />
+      )}
+      {videoCall && (
+        <VideoCall
+          roomUrl={videoCall.roomUrl}
+          token={videoCall.token}
+          title={videoCall.provider.name}
+          subtitle={videoCall.mode === 'voice'
+            ? 'Voice consultation · MobiCova Telemedicine'
+            : `${videoCall.provider.role} · MobiCova Telemedicine`}
+          onEnd={endVideo}
+        />
+      )}
+
+      {phoneCall && (
+        <div className="m-phonecall-backdrop" onClick={() => setPhoneCall(null)}>
+          <div className="m-phonecall" onClick={(e) => e.stopPropagation()}>
+            {phoneCall.error ? (
+              <>
+                <div className="m-phonecall-ico err">⚠️</div>
+                <h3>Couldn’t place the call</h3>
+                <p className="m-muted">{phoneCall.error}</p>
+              </>
+            ) : (
+              <>
+                <div className="m-phonecall-ico">📲</div>
+                <h3>Calling your phone…</h3>
+                <p className="m-muted">
+                  We’re ringing your phone now to connect you with <strong>{phoneCall.doctorName}</strong>.
+                  Please answer to start the consultation.
+                </p>
+                {phoneCall.maskedNumber && (
+                  <p className="m-phonecall-num">The call shows as <strong>{phoneCall.maskedNumber}</strong></p>
+                )}
+              </>
+            )}
+            <button className="m-doc-btn voice" onClick={() => setPhoneCall(null)}>Done</button>
+          </div>
+        </div>
       )}
     </div>
   );

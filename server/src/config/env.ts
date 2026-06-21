@@ -72,4 +72,35 @@ export const env = {
   // (~$0.06) | high (~$0.20). low is fine for web hero images.
   imageQuality: (process.env.IMAGE_QUALITY || 'low').toLowerCase(),
   imageSize: process.env.IMAGE_SIZE || '1536x1024',
+  // Daily.co video calling (optional). Add DAILY_API_KEY to enable live
+  // member ↔ doctor video consultations. Absent ⇒ the call endpoints return a
+  // graceful 503 and the UI falls back to the demo call screen.
+  dailyApiKey: process.env.DAILY_API_KEY || '',
+  // Masked phone calls (Phase 2, optional). Provider-agnostic: Africa's Talking
+  // (Nigeria-native) or Twilio. Absent ⇒ "Call my phone" is hidden and the voice
+  // button keeps the in-app VoIP from Phase 1.
+  voiceProvider: (process.env.VOICE_PROVIDER || 'africastalking').toLowerCase(),
+  // Africa's Talking Voice. Use AT_SANDBOX=true + AT_USERNAME=sandbox to build/test
+  // before a production voice number clears. AT_VOICE_NUMBER is the masking number
+  // both parties see (e.g. +234…). AT_WEBHOOK_TOKEN guards the public callbacks.
+  atUsername: process.env.AT_USERNAME || '',
+  atApiKey: process.env.AT_API_KEY || '',
+  atVoiceNumber: process.env.AT_VOICE_NUMBER || '',
+  atSandbox: process.env.AT_SANDBOX === 'true',
+  atWebhookToken: process.env.AT_WEBHOOK_TOKEN || '',
+  // Twilio Voice (fallback provider; set VOICE_PROVIDER=twilio to use).
+  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || '',
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || '',
+  twilioVoiceNumber: process.env.TWILIO_VOICE_NUMBER || '',
+  // Outbound SMS via Africa's Talking (reuses AT_USERNAME/AT_API_KEY). Sender is
+  // the alphanumeric sender ID or shortcode AT issues; blank uses the AT default.
+  // Powers Daily Health Tips SMS. AT_SANDBOX routes to the AT sandbox.
+  atSmsSender: process.env.AT_SMS_SENDER || '',
+  // WhatsApp tips via Meta Cloud API reuse whatsappToken + whatsappPhoneId above.
+  // Business-initiated tips need an APPROVED template; absent ⇒ skipped gracefully.
+  whatsappTemplate: process.env.WHATSAPP_TEMPLATE || '',
+  whatsappLang: process.env.WHATSAPP_LANG || 'en',
+  // Shared secret a scheduler presents to POST /health-tips/run-daily so only
+  // your cron (Render Cron / cron-job.org / GitHub Actions) can trigger sends.
+  healthTipsCronSecret: process.env.HEALTH_TIPS_CRON_SECRET || '',
 };

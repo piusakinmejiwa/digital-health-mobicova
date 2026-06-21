@@ -33,6 +33,16 @@ export async function acceptConsultation(id: string): Promise<void> {
   await providerApi.post(`/provider/consultations/${id}/accept`);
 }
 
+// Get a Daily join token (host) for a consultation — works for video and voice
+// (voice joins the same room camera-off). Throws 503 if Daily isn't configured
+// yet — the caller falls back to the demo call screen.
+export async function getConsultationCallToken(
+  id: string
+): Promise<{ roomUrl: string; token: string; mode?: 'video' | 'voice' }> {
+  const res = await providerApi.post(`/provider/consultations/${id}/call`);
+  return res.data;
+}
+
 export async function updateConsultation(
   id: string,
   data: Partial<{ status: string; notes: string; diagnosis: string }>

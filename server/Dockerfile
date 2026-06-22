@@ -7,7 +7,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build            # tsc -> dist (compiles app + migrations)
+RUN npm run build            # tsc -> dist (compiles .ts only)
+# tsc does NOT copy non-TS files. The migration runner reads dist/db/migrations/*.sql,
+# so copy the SQL migrations into the compiled tree — otherwise `node dist/db/migrate.js`
+# finds an empty directory and the release migration task fails.
+RUN cp -r src/db/migrations dist/db/migrations
 
 # ---- runtime stage ----
 FROM node:22-slim AS runtime

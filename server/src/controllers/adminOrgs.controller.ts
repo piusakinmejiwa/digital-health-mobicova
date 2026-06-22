@@ -7,6 +7,7 @@ import { randomPlaceholderSecret } from '../lib/invites';
 import { sendAdminWelcome } from '../lib/onboarding';
 import { recordAudit } from '../lib/audit';
 import { geocode } from '../lib/geo';
+import { getOrgBranding } from '../lib/branding';
 
 // Platform-admin management of partner organisations (tenants). Behind
 // authenticate + requirePlatformAdmin (see admin.routes.ts).
@@ -190,4 +191,45 @@ export async function adminDeleteOrg(req: Request, res: Response): Promise<void>
     orgId: id,
   });
   res.json({ deleted: true });
+}
+
+// ── Per-tenant branding (platform admin) ────────────────────────────────────
+// Lets the platform team white-label a tenant during onboarding without needing
+// that org's own login. Mirrors the self-service /settings/branding fields.
+const HEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+function hex(v: unknown, fallback: string): string {
+  const s = String(v ?? '').trim();
+  return HEX.test(s) ? s : fallback;
+}
+
+// GET /admin/organisations/:id/branding
+export async function adminGetOrgBranding(req: Request, res: Response): Promise<void> {
+  res.json(await getOrgBranding(String(req.params.id)));
+}
+
+// PUT /admin/organisations/:id/branding
+export async function adminUpdateOrgBranding(req: Request, res: Response): Promise<void> {
+  const id = String(req.params.id);
+  const org = await query('SELECT name FROM organisations WHERE id = $1', [id]);
+  if (org.rows.length === 0) { res.status(404).json({ error: 'Organisation not found' }); return; }
+
+  const cur = await getOrgBranding(id);
+  const displayName = String(req.body?.displayName ?? cur.displayName).slice(0, 120);
+  const logoLetter = String(req.body?.logoLetter ?? cur.logoLetter).slice(0, 4);
+  const primary = hex(req.body?.primaryColor, cur.primaryColor);
+  const accent = hex(req.body?.accentColor, cur.accentColor);
+  const support = String(req.body?.supportContact ?? cur.supportContact).slice(0, 160);
+  const greeting = String(req.body?.whatsappGreeting ?? cur.whatsappGreeting).slice(0, 1000);
+
+  await query(
+    `INSERT INTO org_branding
+       (org_id, display_name, logo_letter, primary_color, accent_color, support_contact, whatsapp_greeting, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+     ON CONFLICT (org_id) DO UPDATE SET
+       display_name = $2, logo_letter = $3, primary_color = $4, accent_color = $5,
+       support_contact = $6, whatsapp_greeting = $7, updated_at = NOW()`,
+    [id, displayName, logoLetter, primary, accent, support, greeting]
+  );
+  await recordAudit(req, { action: 'branding.update', targetType: 'organisation', targetId: id, targetLabel: org.rows[0].name, orgId: id });
+  res.json(await getOrgBranding(id));
 }

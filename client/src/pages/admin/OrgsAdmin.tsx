@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import type { Organisation, AdminUser } from '../../types';
+import type { Organisation, AdminUser, OrgBranding } from '../../types';
 import {
+  adminGetOrgBranding, adminUpdateOrgBranding,
   adminListOrgs, adminCreateOrg, adminUpdateOrg, adminDeleteOrg,
   adminGetOrgSso, adminUpdateOrgSso,
 } from '../../api/admin';
@@ -30,6 +31,7 @@ export default function OrgsAdmin() {
   const [creating, setCreating] = useState<null | typeof emptyOrg>(null);
   const [editing, setEditing] = useState<null | (Organisation)>(null);
   const [ssoOrg, setSsoOrg] = useState<null | Organisation>(null);
+  const [brandingOrg, setBrandingOrg] = useState<null | Organisation>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | { org: Organisation; admin?: AdminUser }>(null);
@@ -148,6 +150,7 @@ export default function OrgsAdmin() {
               <td><span className={`badge ${o.is_active ? 'badge-green' : 'badge-gray'}`}>{o.is_active ? 'active' : 'suspended'}</span></td>
               <td className="admin-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => { setError(''); setEditing(o); }}>Edit</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setBrandingOrg(o)}>Branding</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSsoOrg(o)}>SSO</button>
                 <button
                   className="btn btn-secondary btn-sm"
@@ -283,6 +286,9 @@ export default function OrgsAdmin() {
       {/* ---- SSO config modal ---- */}
       {ssoOrg && <OrgSsoModal org={ssoOrg} onClose={() => setSsoOrg(null)} />}
 
+      {/* ---- Branding modal ---- */}
+      {brandingOrg && <OrgBrandingModal org={brandingOrg} onClose={() => setBrandingOrg(null)} />}
+
       {/* ---- Provisioned confirmation ---- */}
       {provisioned && (
         <div className="drawer-overlay" onClick={() => setProvisioned(null)}>
@@ -323,6 +329,75 @@ function OrgSsoModal({ org, onClose }: { org: Organisation; onClose: () => void 
         <div className="modal-actions">
           <button className="btn btn-secondary" onClick={onClose}>Close</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Platform-admin white-label editor for a tenant — set the partner's display
+// name, logo letter, colours, support contact and WhatsApp greeting during
+// onboarding, without needing their own login.
+const EMPTY_BRANDING: OrgBranding = {
+  displayName: '', logoLetter: '', primaryColor: '#0a7b7b', accentColor: '#12a3a3',
+  supportContact: '', whatsappGreeting: '',
+};
+function OrgBrandingModal({ org, onClose }: { org: Organisation; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ['admin-org-branding', org.id], queryFn: () => adminGetOrgBranding(org.id) });
+  const [form, setForm] = useState<OrgBranding>(EMPTY_BRANDING);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => { if (data) setForm(data); }, [data]);
+
+  const set = (k: keyof OrgBranding, v: string) => { setForm({ ...form, [k]: v }); setSaved(false); };
+  const save = async () => {
+    setBusy(true); setErr('');
+    try { await adminUpdateOrgBranding(org.id, form); setSaved(true); qc.invalidateQueries({ queryKey: ['admin-org-branding', org.id] }); }
+    catch (e) { setErr(errMessage(e, 'Could not save branding.')); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+        <h3>Branding · {org.name}</h3>
+        <p className="muted small">White-label this tenant — shown on their members' app, branded login and emails.</p>
+        {err && <div className="notice notice-error">{err}</div>}
+        {isLoading ? <p className="muted">Loading…</p> : (
+          <>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Display name</label>
+                <input value={form.displayName} onChange={(e) => set('displayName', e.target.value)} placeholder="e.g. AXA Mansard Health" />
+              </div>
+              <div className="form-group">
+                <label>Logo letter(s)</label>
+                <input value={form.logoLetter} onChange={(e) => set('logoLetter', e.target.value)} maxLength={4} placeholder="e.g. AX" />
+              </div>
+              <div className="form-group">
+                <label>Primary colour</label>
+                <input type="color" value={form.primaryColor} onChange={(e) => set('primaryColor', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Accent colour</label>
+                <input type="color" value={form.accentColor} onChange={(e) => set('accentColor', e.target.value)} />
+              </div>
+              <div className="form-group form-span-2">
+                <label>Support contact</label>
+                <input value={form.supportContact} onChange={(e) => set('supportContact', e.target.value)} placeholder="e.g. support@axamansard.com or 0800…" />
+              </div>
+              <div className="form-group form-span-2">
+                <label>WhatsApp greeting</label>
+                <textarea rows={2} value={form.whatsappGreeting} onChange={(e) => set('whatsappGreeting', e.target.value)} placeholder="Welcome message shown to members on WhatsApp" />
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={onClose}>Close</button>
+              <button className="btn btn-primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : saved ? 'Saved ✓' : 'Save branding'}</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

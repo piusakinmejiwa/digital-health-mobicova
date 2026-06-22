@@ -9,6 +9,7 @@ import {
 } from '../controllers/admin.controller';
 import {
   adminListOrgs, adminCreateOrg, adminUpdateOrg, adminDeleteOrg,
+  adminGetOrgBranding, adminUpdateOrgBranding,
 } from '../controllers/adminOrgs.controller';
 import {
   adminListUsers, adminCreateUser, adminUpdateUser,
@@ -52,6 +53,9 @@ router.delete('/organisations/:id', asyncHandler(adminDeleteOrg));
 // Per-tenant SAML SSO config (platform-admin on behalf of a partner)
 router.get('/organisations/:id/sso', asyncHandler(adminGetOrgSso));
 router.put('/organisations/:id/sso', asyncHandler(adminUpdateOrgSso));
+// Per-tenant white-label branding (platform-admin on behalf of a partner)
+router.get('/organisations/:id/branding', asyncHandler(adminGetOrgBranding));
+router.put('/organisations/:id/branding', asyncHandler(adminUpdateOrgBranding));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

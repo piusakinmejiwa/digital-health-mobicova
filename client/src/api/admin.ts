@@ -1,5 +1,5 @@
 import api from './client';
-import type { Partner, InsurancePlan, Organisation, AdminUser, AuditEntry, SsoConfig, AdminProvider } from '../types';
+import type { Partner, InsurancePlan, Organisation, AdminUser, AuditEntry, SsoConfig, AdminProvider, OrgBranding } from '../types';
 import type { SsoConfigInput } from './sso';
 
 // Platform-admin catalog management. All endpoints require platform-admin
@@ -70,6 +70,13 @@ export async function adminGetOrgSso(id: string): Promise<SsoConfig> {
 }
 export async function adminUpdateOrgSso(id: string, data: SsoConfigInput): Promise<SsoConfig> {
   return (await api.put(`/admin/organisations/${id}/sso`, data)).data;
+}
+// Per-tenant white-label branding, set on a partner's behalf during onboarding.
+export async function adminGetOrgBranding(id: string): Promise<OrgBranding> {
+  return (await api.get(`/admin/organisations/${id}/branding`)).data;
+}
+export async function adminUpdateOrgBranding(id: string, data: OrgBranding): Promise<OrgBranding> {
+  return (await api.put(`/admin/organisations/${id}/branding`, data)).data;
 }
 
 // Dashboard users

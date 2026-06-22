@@ -74,6 +74,20 @@
 .sidebar-link.active { background: var(--primary); color: #fff; }
 .sidebar-icon { width: 20px; text-align: center; font-size: 0.95rem; }
 
+/* Collapsible secondary groups (Settings / Admin) */
+.sidebar-group { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.35rem; }
+.sidebar-group-head {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; background: transparent; border: 0; cursor: pointer;
+  padding: 0.45rem 0.8rem; margin-top: 0.2rem;
+  color: #7fa0a0; font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  font-family: inherit;
+}
+.sidebar-group-head:hover { color: #cfe3e3; }
+.sidebar-group-caret { font-size: 0.65rem; transition: transform 0.15s; transform: rotate(-90deg); }
+.sidebar-group-caret.open { transform: rotate(0deg); }
+
 .sidebar-footer {
   padding: 1rem 1.2rem 0;
   border-top: 1px solid rgba(255,255,255,0.08);

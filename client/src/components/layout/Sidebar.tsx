@@ -1,9 +1,12 @@
-import { NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { getInbox } from '../../api/inbox';
 import BrandLogo from '../common/BrandLogo';
 import './Sidebar.css';
+
+type NavItem = { to: string; label: string; icon: string };
 
 // Demand-side orgs (underwriters, companies, telcos) manage members & cover.
 const navItems = [
@@ -45,17 +48,53 @@ const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
 // Shown only to platform admins — prospect discovery / feature-priority results.
 const feedbackAdminNavItem = { to: '/admin/feedback', label: 'Prospect feedback', icon: '✎' };
 
+function SidebarLink({ item, unread }: { item: NavItem; unread: number }) {
+  return (
+    <NavLink to={item.to} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+      <span className="sidebar-icon">{item.icon}</span>
+      {item.label}
+      {item.to === '/inbox' && unread > 0 && <span className="sidebar-badge">{unread}</span>}
+    </NavLink>
+  );
+}
+
+// A collapsible group of secondary nav items. Collapsed by default; opens
+// automatically when you're on one of its pages so the active item is visible.
+function SidebarGroup({ label, items, unread }: { label: string; items: NavItem[]; unread: number }) {
+  const { pathname } = useLocation();
+  const hasActive = items.some((i) => pathname === i.to || pathname.startsWith(i.to + '/'));
+  const [open, setOpen] = useState(hasActive);
+  useEffect(() => { if (hasActive) setOpen(true); }, [hasActive]);
+
+  return (
+    <div className="sidebar-group">
+      <button className="sidebar-group-head" onClick={() => setOpen((o) => !o)}>
+        <span>{label}</span>
+        <span className={`sidebar-group-caret ${open ? 'open' : ''}`}>▾</span>
+      </button>
+      {open && items.map((item) => <SidebarLink key={item.to} item={item} unread={unread} />)}
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const { user, logout } = useAuth();
   // Lightweight poll for the unread action-centre count (shared cache with /inbox).
   const { data: inbox } = useQuery({ queryKey: ['inbox'], queryFn: getInbox, refetchInterval: 60000 });
   const unread = inbox?.unread || 0;
   const isSupply = user?.orgClass === 'supply';
-  const items = [
-    ...(isSupply ? supplyNavItems : navItems),
+  const isAdmin = user?.role === 'admin';
+
+  // Daily workspace — always visible.
+  const workspace = isSupply ? supplyNavItems : navItems;
+  // Occasional items — tucked into collapsible groups to keep the bar short.
+  const settingsItems: NavItem[] = [
     docsNavItem,
     securityNavItem,
-    ...(user?.role === 'admin' ? [activityNavItem, brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
+    ...(isAdmin ? [brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
+  ];
+  const adminItems: NavItem[] = [
+    ...(isAdmin ? [activityNavItem] : []),
     ...(user?.isPlatformAdmin ? [adminNavItem, feedbackAdminNavItem] : []),
   ];
 
@@ -66,17 +105,9 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-          >
-            <span className="sidebar-icon">{item.icon}</span>
-            {item.label}
-            {item.to === '/inbox' && unread > 0 && <span className="sidebar-badge">{unread}</span>}
-          </NavLink>
-        ))}
+        {workspace.map((item) => <SidebarLink key={item.to} item={item} unread={unread} />)}
+        {settingsItems.length > 0 && <SidebarGroup label="Settings" items={settingsItems} unread={unread} />}
+        {adminItems.length > 0 && <SidebarGroup label="Admin" items={adminItems} unread={unread} />}
       </nav>
 
       <div className="sidebar-footer">

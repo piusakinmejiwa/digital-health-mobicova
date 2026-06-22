@@ -31,8 +31,37 @@ function errMessage(err: unknown, fallback: string): string {
 
 type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'newsletter' | 'healthtips' | 'audit' | 'safety' | 'system';
 
+// Tabs grouped into categories so the bar stays short: pick a category, then a
+// sub-tab within it.
+const TAB_GROUPS: { label: string; tabs: { key: AdminTab; label: string }[] }[] = [
+  { label: 'Tenants', tabs: [
+    { key: 'organisations', label: 'Organisations' },
+    { key: 'users', label: 'Users' },
+    { key: 'providers', label: 'Providers' },
+  ] },
+  { label: 'Catalog', tabs: [
+    { key: 'plans', label: 'Insurance plans' },
+    { key: 'partners', label: 'Partners' },
+  ] },
+  { label: 'Content', tabs: [
+    { key: 'blog', label: 'Blog' },
+    { key: 'images', label: 'Page Images' },
+    { key: 'healthtips', label: 'Health Tips' },
+  ] },
+  { label: 'Contacts', tabs: [
+    { key: 'messages', label: 'Messages' },
+    { key: 'newsletter', label: 'Newsletter' },
+  ] },
+  { label: 'System', tabs: [
+    { key: 'audit', label: 'Audit log' },
+    { key: 'safety', label: 'Buddy Safety' },
+    { key: 'system', label: 'System' },
+  ] },
+];
+
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>('organisations');
+  const activeGroup = TAB_GROUPS.find((g) => g.tabs.some((t) => t.key === tab)) ?? TAB_GROUPS[0];
 
   return (
     <div className="page">
@@ -43,20 +72,29 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="tabs">
-        <button className={`tab ${tab === 'organisations' ? 'active' : ''}`} onClick={() => setTab('organisations')}>Organisations</button>
-        <button className={`tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Users</button>
-        <button className={`tab ${tab === 'providers' ? 'active' : ''}`} onClick={() => setTab('providers')}>Providers</button>
-        <button className={`tab ${tab === 'plans' ? 'active' : ''}`} onClick={() => setTab('plans')}>Insurance plans</button>
-        <button className={`tab ${tab === 'partners' ? 'active' : ''}`} onClick={() => setTab('partners')}>Partners</button>
-        <button className={`tab ${tab === 'blog' ? 'active' : ''}`} onClick={() => setTab('blog')}>Blog</button>
-        <button className={`tab ${tab === 'images' ? 'active' : ''}`} onClick={() => setTab('images')}>Page Images</button>
-        <button className={`tab ${tab === 'messages' ? 'active' : ''}`} onClick={() => setTab('messages')}>Messages</button>
-        <button className={`tab ${tab === 'newsletter' ? 'active' : ''}`} onClick={() => setTab('newsletter')}>Newsletter</button>
-        <button className={`tab ${tab === 'healthtips' ? 'active' : ''}`} onClick={() => setTab('healthtips')}>Health Tips</button>
-        <button className={`tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>Audit log</button>
-        <button className={`tab ${tab === 'safety' ? 'active' : ''}`} onClick={() => setTab('safety')}>Buddy Safety</button>
-        <button className={`tab ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
+      {/* Primary: category groups */}
+      <div className="tabs tabs-groups">
+        {TAB_GROUPS.map((g) => (
+          <button
+            key={g.label}
+            className={`tab ${activeGroup.label === g.label ? 'active' : ''}`}
+            onClick={() => setTab(g.tabs[0].key)}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+      {/* Secondary: sub-tabs within the active group */}
+      <div className="tabs tabs-sub">
+        {activeGroup.tabs.map((t) => (
+          <button
+            key={t.key}
+            className={`tab ${tab === t.key ? 'active' : ''}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {tab === 'organisations' && <OrgsAdmin />}

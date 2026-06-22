@@ -58,7 +58,7 @@ const TRUST = ['Insurers', 'HMOs', 'Employers', 'Telcos', 'Pharmacies'];
 // Footer columns. Each link scrolls to a section or navigates to a route — no dead links.
 const FOOT_COLS: { h: string; items: [string, string][] }[] = [
   { h: 'Platform', items: [['Telemedicine', '/telemedicine'], ['AI Assistant', '/ask'], ['Insurance', '/insurance'], ['Channels', '/channels']] },
-  { h: 'Company', items: [['About', '/about'], ['Partners', '/partners'], ['Careers', '/careers'], ['Contact', '/contact']] },
+  { h: 'Company', items: [['About', '/about'], ['Partners', '/partners'], ['Careers', '/careers'], ['Contact', '/contact'], ['Shape MobiCova', '/shape']] },
   { h: 'Developers', items: [['API docs', '/developers'], ['Webhooks', '/webhooks'], ['Pricing', '/pricing'], ['Security', '/security']] },
 ];
 
@@ -114,7 +114,6 @@ export default function MarketingPage() {
               </div>
             </div>
             <a onClick={() => navigate('/blog')}>Blog</a>
-            <a onClick={() => navigate('/shape')}>Shape MobiCova</a>
           </nav>
           <div className="right">
             {user ? (

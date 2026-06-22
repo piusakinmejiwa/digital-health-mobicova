@@ -43,9 +43,10 @@ export default function MemberImportModal({ onClose, onImported }: {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<MemberImportResult | null>(null);
+  const [dry, setDry] = useState<MemberImportResult | null>(null);
 
   const onFile = async (file: File) => {
-    setError(''); setResult(null);
+    setError(''); setResult(null); setDry(null);
     try {
       const text = await file.text();
       const p = parseMemberCsv(text);
@@ -69,6 +70,22 @@ export default function MemberImportModal({ onClose, onImported }: {
 
   const validRecords = parsed?.records.filter((r) => rowIssue(r) === null) ?? [];
   const invalidCount = (parsed?.records.length ?? 0) - validRecords.length;
+
+  // Server-authoritative validation that writes nothing — run this first to
+  // confirm exactly what would import before committing.
+  const doDryRun = async () => {
+    if (!parsed) return;
+    setBusy(true); setError('');
+    try {
+      const res = await importMembers(parsed.records as unknown as Record<string, unknown>[], true);
+      setDry(res);
+    } catch (err) {
+      if (axios.isAxiosError(err)) setError(err.response?.data?.error || 'Validation failed.');
+      else setError('Validation failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const doImport = async () => {
     if (!parsed) return;
@@ -179,8 +196,32 @@ export default function MemberImportModal({ onClose, onImported }: {
               </>
             )}
 
+            {/* ---- Dry-run report (server validated, nothing written) ---- */}
+            {dry && (
+              <div className={`notice ${dry.wouldImport ? 'notice-success' : 'notice-error'}`} style={{ marginTop: 12 }}>
+                ✓ Dry run — <strong>nothing was saved</strong>. The server would import{' '}
+                <strong>{dry.wouldImport ?? 0}</strong> of {dry.total} rows
+                {dry.skipped.length > 0 && ` · ${dry.skipped.length} would be skipped`}.
+                {dry.skipped.length > 0 && (
+                  <ul className="rx-list" style={{ marginTop: 8 }}>
+                    {dry.skipped.slice(0, 50).map((s) => (
+                      <li key={s.row}><strong>Row {s.row}</strong> — {s.reason}</li>
+                    ))}
+                    {dry.skipped.length > 50 && <li className="muted small">…and {dry.skipped.length - 50} more.</li>}
+                  </ul>
+                )}
+              </div>
+            )}
+
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button
+                className="btn btn-secondary"
+                onClick={doDryRun}
+                disabled={busy || !parsed}
+              >
+                {busy ? 'Checking…' : 'Validate (dry run)'}
+              </button>
               <button
                 className="btn btn-primary"
                 onClick={doImport}

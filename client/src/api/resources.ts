@@ -43,9 +43,14 @@ export interface MemberImportResult {
   total: number;
   skipped: { row: number; reason: string }[];
   error?: string;
+  // Present on a dry run: nothing was written.
+  dryRun?: boolean;
+  wouldImport?: number;
+  preview?: { fullName: string; phone: string; email: string }[];
 }
-export async function importMembers(members: Record<string, unknown>[]): Promise<MemberImportResult> {
-  return (await api.post('/members/import', { members })).data;
+// dryRun=true validates against the server and previews without writing anything.
+export async function importMembers(members: Record<string, unknown>[], dryRun = false): Promise<MemberImportResult> {
+  return (await api.post('/members/import', { members, dryRun })).data;
 }
 export async function updateMember(id: string, data: Record<string, unknown>): Promise<Member> {
   return (await api.put(`/members/${id}`, data)).data;

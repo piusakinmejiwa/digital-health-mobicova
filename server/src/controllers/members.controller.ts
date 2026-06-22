@@ -124,6 +124,9 @@ function importArray(v: unknown): string[] {
 
 export async function importMembers(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
+  // Dry run: validate + preview only, never write. Lets onboarding teams check a
+  // partner's CSV (e.g. AXA's pilot cohort) before committing.
+  const dryRun = Boolean(req.body?.dryRun);
   const rows: unknown[] = Array.isArray(req.body?.members) ? req.body.members : [];
 
   if (rows.length === 0) {
@@ -160,6 +163,19 @@ export async function importMembers(req: Request, res: Response): Promise<void> 
       importArray(r.allergies), importArray(r.chronicConditions), importArray(r.currentMedications),
     ]);
   });
+
+  // Dry run stops here: report what *would* import, with a small preview, and
+  // every skipped row + reason — without touching the database.
+  if (dryRun) {
+    res.json({
+      dryRun: true,
+      wouldImport: valid.length,
+      skipped,
+      total: rows.length,
+      preview: valid.slice(0, 8).map((v) => ({ fullName: v[1], phone: v[2], email: v[3] })),
+    });
+    return;
+  }
 
   if (valid.length === 0) {
     res.status(400).json({ inserted: 0, skipped, total: rows.length, error: 'No valid rows to import.' });

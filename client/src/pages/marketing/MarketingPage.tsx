@@ -105,9 +105,14 @@ export default function MarketingPage() {
             <a onClick={() => scrollTo('services')}>Platform</a>
             <a onClick={() => scrollTo('audiences')}>Who it’s for</a>
             <a onClick={() => scrollTo('pricing')}>Pricing</a>
-            <a onClick={() => navigate('/buddy')}>Health Buddy</a>
-            <a onClick={() => navigate('/ask')}>Ask Eze</a>
-            <a onClick={() => navigate('/health-tips')}>Health Tips</a>
+            <div className="nav-dd">
+              <a className="nav-dd-trigger">Free tools <span className="nav-dd-caret">▾</span></a>
+              <div className="nav-dd-menu">
+                <a onClick={() => navigate('/buddy')}>💬 Health Buddy</a>
+                <a onClick={() => navigate('/ask')}>🤖 Ask Eze</a>
+                <a onClick={() => navigate('/health-tips')}>📲 Daily Health Tips</a>
+              </div>
+            </div>
             <a onClick={() => navigate('/blog')}>Blog</a>
             <a onClick={() => navigate('/shape')}>Shape MobiCova</a>
           </nav>

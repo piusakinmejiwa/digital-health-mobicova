@@ -13,9 +13,25 @@
 .mk-nav .in { display: flex; align-items: center; gap: 1.4rem; height: 66px; }
 .mk-nav .brand { display: flex; align-items: center; gap: .6rem; color: #fff; font-weight: 700; font-size: 1.05rem; }
 .mk-nav .brand .m { width: 34px; height: 34px; border-radius: 9px; background: var(--primary); display: grid; place-items: center; font-weight: 800; }
-.mk-nav .links { display: flex; gap: 1.4rem; margin-left: 1rem; }
-.mk-nav .links a { color: #a9d0d0; font-size: .9rem; font-weight: 500; cursor: pointer; }
-.mk-nav .links a:hover { color: #fff; }
+.mk-nav .links { display: flex; align-items: center; gap: 1.4rem; margin-left: 1rem; }
+.mk-nav .links > a { color: #a9d0d0; font-size: .9rem; font-weight: 500; cursor: pointer; }
+.mk-nav .links > a:hover { color: #fff; }
+/* "Free tools" hover dropdown — groups the free consumer tools */
+.mk-nav .nav-dd { position: relative; }
+.mk-nav .nav-dd-trigger { color: #a9d0d0; font-size: .9rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.mk-nav .nav-dd:hover .nav-dd-trigger { color: #fff; }
+.mk-nav .nav-dd-caret { font-size: .7rem; opacity: .8; }
+.mk-nav .nav-dd-menu {
+  position: absolute; top: calc(100% + .5rem); left: 0; display: none; flex-direction: column;
+  min-width: 210px; padding: .4rem; gap: .1rem;
+  background: #0f2e2e; border: 1px solid rgba(255, 255, 255, .1); border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, .4); z-index: 50;
+}
+/* invisible bridge so the menu stays open while moving the cursor onto it */
+.mk-nav .nav-dd-menu::before { content: ''; position: absolute; top: -.5rem; left: 0; right: 0; height: .5rem; }
+.mk-nav .nav-dd:hover .nav-dd-menu { display: flex; }
+.mk-nav .nav-dd-menu a { color: #cfe7e7; font-size: .9rem; font-weight: 500; padding: .55rem .7rem; border-radius: 8px; white-space: nowrap; cursor: pointer; }
+.mk-nav .nav-dd-menu a:hover { background: rgba(255, 255, 255, .07); color: #fff; }
 .mk-nav .right { margin-left: auto; display: flex; align-items: center; gap: .9rem; }
 .mk-nav .right a.si { color: #cfe7e7; font-size: .9rem; font-weight: 600; cursor: pointer; }
 

@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { simulateUssd, simulateWhatsapp } from '../../api/channels';
+import { listMembers } from '../../api/resources';
 import './Channels.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
@@ -12,13 +14,17 @@ function randomNgPhone(): string {
 export default function ChannelsPage() {
   const { user } = useAuth();
   const joinCode = user?.joinCode || '——————';
+  // Pull a real member's number so the simulators can demo member self-service
+  // (a known number) vs enrolment (a new number) in one click.
+  const { data: members } = useQuery({ queryKey: ['members'], queryFn: listMembers });
+  const demo = (members || []).find((m) => m.phone);
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
-          <h1>WhatsApp &amp; USSD intake</h1>
-          <p>Enrol members from a basic phone or a chat — no app required. Both channels funnel into the same member records.</p>
+          <h1>WhatsApp &amp; USSD</h1>
+          <p>Enrol new members and let existing members self-serve from a basic phone or a chat — no app required. A new number starts enrolment; a member's number opens member services.</p>
         </div>
       </div>
 
@@ -31,8 +37,8 @@ export default function ChannelsPage() {
       </div>
 
       <div className="channels-grid">
-        <UssdSimulator joinCode={joinCode} />
-        <WhatsappSimulator joinCode={joinCode} />
+        <UssdSimulator joinCode={joinCode} memberPhone={demo?.phone} memberName={demo?.full_name} />
+        <WhatsappSimulator joinCode={joinCode} memberPhone={demo?.phone} memberName={demo?.full_name} />
       </div>
 
       <div className="card card-pad connect-card">
@@ -58,7 +64,7 @@ export default function ChannelsPage() {
   );
 }
 
-function UssdSimulator({ joinCode }: { joinCode: string }) {
+function UssdSimulator({ joinCode, memberPhone, memberName }: { joinCode: string; memberPhone?: string; memberName?: string }) {
   const [phone, setPhone] = useState('+2348012345678');
   const [text, setText] = useState('');
   const [screen, setScreen] = useState('');
@@ -101,6 +107,18 @@ function UssdSimulator({ joinCode }: { joinCode: string }) {
       <div className="form-group">
         <label>Caller number</label>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} disabled={active && !ended} />
+        {memberPhone && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ marginTop: '0.4rem' }}
+            disabled={active && !ended}
+            onClick={() => setPhone(memberPhone)}
+            title="See member services instead of enrolment"
+          >
+            Use a member’s number{memberName ? ` (${memberName})` : ''}
+          </button>
+        )}
       </div>
 
       <div className="ussd-screen">
@@ -122,7 +140,7 @@ function UssdSimulator({ joinCode }: { joinCode: string }) {
   );
 }
 
-function WhatsappSimulator({ joinCode }: { joinCode: string }) {
+function WhatsappSimulator({ joinCode, memberPhone, memberName }: { joinCode: string; memberPhone?: string; memberName?: string }) {
   const [from, setFrom] = useState(randomNgPhone());
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; text: string }[]>([]);
   const [input, setInput] = useState('');
@@ -149,6 +167,17 @@ function WhatsappSimulator({ joinCode }: { joinCode: string }) {
         <button className="btn btn-secondary btn-sm" onClick={reset}>New chat</button>
       </div>
       <p className="muted small">Chats from <strong>{from}</strong>. Send your code <strong>{joinCode}</strong> to begin.</p>
+      {memberPhone && (
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          style={{ marginBottom: '0.5rem' }}
+          onClick={() => { setFrom(memberPhone); setMessages([]); }}
+          title="Chat as an existing member to see member services"
+        >
+          Chat as a member{memberName ? ` (${memberName})` : ''}
+        </button>
+      )}
 
       <div className="wa-screen">
         {messages.length === 0 ? (

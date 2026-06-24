@@ -5,6 +5,7 @@ import {
   advanceIntake, createMemberFromIntake, initialIntakeState, INTAKE_INTRO, IntakeState, IntakeStep,
 } from '../services/intake.service';
 import { answerBuddy } from '../services/buddy.service';
+import { findMemberByPhone, memberMenu, handleMemberChoice } from '../lib/memberServices';
 
 // WhatsApp greeting adds buddy discoverability (INTAKE_INTRO itself is shared with
 // USSD, so we keep it untouched and only extend the greeting here).
@@ -28,7 +29,7 @@ interface StoredSession {
   org_id: string | null;
   data: { orgName?: string; fullName?: string; gender?: string };
   completed: boolean;
-  mode: 'intake' | 'buddy';
+  mode: 'intake' | 'buddy' | 'member';
 }
 
 function toState(row: StoredSession): IntakeState {
@@ -60,7 +61,7 @@ async function loadOrStartSession(identifier: string): Promise<{ session: Stored
   return { session: existing.rows[0], isNew: false };
 }
 
-async function setSessionMode(id: string, mode: 'intake' | 'buddy'): Promise<void> {
+async function setSessionMode(id: string, mode: 'intake' | 'buddy' | 'member'): Promise<void> {
   await query(`UPDATE intake_sessions SET mode = $2, updated_at = NOW() WHERE id = $1`, [id, mode]);
 }
 
@@ -140,6 +141,19 @@ async function processInbound(identifier: string, message: string): Promise<{ re
       return { reply: WA_GREETING, done: false, step: 'org_code' };
     }
     return { reply: await buddyTurn(identifier, message), done: false, step: session.step };
+  }
+
+  // Known member → self-service (identified by their WhatsApp number). Numeric
+  // replies run an action; anything else shows the menu. Buddy is still reachable
+  // via the BUDDY command above.
+  const member = await findMemberByPhone(identifier);
+  if (member) {
+    await setSessionMode(session.id, 'member');
+    if (['1', '2', '3', '4'].includes(cmd)) {
+      const out = await handleMemberChoice(member, cmd, 'whatsapp');
+      return { reply: `${out ?? 'Sorry, please try again.'}\n\nReply MENU for options, or BUDDY <question>.`, done: false, step: session.step };
+    }
+    return { reply: memberMenu(member.full_name), done: false, step: session.step };
   }
 
   // First contact: greet with instructions instead of consuming the opening

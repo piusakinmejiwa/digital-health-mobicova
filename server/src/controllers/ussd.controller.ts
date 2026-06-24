@@ -4,6 +4,7 @@ import {
   advanceIntake, createMemberFromIntake, initialIntakeState, IntakeState, INTAKE_INTRO,
 } from '../services/intake.service';
 import { buddyMenuScreen, buddyTipScreen, buddyTopicLabel } from '../lib/buddyMenu';
+import { findMemberByPhone, memberMenu, handleMemberChoice } from '../lib/memberServices';
 
 // USSD opening adds a Health Buddy option. INTAKE_INTRO (shared with WhatsApp) is
 // left untouched; entering an org code as the first input still goes to enrolment.
@@ -26,9 +27,20 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
 
   res.set('Content-Type', 'text/plain');
 
+  // Identify the caller: a known member gets self-service; everyone else gets
+  // enrolment. The MSISDN is the identity — no password on USSD.
+  const member = await findMemberByPhone(phoneNumber);
+
   // Opening screen, before any input.
   if (parts.length === 0) {
-    res.send(`CON ${USSD_OPENING}`);
+    res.send(`CON ${member ? memberMenu(member.full_name) : USSD_OPENING}`);
+    return;
+  }
+
+  // Member self-service (options 1–4). Option 0 still goes to the Health Buddy below.
+  if (member && ['1', '2', '3', '4'].includes(parts[0])) {
+    const out = await handleMemberChoice(member, parts[0], 'ussd');
+    res.send(`END ${out ?? 'Sorry, please try again.'}`);
     return;
   }
 
@@ -55,7 +67,13 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  // Replay every answer so far through the engine.
+  // A known member only has options 0–4; anything else just re-shows the menu.
+  if (member) {
+    res.send(`CON Invalid option.\n${memberMenu(member.full_name)}`);
+    return;
+  }
+
+  // Replay every answer so far through the engine (enrolment for non-members).
   let state: IntakeState = initialIntakeState();
   let reply = INTAKE_INTRO;
   let done = false;

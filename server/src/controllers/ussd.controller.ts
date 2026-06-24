@@ -91,3 +91,14 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
 
   res.send(`${done ? 'END' : 'CON'} ${reply}`);
 }
+
+// POST /channels/ussd/notification — Africa's Talking end-of-session notification.
+// Optional second callback (set under USSD → Service Codes). We just acknowledge
+// it (and log) so AT doesn't flag a delivery error; no menu response is expected.
+export async function handleUssdNotification(req: Request, res: Response): Promise<void> {
+  console.log('[ussd] session ended:', {
+    sessionId: req.body?.sessionId, serviceCode: req.body?.serviceCode,
+    networkCode: req.body?.networkCode, date: req.body?.date,
+  });
+  res.sendStatus(200);
+}

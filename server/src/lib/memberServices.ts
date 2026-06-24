@@ -60,7 +60,7 @@ export async function handleMemberChoice(member: ChannelMember, choice: string, 
       );
       if (!r.rows.length) return 'No claims on record.';
       return 'Recent claims:\n' + r.rows.map((c: any) =>
-        `${c.reference || c.claim_type}: ${c.currency} ${Number(c.amount).toLocaleString()} — ${c.status}`).join('\n');
+        `${c.reference || c.claim_type}: ${c.currency} ${Number(c.amount).toLocaleString()} - ${c.status}`).join('\n');
     }
     case '3': {
       const r = await query(
@@ -69,7 +69,7 @@ export async function handleMemberChoice(member: ChannelMember, choice: string, 
         [member.id]
       );
       if (!r.rows.length) return 'No prescriptions on record.';
-      return 'Your prescriptions:\n' + r.rows.map((p: any) => `${p.medication} — ${p.fulfilment_status}`).join('\n');
+      return 'Your prescriptions:\n' + r.rows.map((p: any) => `${p.medication} - ${p.fulfilment_status}`).join('\n');
     }
     case '4': {
       // Log a callback request as a scheduled consultation so it lands in a

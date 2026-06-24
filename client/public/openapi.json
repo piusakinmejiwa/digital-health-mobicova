@@ -1,0 +1,213 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MobiCova Health — Partner API",
+    "version": "1.0.0",
+    "description": "Read-only, tenant-scoped REST API for partners (insurers, employers, fintechs, telcos) to integrate with MobiCova.\n\n**Authentication.** Every request must carry your API key, either as a bearer token or in the `X-API-Key` header:\n\n```\nAuthorization: Bearer mk_live_xxxxxxxxxxxxxxxx\n```\n\nor\n\n```\nX-API-Key: mk_live_xxxxxxxxxxxxxxxx\n```\n\nGenerate and revoke keys in your MobiCova dashboard under **Settings → API & webhooks**. A key is scoped to your organisation, so you can only ever read your own members, enrolments and claims.\n\n**Pagination.** List endpoints accept `limit` (1–200, default 50) and `offset` (default 0), and return a `pagination` object with the total count.\n\n**Webhooks.** Subscribe to events in the same dashboard. Each delivery is an HTTP POST to your endpoint with a JSON body `{ \"event\": \"<name>\", \"data\": { ... }, \"created_at\": \"<ISO8601>\" }`. Current partner events: `member.enrolled`, `claim.created`. Verify the signature header against your webhook secret before trusting a payload.\n\n**Rate limiting.** Requests are rate-limited; back off on HTTP 429.",
+    "contact": { "name": "MobiCova Health", "url": "https://mobicova.com" }
+  },
+  "servers": [
+    { "url": "https://mobicova-api.onrender.com/api/public/v1", "description": "Production" }
+  ],
+  "security": [ { "bearerAuth": [] }, { "apiKeyAuth": [] } ],
+  "tags": [
+    { "name": "Members", "description": "Members enrolled under your organisation." },
+    { "name": "Enrolments", "description": "Member ↔ insurance-plan enrolments." },
+    { "name": "Claims", "description": "Claims submitted by your members." }
+  ],
+  "paths": {
+    "/members": {
+      "get": {
+        "tags": ["Members"],
+        "summary": "List members",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of members.",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "data": { "type": "array", "items": { "$ref": "#/components/schemas/Member" } },
+                "pagination": { "$ref": "#/components/schemas/Pagination" }
+              }
+            } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/members/{id}": {
+      "get": {
+        "tags": ["Members"],
+        "summary": "Get a member",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } } ],
+        "responses": {
+          "200": {
+            "description": "The member, including the EHR-lite health profile.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/MemberDetail" } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/enrolments": {
+      "get": {
+        "tags": ["Enrolments"],
+        "summary": "List enrolments",
+        "parameters": [
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of enrolments.",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "data": { "type": "array", "items": { "$ref": "#/components/schemas/Enrolment" } },
+                "pagination": { "$ref": "#/components/schemas/Pagination" }
+              }
+            } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/claims": {
+      "get": {
+        "tags": ["Claims"],
+        "summary": "List claims",
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string", "example": "approved" }, "description": "Filter by claim status." },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of claims.",
+            "content": { "application/json": { "schema": {
+              "type": "object",
+              "properties": {
+                "data": { "type": "array", "items": { "$ref": "#/components/schemas/Claim" } },
+                "pagination": { "$ref": "#/components/schemas/Pagination" }
+              }
+            } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/claims/{id}": {
+      "get": {
+        "tags": ["Claims"],
+        "summary": "Get a claim",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } } ],
+        "responses": {
+          "200": {
+            "description": "The claim, including the decision note.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Claim" } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "API key as a bearer token: `Authorization: Bearer mk_live_…`" },
+      "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key", "description": "API key in the `X-API-Key` header." }
+    },
+    "parameters": {
+      "Limit": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 } },
+      "Offset": { "name": "offset", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 0, "default": 0 } }
+    },
+    "responses": {
+      "Unauthorized": { "description": "Missing or invalid API key.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "NotFound": { "description": "Resource not found within your organisation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    },
+    "schemas": {
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "limit": { "type": "integer", "example": 50 },
+          "offset": { "type": "integer", "example": 0 },
+          "total": { "type": "integer", "example": 1280 }
+        }
+      },
+      "Error": { "type": "object", "properties": { "error": { "type": "string", "example": "Missing or invalid API key" } } },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "full_name": { "type": "string", "example": "Amaka Obi" },
+          "phone": { "type": "string", "example": "+2348012345678" },
+          "email": { "type": "string", "format": "email" },
+          "date_of_birth": { "type": "string", "format": "date", "nullable": true },
+          "gender": { "type": "string", "example": "female" },
+          "channel": { "type": "string", "example": "app" },
+          "status": { "type": "string", "example": "active" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "MemberDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Member" },
+          {
+            "type": "object",
+            "properties": {
+              "blood_group": { "type": "string", "example": "O+" },
+              "allergies": { "type": "array", "items": { "type": "string" } },
+              "chronic_conditions": { "type": "array", "items": { "type": "string" } },
+              "current_medications": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        ]
+      },
+      "Enrolment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "member_id": { "type": "string", "format": "uuid" },
+          "member_name": { "type": "string" },
+          "plan_id": { "type": "string", "format": "uuid" },
+          "plan_name": { "type": "string", "example": "Family Health Plus" },
+          "plan_type": { "type": "string", "example": "family" },
+          "monthly_premium": { "type": "number", "example": 12000 },
+          "currency": { "type": "string", "example": "NGN" },
+          "underwriter": { "type": "string", "example": "AXA Mansard" },
+          "status": { "type": "string", "example": "active" },
+          "payment_status": { "type": "string", "example": "paid" },
+          "enrolled_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Claim": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "reference": { "type": "string", "example": "CLM-2026-000123" },
+          "member_id": { "type": "string", "format": "uuid" },
+          "member_name": { "type": "string" },
+          "claim_type": { "type": "string", "example": "outpatient" },
+          "provider_name": { "type": "string", "example": "Lagoon Hospital" },
+          "service_date": { "type": "string", "format": "date", "nullable": true },
+          "amount": { "type": "number", "example": 45000 },
+          "currency": { "type": "string", "example": "NGN" },
+          "status": { "type": "string", "example": "approved" },
+          "decision_note": { "type": "string", "nullable": true },
+          "plan_id": { "type": "string", "format": "uuid", "nullable": true },
+          "plan_name": { "type": "string", "nullable": true },
+          "underwriter": { "type": "string", "nullable": true },
+          "submitted_via": { "type": "string", "example": "app" },
+          "decided_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

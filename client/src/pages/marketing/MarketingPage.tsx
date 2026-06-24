@@ -59,7 +59,7 @@ const TRUST = ['Insurers', 'HMOs', 'Employers', 'Telcos', 'Pharmacies'];
 const FOOT_COLS: { h: string; items: [string, string][] }[] = [
   { h: 'Platform', items: [['Telemedicine', '/telemedicine'], ['AI Assistant', '/ask'], ['Insurance', '/insurance'], ['Channels', '/channels']] },
   { h: 'Company', items: [['About', '/about'], ['Partners', '/partners'], ['Careers', '/careers'], ['Contact', '/contact'], ['Shape MobiCova', '/shape']] },
-  { h: 'Developers', items: [['API docs', '/developers'], ['Webhooks', '/webhooks'], ['Pricing', '/pricing'], ['Security', '/security']] },
+  { h: 'Developers', items: [['API reference', '/developers/api'], ['Webhooks', '/webhooks'], ['Pricing', '/pricing'], ['Security', '/security']] },
 ];
 
 function scrollTo(id: string) {

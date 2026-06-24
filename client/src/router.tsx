@@ -48,6 +48,7 @@ import AskPage from './pages/ask/AskPage';
 import BlogIndexPage from './pages/blog/BlogIndexPage';
 import BlogPostPage from './pages/blog/BlogPostPage';
 import HealthTipsPage from './pages/healthtips/HealthTipsPage';
+import ApiDocsPage from './pages/developers/ApiDocsPage';
 import ContentPage from './pages/content/ContentPage';
 
 export const router = createBrowserRouter([
@@ -79,6 +80,7 @@ export const router = createBrowserRouter([
   { path: '/insurance', element: <ContentPage slug="insurance" /> },
   { path: '/channels', element: <ContentPage slug="channels" /> },
   { path: '/developers', element: <ContentPage slug="developers" /> },
+  { path: '/developers/api', element: <ApiDocsPage /> },
   { path: '/webhooks', element: <ContentPage slug="webhooks" /> },
   { path: '/pricing', element: <ContentPage slug="pricing" /> },
   { path: '/security', element: <ContentPage slug="security" /> },

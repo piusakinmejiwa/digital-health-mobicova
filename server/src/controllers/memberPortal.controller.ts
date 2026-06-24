@@ -13,6 +13,8 @@ import { getOrgBranding } from '../lib/branding';
 import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult, recordingConfigured } from '../lib/daily';
 import { voiceConfigured, originateCall, maskingNumber } from '../lib/voice';
 import { geocode } from '../lib/geo';
+import { sendSms, smsConfigured } from '../lib/messaging';
+import { sendEmail } from '../lib/email';
 
 // ── Identity resolution ─────────────────────────────────────────────────
 // A member identifies with either a phone number or an email already on their
@@ -41,23 +43,34 @@ async function findMemberByIdentifier(identifier: string) {
 }
 
 // Best-effort OTP delivery. Today we can push over WhatsApp when Meta creds are
-// set and the member has a phone. SMS/email gateways are future work. Returns
-// the channel used, or 'none' when nothing could deliver (dev/demo fallback).
+// Deliver the login OTP by SMS (Africa's Talking) first, then email (Resend).
+// We deliberately do NOT use WhatsApp for OTP: a login code is business-initiated,
+// so Meta requires an approved template (plain text would fail outside the 24h
+// window), and it's the pricey authentication category. SMS/email are reliable,
+// cheap, and need no template. Returns the channel used, or 'none' when nothing
+// could deliver (dev/demo fallback surfaces the code instead).
 async function deliverOtp(member: { phone: string; email: string }, code: string): Promise<{ channel: string; destination: string }> {
-  const body = `Your MobiCova verification code is ${code}. It expires in 10 minutes.`;
+  const text = `Your MobiCova verification code is ${code}. It expires in 10 minutes.`;
 
-  if (member.phone && env.whatsappToken && env.whatsappPhoneId) {
-    try {
-      await fetch(`https://graph.facebook.com/v21.0/${env.whatsappPhoneId}/messages`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${env.whatsappToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messaging_product: 'whatsapp', to: member.phone, type: 'text', text: { body } }),
-      });
-      return { channel: 'whatsapp', destination: maskDestination(member.phone, 'phone') };
-    } catch (err) {
-      console.error('OTP WhatsApp send failed:', err);
-    }
+  // 1) SMS via Africa's Talking.
+  if (member.phone && smsConfigured()) {
+    const r = await sendSms(member.phone, text);
+    if (r.ok) return { channel: 'sms', destination: maskDestination(member.phone, 'phone') };
+    console.error('OTP SMS failed:', r.error);
   }
+
+  // 2) Email via Resend.
+  if (member.email) {
+    const r = await sendEmail({
+      to: member.email,
+      subject: 'Your MobiCova verification code',
+      html: `<div style="font:16px/1.6 Arial,sans-serif;color:#1f2d2b">Your MobiCova verification code is
+        <strong style="font-size:20px;letter-spacing:2px">${code}</strong>.<br>It expires in 10 minutes.</div>`,
+      text,
+    });
+    if (r.sent) return { channel: 'email', destination: maskDestination(member.email, 'email') };
+  }
+
   return { channel: 'none', destination: '' };
 }
 

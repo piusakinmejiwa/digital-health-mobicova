@@ -11,6 +11,8 @@ export type PageContent = {
   faq?: Faq[];
   ctaText?: string;
   ctaTo?: string;
+  secondaryCtaText?: string;  // optional outline button next to the primary CTA
+  secondaryCtaTo?: string;
   contactForm?: boolean;
   illustration?: string;  // HeroIllustration kind, shown when no heroImage is set
   heroImage?: string;     // paste a photo URL here to replace the illustration
@@ -174,6 +176,7 @@ export const CONTENT: Record<string, PageContent> = {
       { q: 'Is there a sandbox?', a: 'Yes — the platform includes simulators for the USSD and WhatsApp channels so you can build and test flows without going live.' },
     ],
     ctaText: 'Talk to us', ctaTo: '/contact',
+    secondaryCtaText: 'View the API reference', secondaryCtaTo: '/developers/api',
   },
   webhooks: {
     eyebrow: 'Developers',

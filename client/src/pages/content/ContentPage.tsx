@@ -150,6 +150,9 @@ export default function ContentPage({ slug }: { slug: string }) {
             <div className="ct-cta">
               <span>Ready to take the next step?</span>
               <button className="btn btn-amber" onClick={() => navigate(page.ctaTo || '/contact')}>{page.ctaText} →</button>
+              {page.secondaryCtaText && (
+                <button className="btn btn-outline" onClick={() => navigate(page.secondaryCtaTo || '/')}>{page.secondaryCtaText} →</button>
+              )}
             </div>
           )}
         </div>

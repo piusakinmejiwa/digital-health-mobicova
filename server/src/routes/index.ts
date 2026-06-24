@@ -30,6 +30,7 @@ import pageAssetRoutes from './page.routes';
 import newsletterRoutes from './newsletter.routes';
 import voiceRoutes from './voice.routes';
 import healthTipsRoutes from './healthTips.routes';
+import pharmarunRoutes from './pharmarun.routes';
 
 const router = Router();
 
@@ -64,5 +65,6 @@ router.use('/page-assets', pageAssetRoutes);
 router.use('/newsletter', newsletterRoutes);
 router.use('/voice', voiceRoutes);
 router.use('/health-tips', healthTipsRoutes);
+router.use('/pharmarun', pharmarunRoutes);
 
 export default router;

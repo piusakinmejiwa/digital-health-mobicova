@@ -113,4 +113,14 @@ export const env = {
   dailyRecordingEnabled: process.env.DAILY_RECORDING_ENABLED === 'true',
   // Guards the public Daily recording webhook (?token= on the URL set in Daily).
   dailyWebhookToken: process.env.DAILY_WEBHOOK_TOKEN || '',
+  // PharmaRun external pharmacy fulfilment (optional). Absent ⇒ prescriptions
+  // stay on the internal pharmacist dispensary. PharmaRun picks the nearest
+  // outlet from the patient's location; payment is settled upstream (B2B), so
+  // the order is a pure fulfilment request.
+  // TODO(pharmarun): confirm base URLs + auth scheme from the API docs.
+  pharmarunApiKey: process.env.PHARMARUN_API_KEY || '',
+  pharmarunBaseUrl: (process.env.PHARMARUN_BASE_URL || 'https://api.pharmarun.com').replace(/\/$/, ''),
+  pharmarunSandboxUrl: (process.env.PHARMARUN_SANDBOX_URL || 'https://sandbox.pharmarun.com').replace(/\/$/, ''),
+  pharmarunSandbox: process.env.PHARMARUN_SANDBOX === 'true',
+  pharmarunWebhookSecret: process.env.PHARMARUN_WEBHOOK_SECRET || '',
 };

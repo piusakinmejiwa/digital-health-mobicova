@@ -4,6 +4,7 @@ import { query } from '../config/database';
 import { signProviderToken } from '../lib/providerAuth';
 import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult, recordingConfigured, listRoomRecordings, getRecordingAccessLink } from '../lib/daily';
 import { haversineKm } from '../lib/geo';
+import { pharmarunConfigured, createFulfilmentOrder } from '../lib/pharmacyFulfilment';
 
 // ── Provider org context (unified model; a clinician may span several orgs) ──
 export interface ProviderOrg { id: string; name: string; type: string; is_primary: boolean }
@@ -410,7 +411,44 @@ export async function addProviderPrescription(req: Request, res: Response): Prom
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
     [id, consult.rows[0].member_id, String(medication).slice(0, 255), String(dosage || ''), String(instructions || ''), pharmacyName, pharmacyPartnerId, pharmacyOrgId]
   );
-  res.status(201).json(result.rows[0]);
+  const rx = result.rows[0];
+
+  // When PharmaRun is configured, route fulfilment to their network (they pick the
+  // nearest outlet from the patient's location). Best-effort: a failure here never
+  // blocks issuing the prescription — it just stays on the internal dispensary.
+  if (pharmarunConfigured()) {
+    try {
+      const m = await query(
+        `SELECT full_name, phone, address, city, latitude, longitude FROM members WHERE id = $1`,
+        [consult.rows[0].member_id]
+      );
+      const mem = m.rows[0];
+      const prov = await query('SELECT full_name FROM providers WHERE id = $1', [req.provider!.providerId]);
+      const order = await createFulfilmentOrder({
+        prescriptionId: rx.id,
+        items: [{ medication: rx.medication, dosage: rx.dosage, instructions: rx.instructions }],
+        patient: {
+          name: mem?.full_name || '', phone: mem?.phone || '', address: mem?.address || '',
+          city: mem?.city || '', latitude: mem?.latitude ?? null, longitude: mem?.longitude ?? null,
+        },
+        prescriber: { name: prov.rows[0]?.full_name || 'Doctor' },
+      });
+      await query(
+        `UPDATE prescriptions
+            SET fulfilment_provider = 'pharmarun', external_order_id = $2,
+                external_status = $3, tracking_url = COALESCE($4, tracking_url)
+          WHERE id = $1`,
+        [rx.id, order.orderId, order.status, order.trackingUrl ?? null]
+      );
+      rx.fulfilment_provider = 'pharmarun';
+      rx.external_order_id = order.orderId;
+      rx.external_status = order.status;
+    } catch (err) {
+      console.error('[pharmarun] order submission failed (kept on internal dispensary):', err);
+    }
+  }
+
+  res.status(201).json(rx);
 }
 
 // ── Pharmacist: dispensary ──────────────────────────────────────────────

@@ -6,6 +6,8 @@ import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import routes from './routes';
 import publicApiRoutes from './routes/publicApi.routes';
+import { smsConfigured, whatsappConfigured } from './lib/messaging';
+import { pharmarunConfigured } from './lib/pharmacyFulfilment';
 
 const app = express();
 
@@ -68,7 +70,20 @@ app.use('/api/v1', routes);
 app.use('/api/public/v1', apiLimiter, publicApiRoutes);
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  // Booleans only — confirms which integrations the running service can see,
+  // without ever exposing a secret value. Handy for go-live ("is SMS wired?").
+  res.json({
+    status: 'ok',
+    integrations: {
+      sms: smsConfigured(),
+      smsSandbox: env.atSandbox,
+      whatsapp: whatsappConfigured(),
+      video: !!env.dailyApiKey,
+      geocode: !!env.geocodeApiKey,
+      pharmarun: pharmarunConfigured(),
+      otpDevMode: env.otpDevMode,
+    },
+  });
 });
 
 app.use(errorHandler);

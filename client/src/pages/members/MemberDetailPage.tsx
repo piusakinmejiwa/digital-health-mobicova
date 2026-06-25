@@ -6,6 +6,7 @@ import {
 } from '../../api/resources';
 import { naira, formatDate, formatDateTime, age, triageLabel, badgeClass } from '../../lib/format';
 import { useAuth } from '../../context/AuthContext';
+import MemberEditModal from './MemberEditModal';
 import './Members.css';
 
 export default function MemberDetailPage() {
@@ -26,6 +27,7 @@ export default function MemberDetailPage() {
   const [loc, setLoc] = useState({ address: '', city: '' });
   const [locBusy, setLocBusy] = useState(false);
   const [locSaved, setLocSaved] = useState(false);
+  const [editing, setEditing] = useState(false);
   useEffect(() => {
     if (member) setLoc({ address: (member as { address?: string }).address || '', city: (member as { city?: string }).city || '' });
   }, [member]);
@@ -90,10 +92,25 @@ export default function MemberDetailPage() {
             <span className="badge badge-teal">{member.channel}</span>
           </p>
         </div>
-        <button className="btn btn-secondary" onClick={() => navigate('/assistant', { state: { memberId: member.id, memberName: member.full_name } })}>
-          ✦ Triage with AI assistant
-        </button>
+        <div className="page-header-actions">
+          {canWrite && (
+            <button className="btn btn-secondary" onClick={() => setEditing(true)}>
+              ✎ Edit member
+            </button>
+          )}
+          <button className="btn btn-secondary" onClick={() => navigate('/assistant', { state: { memberId: member.id, memberName: member.full_name } })}>
+            ✦ Triage with AI assistant
+          </button>
+        </div>
       </div>
+
+      {editing && (
+        <MemberEditModal
+          member={member}
+          onClose={() => setEditing(false)}
+          onSaved={() => { setEditing(false); refresh(); }}
+        />
+      )}
 
       <div className="detail-grid">
         <div className="detail-main">

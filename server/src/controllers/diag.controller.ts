@@ -29,5 +29,19 @@ export async function testSms(req: Request, res: Response): Promise<void> {
   }
 
   const outcome = await sendSms(to, 'MobiCova SMS diagnostic — please ignore.');
-  res.json({ attempted: true, sandbox: true, to, outcome });
+  // Non-secret view of the auth triplet, to localise a 401 without leaking the
+  // key: username (not secret), which host we hit, and the *shape* of the key.
+  const key = env.atApiKey;
+  res.json({
+    attempted: true,
+    to,
+    config: {
+      username: env.atUsername,
+      host: env.atSandbox ? 'sandbox' : 'live',
+      keyLength: key.length,
+      keyHasSurroundingWhitespace: key !== key.trim(),
+      keyLooksLikeAtKey: key.startsWith('atsk_'),
+    },
+    outcome,
+  });
 }

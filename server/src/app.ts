@@ -11,6 +11,11 @@ import { pharmarunConfigured } from './lib/pharmacyFulfilment';
 
 const app = express();
 
+// Render (and most PaaS) front the app with a proxy that sets X-Forwarded-For.
+// Trust the first hop so express-rate-limit can see the real client IP instead
+// of throwing ERR_ERL_UNEXPECTED_X_FORWARDED_FOR and lumping everyone together.
+app.set('trust proxy', 1);
+
 app.use(helmet());
 // Allow the configured client origins (custom domain, Render URL, localhost).
 // Requests without an Origin header (server-to-server, curl, the public API) are

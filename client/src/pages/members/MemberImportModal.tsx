@@ -127,6 +127,14 @@ export default function MemberImportModal({ onClose, onImported }: {
                 {result.skipped.length > 50 && <p className="muted small">…and {result.skipped.length - 50} more.</p>}
               </div>
             )}
+            {result.warnings && result.warnings.length > 0 && (
+              <div className="notice" style={{ marginTop: 10, background: '#fff8e6', borderColor: '#f0d48a', color: '#7a5b00' }}>
+                ⚠️ <strong>{result.warnings.length}</strong> imported but not contactable (no phone or email — can&rsquo;t receive a login code):
+                <ul className="rx-list" style={{ marginTop: 6 }}>
+                  {result.warnings.slice(0, 50).map((w) => <li key={`w${w.row}`}>Row {w.row} — {w.reason}</li>)}
+                </ul>
+              </div>
+            )}
             <div className="modal-actions">
               <button className="btn btn-primary" onClick={onClose}>Done</button>
             </div>
@@ -209,6 +217,15 @@ export default function MemberImportModal({ onClose, onImported }: {
                     ))}
                     {dry.skipped.length > 50 && <li className="muted small">…and {dry.skipped.length - 50} more.</li>}
                   </ul>
+                )}
+                {dry.warnings && dry.warnings.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    ⚠️ <strong>{dry.warnings.length}</strong> would import but can&rsquo;t receive a login code (no phone or email):
+                    <ul className="rx-list" style={{ marginTop: 6 }}>
+                      {dry.warnings.slice(0, 50).map((w) => <li key={`w${w.row}`}>Row {w.row} — {w.reason}</li>)}
+                      {dry.warnings.length > 50 && <li className="muted small">…and {dry.warnings.length - 50} more.</li>}
+                    </ul>
+                  </div>
                 )}
               </div>
             )}

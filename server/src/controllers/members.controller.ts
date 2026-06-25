@@ -140,6 +140,8 @@ export async function importMembers(req: Request, res: Response): Promise<void> 
 
   const valid: unknown[][] = [];
   const skipped: { row: number; reason: string }[] = [];
+  // Non-blocking warnings: the row still imports, but something needs attention.
+  const warnings: { row: number; reason: string }[] = [];
 
   rows.forEach((raw, i) => {
     const rowNum = i + 1;
@@ -157,8 +159,16 @@ export async function importMembers(req: Request, res: Response): Promise<void> 
     let channel = importStr(r.channel).toLowerCase() || 'app';
     if (!IMPORT_ALLOWED_CHANNELS.has(channel)) channel = 'app';
 
+    const phone = importStr(r.phone);
+    const email = importStr(r.email);
+    // Imported, but un-contactable: no phone and no email means no login code
+    // can be delivered (and no phone = no USSD/WhatsApp identity either).
+    if (!phone && !email) {
+      warnings.push({ row: rowNum, reason: `${fullName}: no phone or email — cannot receive a login code` });
+    }
+
     valid.push([
-      orgId, fullName, importStr(r.phone), importStr(r.email), dob || null,
+      orgId, fullName, phone, email, dob || null,
       importStr(r.gender), channel, importStr(r.bloodGroup),
       importArray(r.allergies), importArray(r.chronicConditions), importArray(r.currentMedications),
     ]);
@@ -171,6 +181,7 @@ export async function importMembers(req: Request, res: Response): Promise<void> 
       dryRun: true,
       wouldImport: valid.length,
       skipped,
+      warnings,
       total: rows.length,
       preview: valid.slice(0, 8).map((v) => ({ fullName: v[1], phone: v[2], email: v[3] })),
     });
@@ -212,7 +223,7 @@ export async function importMembers(req: Request, res: Response): Promise<void> 
     action: 'member.import', orgId, metadata: { inserted: valid.length, skipped, total: rows.length },
   });
 
-  res.status(201).json({ inserted: valid.length, skipped, total: rows.length });
+  res.status(201).json({ inserted: valid.length, skipped, warnings, total: rows.length });
 }
 
 export async function updateMember(req: Request, res: Response): Promise<void> {

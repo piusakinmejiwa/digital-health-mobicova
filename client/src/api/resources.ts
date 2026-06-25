@@ -42,6 +42,8 @@ export interface MemberImportResult {
   inserted: number;
   total: number;
   skipped: { row: number; reason: string }[];
+  // Imported but flagged (e.g. no phone/email — can't receive a login code).
+  warnings?: { row: number; reason: string }[];
   error?: string;
   // Present on a dry run: nothing was written.
   dryRun?: boolean;

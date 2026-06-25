@@ -9,6 +9,9 @@ export default function PrescriptionTracker({ rx, onUpdated }: { rx: Prescriptio
   const method = rx.fulfilment_method || '';
   const status = rx.fulfilment_status || 'pending';
   const isDone = status === 'collected' || status === 'delivered';
+  // PharmaRun handles fulfilment (nearest outlet + delivery), so we don't show the
+  // internal pickup/delivery chooser — just their live status + a tracking link.
+  const viaPharmaRun = rx.fulfilment_provider === 'pharmarun';
 
   const [choice, setChoice] = useState<'pickup' | 'delivery' | ''>(method as 'pickup' | 'delivery' | '');
   const [address, setAddress] = useState(rx.delivery_address || '');
@@ -64,8 +67,18 @@ export default function PrescriptionTracker({ rx, onUpdated }: { rx: Prescriptio
         <span className={`badge ${badgeClass(status)}`}>{fulfilmentLabel(status)}</span>
       </div>
 
-      {/* Step 1 — member chooses how to receive it (only before it's finished) */}
-      {!isDone && (
+      {/* PharmaRun fulfilment: their network handles the outlet + delivery */}
+      {viaPharmaRun && (
+        <div className="m-rx-pharmarun">
+          <small>Fulfilled by PharmaRun{rx.external_status ? ` · ${rx.external_status}` : ''}</small>
+          {rx.tracking_url && (
+            <a className="m-btn primary m-rx-save" href={rx.tracking_url} target="_blank" rel="noreferrer">🛵 Track delivery</a>
+          )}
+        </div>
+      )}
+
+      {/* Step 1 — member chooses how to receive it (internal pharmacies only) */}
+      {!isDone && !viaPharmaRun && (
         <div className="m-rx-choose">
           <div className="m-rx-opts">
             <button

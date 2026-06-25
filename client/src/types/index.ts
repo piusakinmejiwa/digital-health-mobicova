@@ -147,6 +147,10 @@ export interface Prescription {
   pharmacy_partner: string;
   fulfilment_status: string;
   fulfilment_method?: string;   // '' | pickup | delivery
+  // External fulfilment (PharmaRun network): provider, their status, tracking link.
+  fulfilment_provider?: string; // 'internal' | 'pharmarun'
+  external_status?: string;
+  tracking_url?: string;
   delivery_address?: string;
   courier_name?: string;
   tracking_ref?: string;

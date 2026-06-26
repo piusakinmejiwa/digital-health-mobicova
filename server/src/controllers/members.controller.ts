@@ -135,6 +135,51 @@ export async function adminImportOrgMembers(req: Request, res: Response): Promis
   return runMemberImport(req, res, orgId);
 }
 
+// Platform-admin: list members of ANY org (cross-org, not limited to own org).
+// Optional ?q= searches name / phone / email / membership id.
+export async function adminListOrgMembers(req: Request, res: Response): Promise<void> {
+  const orgId = String(req.params.id);
+  const q = String(req.query.q || '').trim();
+  const params: unknown[] = [orgId];
+  let where = 'org_id = $1';
+  if (q) {
+    params.push(`%${q}%`);
+    where += ` AND (full_name ILIKE $2 OR phone ILIKE $2 OR email ILIKE $2 OR membership_id ILIKE $2)`;
+  }
+  const r = await query(
+    `SELECT id, membership_id, full_name, phone, email, gender, date_of_birth, channel, status, created_at
+       FROM members WHERE ${where} ORDER BY created_at DESC LIMIT 100`,
+    params
+  );
+  res.json({ members: r.rows });
+}
+
+// Platform-admin: update a member in ANY org (e.g. fix a phone number).
+export async function adminUpdateOrgMember(req: Request, res: Response): Promise<void> {
+  const orgId = String(req.params.id);
+  const memberId = String(req.params.memberId);
+  const b = req.body || {};
+  const r = await query(
+    `UPDATE members SET
+       full_name     = COALESCE($3, full_name),
+       phone         = COALESCE($4, phone),
+       email         = COALESCE($5, email),
+       gender        = COALESCE($6, gender),
+       date_of_birth = COALESCE($7, date_of_birth),
+       channel       = COALESCE($8, channel),
+       status        = COALESCE($9, status),
+       updated_at    = NOW()
+     WHERE id = $1 AND org_id = $2
+     RETURNING id, membership_id, full_name, phone, email, gender, date_of_birth, channel, status`,
+    [memberId, orgId,
+     b.fullName ?? null, b.phone ?? null, b.email ?? null, b.gender ?? null,
+     b.dateOfBirth || null, b.channel ?? null, b.status ?? null]
+  );
+  if (r.rows.length === 0) { res.status(404).json({ error: 'Member not found in this organisation' }); return; }
+  await recordAudit(req, { action: 'member.update', targetType: 'member', targetId: memberId, targetLabel: r.rows[0].full_name, orgId });
+  res.json(r.rows[0]);
+}
+
 async function runMemberImport(req: Request, res: Response, orgId: string): Promise<void> {
   // Dry run: validate + preview only, never write. Lets onboarding teams check a
   // partner's CSV (e.g. AXA's pilot cohort) before committing.

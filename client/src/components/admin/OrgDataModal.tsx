@@ -4,7 +4,8 @@ import type { Organisation } from '../../types';
 import {
   adminListOrgDocuments, adminUploadOrgDocument, adminDeleteOrgDocument,
   adminGetOrgHr, adminSaveOrgHr, adminSyncOrgHr, adminImportOrgMembers,
-  type OrgDocument, type OrgHr,
+  adminListOrgMembers, adminUpdateOrgMember,
+  type OrgDocument, type OrgHr, type AdminOrgMember,
 } from '../../api/admin';
 import type { MemberImportResult } from '../../api/resources';
 import { parseMemberCsv } from '../../lib/csv';
@@ -17,10 +18,10 @@ const DOC_TYPES = [
   { key: 'company_id_template', label: 'Company ID template' },
 ];
 
-type Tab = 'documents' | 'members' | 'hr';
+type Tab = 'manage' | 'import' | 'documents' | 'hr';
 
 export default function OrgDataModal({ org, onClose }: { org: Organisation; onClose: () => void }) {
-  const [tab, setTab] = useState<Tab>('documents');
+  const [tab, setTab] = useState<Tab>('manage');
   return (
     <div className="drawer-overlay" onClick={onClose}>
       <div className="modal modal-wide ob-modal" onClick={(e) => e.stopPropagation()}>
@@ -29,17 +30,118 @@ export default function OrgDataModal({ org, onClose }: { org: Organisation; onCl
           <button className="ob-x" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div className="od-tabs">
+          <button className={tab === 'manage' ? 'on' : ''} onClick={() => setTab('manage')}>Members</button>
+          <button className={tab === 'import' ? 'on' : ''} onClick={() => setTab('import')}>Import</button>
           <button className={tab === 'documents' ? 'on' : ''} onClick={() => setTab('documents')}>Documents</button>
-          <button className={tab === 'members' ? 'on' : ''} onClick={() => setTab('members')}>Import members</button>
           <button className={tab === 'hr' ? 'on' : ''} onClick={() => setTab('hr')}>HR / payroll</button>
         </div>
         <div className="ob-body">
+          {tab === 'manage' && <ManageMembersTab org={org} />}
+          {tab === 'import' && <MembersTab org={org} />}
           {tab === 'documents' && <DocumentsTab org={org} />}
-          {tab === 'members' && <MembersTab org={org} />}
           {tab === 'hr' && <HrTab org={org} />}
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Manage members (search + edit any member in this org, incl. phone) ───────
+function ManageMembersTab({ org }: { org: Organisation }) {
+  const [q, setQ] = useState('');
+  const [members, setMembers] = useState<AdminOrgMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<AdminOrgMember | null>(null);
+  const [form, setForm] = useState<AdminOrgMember | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [error, setError] = useState('');
+
+  const load = (query = '') => {
+    setLoading(true);
+    adminListOrgMembers(org.id, query)
+      .then((r) => setMembers(r.members))
+      .catch(() => setError('Could not load members.'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [org.id]);
+
+  const startEdit = (m: AdminOrgMember) => { setEditing(m); setForm({ ...m }); setMsg(''); setError(''); };
+
+  const save = async () => {
+    if (!form || !editing) return;
+    setBusy(true); setError(''); setMsg('');
+    try {
+      await adminUpdateOrgMember(org.id, editing.id, {
+        fullName: form.full_name, phone: form.phone, email: form.email,
+        gender: form.gender, dateOfBirth: form.date_of_birth || undefined,
+        channel: form.channel, status: form.status,
+      });
+      setMsg('Saved ✓'); setEditing(null); setForm(null); load(q);
+    } catch (err) {
+      setError(axios.isAxiosError(err) ? (err.response?.data?.error || 'Could not save.') : 'Could not save.');
+    } finally { setBusy(false); }
+  };
+
+  if (editing && form) {
+    const set = (k: keyof AdminOrgMember, v: string) => setForm({ ...form, [k]: v });
+    return (
+      <>
+        <p className="muted small ob-intro">Editing <strong>{editing.full_name}</strong> · {editing.membership_id}</p>
+        <div className="form-row">
+          <div className="form-group"><label>Full name</label><input value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></div>
+          <div className="form-group"><label>Phone</label><input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="+234…" /></div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label>Email</label><input value={form.email} onChange={(e) => set('email', e.target.value)} /></div>
+          <div className="form-group"><label>Channel</label>
+            <select value={form.channel} onChange={(e) => set('channel', e.target.value)}>
+              <option value="app">App</option><option value="whatsapp">WhatsApp</option><option value="ussd">USSD</option><option value="web">Web</option>
+            </select></div>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label>Status</label>
+            <select value={form.status} onChange={(e) => set('status', e.target.value)}>
+              <option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option>
+            </select></div>
+          <div className="form-group"><label>Gender</label>
+            <select value={form.gender} onChange={(e) => set('gender', e.target.value)}>
+              <option value="">—</option><option value="female">Female</option><option value="male">Male</option>
+            </select></div>
+        </div>
+        {error && <div className="notice notice-error">{error}</div>}
+        <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={() => { setEditing(null); setForm(null); }} disabled={busy}>Cancel</button>
+          <button className="btn btn-primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <p className="muted small ob-intro">Find and edit any member in <strong>{org.name}</strong> — including their phone number (used for USSD/WhatsApp identity).</p>
+      <div className="import-controls">
+        <input placeholder="Search name, phone, email…" value={q}
+          onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') load(q); }} style={{ flex: 1 }} />
+        <button className="btn btn-secondary btn-sm" onClick={() => load(q)}>Search</button>
+      </div>
+      {msg && <div className="notice notice-success">{msg}</div>}
+      {error && <div className="notice notice-error">{error}</div>}
+      {loading ? <p className="muted">Loading…</p> : members.length === 0 ? (
+        <p className="muted small">No members{q ? ' match that search' : ' yet'}.</p>
+      ) : (
+        <div>
+          {members.map((m) => (
+            <div key={m.id} className="od-doc">
+              <span><strong>{m.full_name}</strong> <span className="muted small">· {m.phone || 'no phone'} · {m.status}</span></span>
+              <button className="btn btn-secondary btn-sm" onClick={() => startEdit(m)}>Edit</button>
+            </div>
+          ))}
+          {members.length === 100 && <p className="muted small">Showing first 100 — refine your search.</p>}
+        </div>
+      )}
+    </>
   );
 }
 

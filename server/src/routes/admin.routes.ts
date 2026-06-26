@@ -45,7 +45,7 @@ import {
   adminListOrgDocuments, adminUploadOrgDocument, adminDeleteOrgDocument,
   adminGetOrgHr, adminSaveOrgHr, adminSyncOrgHr,
 } from '../controllers/adminOrgData.controller';
-import { adminImportOrgMembers } from '../controllers/members.controller';
+import { adminImportOrgMembers, adminListOrgMembers, adminUpdateOrgMember } from '../controllers/members.controller';
 
 const router = Router();
 
@@ -76,6 +76,9 @@ router.put('/organisations/:id/hr', asyncHandler(adminSaveOrgHr));
 router.post('/organisations/:id/hr/sync', asyncHandler(adminSyncOrgHr));
 // Member CSV import into this specific org (platform admin onboarding a tenant)
 router.post('/organisations/:id/members/import', asyncHandler(adminImportOrgMembers));
+// Cross-org member management (platform admin — any org, not just their own)
+router.get('/organisations/:id/members', asyncHandler(adminListOrgMembers));
+router.patch('/organisations/:id/members/:memberId', asyncHandler(adminUpdateOrgMember));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

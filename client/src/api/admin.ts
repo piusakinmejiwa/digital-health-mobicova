@@ -136,6 +136,20 @@ export async function adminImportOrgMembers(
   return (await api.post(`/admin/organisations/${id}/members/import`, { members, dryRun })).data;
 }
 
+// Cross-org member management (platform admin — edit a member in ANY org).
+export interface AdminOrgMember {
+  id: string; membership_id: string; full_name: string; phone: string; email: string;
+  gender: string; date_of_birth: string | null; channel: string; status: string;
+}
+export async function adminListOrgMembers(id: string, q = ''): Promise<{ members: AdminOrgMember[] }> {
+  return (await api.get(`/admin/organisations/${id}/members`, { params: q ? { q } : {} })).data;
+}
+export async function adminUpdateOrgMember(
+  id: string, memberId: string, data: Partial<{ fullName: string; phone: string; email: string; gender: string; dateOfBirth: string; channel: string; status: string }>,
+): Promise<AdminOrgMember> {
+  return (await api.patch(`/admin/organisations/${id}/members/${memberId}`, data)).data;
+}
+
 // Dashboard users
 export async function adminListUsers(orgId?: string): Promise<AdminUser[]> {
   return (await api.get('/admin/users', { params: orgId ? { orgId } : undefined })).data;

@@ -4,10 +4,10 @@
     "title": "MobiCova Health — Partner API",
     "version": "1.0.0",
     "description": "Read-only, tenant-scoped REST API for partners (insurers, employers, fintechs, telcos) to integrate with MobiCova.\n\n**Authentication.** Every request must carry your API key, either as a bearer token or in the `X-API-Key` header:\n\n```\nAuthorization: Bearer mk_live_xxxxxxxxxxxxxxxx\n```\n\nor\n\n```\nX-API-Key: mk_live_xxxxxxxxxxxxxxxx\n```\n\nGenerate and revoke keys in your MobiCova dashboard under **Settings → API & webhooks**. A key is scoped to your organisation, so you can only ever read your own members, enrolments and claims.\n\n**Pagination.** List endpoints accept `limit` (1–200, default 50) and `offset` (default 0), and return a `pagination` object with the total count.\n\n**Webhooks.** Subscribe to events in the same dashboard. Each delivery is an HTTP POST to your endpoint with a JSON body `{ \"event\": \"<name>\", \"data\": { ... }, \"created_at\": \"<ISO8601>\" }`. Current partner events: `member.enrolled`, `claim.created`. Verify the signature header against your webhook secret before trusting a payload.\n\n**Rate limiting.** Requests are rate-limited; back off on HTTP 429.",
-    "contact": { "name": "MobiCova Health", "url": "https://mobicova.com" }
+    "contact": { "name": "MobiCova Health", "url": "https://mobicovahealth.com" }
   },
   "servers": [
-    { "url": "https://mobicova-api.onrender.com/api/public/v1", "description": "Production" }
+    { "url": "https://api.mobicovahealth.com/api/public/v1", "description": "Production" }
   ],
   "security": [ { "bearerAuth": [] }, { "apiKeyAuth": [] } ],
   "tags": [

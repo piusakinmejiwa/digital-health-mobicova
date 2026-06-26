@@ -67,7 +67,7 @@ const DOCS: Doc[] = [
       <p>The public REST API lives at <code>/api/public/v1</code> and is read-only, automatically scoped to your organisation.</p>
       <h3>API keys</h3><p>Generate keys from <b>API &amp; webhooks</b>. The full key (<code>mk_live_…</code>) is shown once; only a hash is stored.</p>
       <h3>Making a request</h3>
-      <div class="code"><span class="p">$</span> curl https://mobicova-api.onrender.com/api/public/v1/members \\
+      <div class="code"><span class="p">$</span> curl https://api.mobicovahealth.com/api/public/v1/members \\
   -H <span class="s">"Authorization: Bearer mk_live_…"</span></div>
       <h3>Rate limits</h3><p>List endpoints take <code>?limit</code> (1–200) and <code>?offset</code>, returning <code>{ data, pagination }</code>.</p>`,
   },

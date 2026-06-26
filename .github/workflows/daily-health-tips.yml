@@ -20,7 +20,7 @@ jobs:
           CRON_SECRET: ${{ secrets.HEALTH_TIPS_CRON_SECRET }}
         run: |
           set -euo pipefail
-          BASE="${API_BASE_URL:-https://mobicova-api.onrender.com}"
+          BASE="${API_BASE_URL:-https://api.mobicovahealth.com}"
           URL="$BASE/api/v1/health-tips/run-daily"
           echo "POST $URL"
           # --retry handles Render cold-starts (a sleeping service returns 502

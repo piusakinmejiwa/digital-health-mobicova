@@ -96,6 +96,46 @@ export async function adminSaveOrgOnboarding(
   return (await api.put(`/admin/organisations/${id}/onboarding`, { data, status })).data;
 }
 
+// Onboarding documents (private storage).
+export interface OrgDocument {
+  id: string; docType: string; fileName: string;
+  contentType: string; sizeBytes: number | null; uploadedAt: string; url: string | null;
+}
+export async function adminListOrgDocuments(id: string): Promise<{ storageEnabled: boolean; documents: OrgDocument[] }> {
+  return (await api.get(`/admin/organisations/${id}/documents`)).data;
+}
+export async function adminUploadOrgDocument(id: string, file: File, docType: string): Promise<OrgDocument> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('docType', docType);
+  return (await api.post(`/admin/organisations/${id}/documents`, form)).data;
+}
+export async function adminDeleteOrgDocument(id: string, docId: string): Promise<void> {
+  await api.delete(`/admin/organisations/${id}/documents/${docId}`);
+}
+
+// HR / payroll integration (generic scaffold). api_key is write-only.
+export interface OrgHr {
+  provider: string; apiBaseUrl: string; syncCadence: 'manual' | 'daily' | 'weekly' | string;
+  status: 'connected' | 'disconnected' | string; lastSyncedAt: string | null; hasKey: boolean;
+}
+export async function adminGetOrgHr(id: string): Promise<OrgHr> {
+  return (await api.get(`/admin/organisations/${id}/hr`)).data;
+}
+export async function adminSaveOrgHr(id: string, data: { provider: string; apiBaseUrl: string; syncCadence: string; apiKey?: string }): Promise<{ ok: boolean; status: string }> {
+  return (await api.put(`/admin/organisations/${id}/hr`, data)).data;
+}
+export async function adminSyncOrgHr(id: string): Promise<{ ok: boolean; pulled: number; note: string }> {
+  return (await api.post(`/admin/organisations/${id}/hr/sync`, {})).data;
+}
+
+// Import members into a specific org (platform admin onboarding a tenant).
+export async function adminImportOrgMembers(
+  id: string, members: Record<string, unknown>[], dryRun = false,
+): Promise<import('./resources').MemberImportResult> {
+  return (await api.post(`/admin/organisations/${id}/members/import`, { members, dryRun })).data;
+}
+
 // Dashboard users
 export async function adminListUsers(orgId?: string): Promise<AdminUser[]> {
   return (await api.get('/admin/users', { params: orgId ? { orgId } : undefined })).data;

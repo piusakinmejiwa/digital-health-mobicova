@@ -10,6 +10,7 @@ import {
 import type { SsoConfigInput } from '../../api/sso';
 import SsoConfigEditor from '../../components/sso/SsoConfigEditor';
 import OrgOnboardingWizard from '../../components/admin/OrgOnboardingWizard';
+import OrgDataModal from '../../components/admin/OrgDataModal';
 import { useAuth } from '../../context/AuthContext';
 import { ORG_TYPES, orgTypeLabel, orgClassBadge, orgClassOf } from '../../lib/orgTypes';
 
@@ -34,6 +35,7 @@ export default function OrgsAdmin() {
   const [ssoOrg, setSsoOrg] = useState<null | Organisation>(null);
   const [brandingOrg, setBrandingOrg] = useState<null | Organisation>(null);
   const [onboardingOrg, setOnboardingOrg] = useState<null | Organisation>(null);
+  const [dataOrg, setDataOrg] = useState<null | Organisation>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | { org: Organisation; admin?: AdminUser }>(null);
@@ -153,6 +155,7 @@ export default function OrgsAdmin() {
               <td className="admin-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => { setError(''); setEditing(o); }}>Edit</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setOnboardingOrg(o)}>Onboarding</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setDataOrg(o)}>Members &amp; docs</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setBrandingOrg(o)}>Branding</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSsoOrg(o)}>SSO</button>
                 <button
@@ -296,6 +299,12 @@ export default function OrgsAdmin() {
           org={onboardingOrg}
           onClose={() => setOnboardingOrg(null)}
           onSaved={() => qc.invalidateQueries({ queryKey: ['admin-orgs'] })}
+        />
+      )}
+      {dataOrg && (
+        <OrgDataModal
+          org={dataOrg}
+          onClose={() => { setDataOrg(null); qc.invalidateQueries({ queryKey: ['admin-orgs'] }); }}
         />
       )}
 

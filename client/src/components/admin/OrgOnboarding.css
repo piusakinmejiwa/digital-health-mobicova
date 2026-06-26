@@ -54,3 +54,16 @@
 
 .ob-foot { display: flex; gap: .5rem; justify-content: flex-end; align-items: center; padding-top: .9rem; border-top: 1px solid #eef3f2; margin-top: .6rem; }
 .ob-foot .btn-ghost { margin-right: auto; }
+
+/* Members & data modal — tabs + document rows */
+.od-tabs { display: flex; gap: .3rem; border-bottom: 1px solid #eef3f2; margin: .4rem 0 .6rem; }
+.od-tabs button {
+  border: none; background: none; padding: .5rem .9rem; cursor: pointer; font-weight: 600;
+  color: #5e6e6e; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.od-tabs button.on { color: #0a7b7b; border-bottom-color: #0a7b7b; }
+.od-doc {
+  display: flex; justify-content: space-between; align-items: center; gap: .6rem;
+  padding: .55rem .2rem; border-bottom: 1px solid #f2f5f4;
+}
+.od-doc > span:last-child { display: flex; gap: .35rem; flex: none; }

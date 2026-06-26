@@ -23,15 +23,14 @@ This single document covers everything in three parts:
 
 ### Test environment
 The whole platform runs on **one domain** — there is no separate website per organisation. Base URL:
-`https://mobicova-client.onrender.com` (custom domain `https://digitalhealth.mobicova.com` once DNS
-is live). There are **three login pages**:
+`https://mobicovahealth.com` (API at `https://api.mobicovahealth.com`). There are **three login pages**:
 
 | What | Where |
 |------|-------|
-| Public marketing site | https://mobicova-client.onrender.com/ (the **root** URL) |
+| Public marketing site | https://mobicovahealth.com/ (the **root** URL) |
 | Dashboard / org admins / **platform admin** | **Sign in** from the site, or go to `/login` → lands on `/dashboard` |
-| Member portal | https://mobicova-client.onrender.com/member/login |
-| Provider portal (clinicians) | https://mobicova-client.onrender.com/provider/login |
+| Member portal | https://mobicovahealth.com/member/login |
+| Provider portal (clinicians) | https://mobicovahealth.com/provider/login |
 
 > 🆕 **The root URL `/` is the public marketing site**, not the dashboard. Use **Sign in** (top
 > right) to reach the app.

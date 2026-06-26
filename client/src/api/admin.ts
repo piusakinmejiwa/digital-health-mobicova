@@ -79,6 +79,23 @@ export async function adminUpdateOrgBranding(id: string, data: OrgBranding): Pro
   return (await api.put(`/admin/organisations/${id}/branding`, data)).data;
 }
 
+// Organisation onboarding questionnaire (the full B2B intake profile).
+export interface OrgOnboarding {
+  data: Record<string, Record<string, unknown>>;
+  status: 'draft' | 'submitted' | string;
+  submitted_at: string | null;
+}
+export async function adminGetOrgOnboarding(id: string): Promise<OrgOnboarding> {
+  return (await api.get(`/admin/organisations/${id}/onboarding`)).data;
+}
+export async function adminSaveOrgOnboarding(
+  id: string,
+  data: Record<string, Record<string, unknown>>,
+  status: 'draft' | 'submitted',
+): Promise<{ ok: boolean; status: string }> {
+  return (await api.put(`/admin/organisations/${id}/onboarding`, { data, status })).data;
+}
+
 // Dashboard users
 export async function adminListUsers(orgId?: string): Promise<AdminUser[]> {
   return (await api.get('/admin/users', { params: orgId ? { orgId } : undefined })).data;

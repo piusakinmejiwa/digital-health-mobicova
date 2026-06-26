@@ -10,6 +10,7 @@ import {
 import {
   adminListOrgs, adminCreateOrg, adminUpdateOrg, adminDeleteOrg,
   adminGetOrgBranding, adminUpdateOrgBranding,
+  adminGetOrgOnboarding, adminSaveOrgOnboarding,
 } from '../controllers/adminOrgs.controller';
 import {
   adminListUsers, adminCreateUser, adminUpdateUser,
@@ -56,6 +57,8 @@ router.put('/organisations/:id/sso', asyncHandler(adminUpdateOrgSso));
 // Per-tenant white-label branding (platform-admin on behalf of a partner)
 router.get('/organisations/:id/branding', asyncHandler(adminGetOrgBranding));
 router.put('/organisations/:id/branding', asyncHandler(adminUpdateOrgBranding));
+router.get('/organisations/:id/onboarding', asyncHandler(adminGetOrgOnboarding));
+router.put('/organisations/:id/onboarding', asyncHandler(adminSaveOrgOnboarding));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

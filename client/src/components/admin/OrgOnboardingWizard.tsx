@@ -1,0 +1,302 @@
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { adminGetOrgOnboarding, adminSaveOrgOnboarding } from '../../api/admin';
+import type { Organisation } from '../../types';
+import './OrgOnboarding.css';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// A step-by-step onboarding questionnaire for an organisation (8 sections from
+// the partner intake spec). Field definitions are data-driven so the whole form
+// renders from one generic renderer; values are stored as a flexible JSONB
+// profile (data[sectionKey][fieldKey]), with headline fields mirrored to the
+// org row server-side. Document upload is a later phase — here we capture which
+// documents the org has ready.
+
+type FieldType =
+  | 'text' | 'textarea' | 'number' | 'tel' | 'email' | 'url'
+  | 'select' | 'yesno' | 'multiselect' | 'branches' | 'agreement';
+
+interface Field {
+  key: string;
+  label: string;
+  type: FieldType;
+  options?: string[];
+  placeholder?: string;
+  help?: string;
+  showIf?: (s: any) => boolean;
+}
+interface Section { key: string; title: string; intro?: string; fields: Field[]; }
+
+const SIZE = ['Micro (1–9)', 'Small (10–49)', 'Medium (50–249)', 'Large (250+)'];
+
+const SECTIONS: Section[] = [
+  {
+    key: 'identity', title: 'Company identity & verification',
+    intro: 'Confirm who the organisation is and who is authorised to act for them.',
+    fields: [
+      { key: 'registeredName', label: 'Registered company name', type: 'text' },
+      { key: 'tradingName', label: 'Trading name (if different)', type: 'text' },
+      { key: 'rcNumber', label: 'RC number (CAC)', type: 'text' },
+      { key: 'tin', label: 'Tax Identification Number (TIN)', type: 'text' },
+      { key: 'industry', label: 'Industry / sector', type: 'text' },
+      { key: 'companySize', label: 'Company size', type: 'select', options: SIZE },
+      { key: 'address', label: 'Physical address', type: 'textarea', placeholder: 'Street, area' },
+      { key: 'city', label: 'City', type: 'text' },
+      { key: 'state', label: 'State', type: 'text' },
+      { key: 'postalCode', label: 'Postal code', type: 'text' },
+      { key: 'website', label: 'Website', type: 'url', placeholder: 'https://' },
+      { key: 'contactName', label: 'Contact person — name', type: 'text' },
+      { key: 'contactRole', label: 'Contact person — role', type: 'text' },
+      { key: 'contactPhone', label: 'Contact person — phone', type: 'tel' },
+      { key: 'contactEmail', label: 'Contact person — email', type: 'email' },
+      { key: 'secondaryContact', label: 'Secondary contact (optional)', type: 'text' },
+      { key: 'hasExistingHmo', label: 'Existing HMO or insurance partner?', type: 'yesno' },
+      { key: 'existingHmoName', label: 'Partner name and plan type', type: 'text', showIf: (s) => s.hasExistingHmo === true },
+    ],
+  },
+  {
+    key: 'workforce', title: 'Workforce structure',
+    intro: 'How members will be grouped, billed and managed.',
+    fields: [
+      { key: 'totalEmployees', label: 'Total number of employees', type: 'number' },
+      { key: 'fullTime', label: 'Number of full-time staff', type: 'number' },
+      { key: 'contractStaff', label: 'Number of contract / temporary staff', type: 'number' },
+      { key: 'includeDependents', label: 'Include dependents?', type: 'yesno' },
+      { key: 'dependentsEstimate', label: 'Expected total number of dependents', type: 'number', showIf: (s) => s.includeDependents === true },
+      { key: 'multipleBranches', label: 'Multiple branches?', type: 'yesno' },
+      { key: 'branches', label: 'Branches (name + staff count)', type: 'branches', showIf: (s) => s.multipleBranches === true },
+      { key: 'branchAdminAccess', label: 'Want branch-level admin access?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'eligibility', title: 'Eligibility & enrollment rules',
+    intro: 'How onboarding is automated.',
+    fields: [
+      { key: 'eligible', label: 'Who is eligible for coverage?', type: 'multiselect', options: ['All staff', 'Full-time only', 'Contract staff', 'Staff + dependents'] },
+      { key: 'probation', label: 'Probation period before eligibility?', type: 'yesno' },
+      { key: 'probationDays', label: 'Probation period (days)', type: 'number', showIf: (s) => s.probation === true },
+      { key: 'idVerification', label: 'Require ID verification for each member?', type: 'yesno' },
+      { key: 'idTypes', label: 'Accepted ID types', type: 'multiselect', options: ['NIN', 'BVN', 'Work ID', "Voter's card", 'International passport'], showIf: (s) => s.idVerification === true },
+    ],
+  },
+  {
+    key: 'plans', title: 'Plan selection & benefits',
+    fields: [
+      { key: 'plans', label: 'Which plan(s) are you interested in?', type: 'multiselect', options: ['Health cover', 'Micro-insurance', 'Telemedicine', 'Wellness & preventive care', 'Hospital network access'] },
+      { key: 'planStructure', label: 'Single plan for all staff, or tiered?', type: 'select', options: ['Single plan for all staff', 'Tiered plans'] },
+      { key: 'tiers', label: 'List tiers (e.g. Basic, Standard, Executive)', type: 'text', showIf: (s) => s.planStructure === 'Tiered plans' },
+      { key: 'addons', label: 'Add-ons', type: 'multiselect', options: ['Maternity', 'Dental', 'Optical', 'Pharmacy benefits', 'Chronic care'] },
+      { key: 'customBenefits', label: 'Require custom benefits?', type: 'yesno' },
+      { key: 'customBenefitsDetail', label: 'Describe the custom benefits', type: 'textarea', showIf: (s) => s.customBenefits === true },
+    ],
+  },
+  {
+    key: 'billing', title: 'Billing & payment preferences',
+    fields: [
+      { key: 'billingCycle', label: 'Preferred billing cycle', type: 'select', options: ['Monthly', 'Quarterly', 'Annual'] },
+      { key: 'paymentMethod', label: 'Payment method', type: 'select', options: ['Bank transfer', 'Direct debit', 'Wallet funding'] },
+      { key: 'invoiceName', label: 'Invoices to — name', type: 'text' },
+      { key: 'invoiceEmail', label: 'Invoices to — email', type: 'email' },
+      { key: 'splitBilling', label: 'Split billing (company + employee contribution)?', type: 'yesno' },
+      { key: 'splitPercent', label: 'Percentage split (e.g. 70/30)', type: 'text', showIf: (s) => s.splitBilling === true },
+      { key: 'autoReminders', label: 'Automated payment reminders?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'integration', title: 'Data & integration requirements',
+    fields: [
+      { key: 'memberDataMethod', label: 'How will member data be provided?', type: 'select', options: ['Excel upload', 'API integration', 'Manual entry'] },
+      { key: 'hrIntegration', label: 'Integrate with HR / payroll system?', type: 'yesno' },
+      { key: 'hrSystem', label: 'Which HR / payroll system?', type: 'text', showIf: (s) => s.hrIntegration === true },
+      { key: 'sso', label: 'Require SSO for staff?', type: 'yesno' },
+      { key: 'auditLogs', label: 'Require audit logs for compliance?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'claims', title: 'Claims & support expectations',
+    fields: [
+      { key: 'claimApprover', label: 'Who approves claims internally?', type: 'text' },
+      { key: 'realtimeClaims', label: 'Real-time claim notifications?', type: 'yesno' },
+      { key: 'commChannel', label: 'Preferred communication channel', type: 'select', options: ['Email', 'SMS', 'WhatsApp'] },
+      { key: 'dedicatedAm', label: 'Require a dedicated account manager?', type: 'yesno' },
+      { key: 'utilisationReports', label: 'Utilisation reports', type: 'select', options: ['Monthly', 'Quarterly'] },
+    ],
+  },
+  {
+    key: 'compliance', title: 'Compliance & agreements',
+    intro: 'Confirmed before activation. Document upload comes in a later step — for now, tell us which you have ready.',
+    fields: [
+      { key: 'agreeDataProtection', label: 'Agree to MobiCova’s data protection policy', type: 'agreement' },
+      { key: 'agreeSla', label: 'Agree to the service-level agreement (SLA)', type: 'agreement' },
+      { key: 'agreeBilling', label: 'Agree to the billing and refund policy', type: 'agreement' },
+      { key: 'requireContract', label: 'Require a signed contract?', type: 'yesno' },
+      { key: 'documentsReady', label: 'Documents ready to provide', type: 'multiselect', options: ['CAC certificate', 'Tax certificate', 'Staff list', 'Company ID template'] },
+    ],
+  },
+];
+
+export default function OrgOnboardingWizard({ org, onClose, onSaved }: {
+  org: Organisation; onClose: () => void; onSaved: () => void;
+}) {
+  const [data, setData] = useState<Record<string, any>>({});
+  const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [savedMsg, setSavedMsg] = useState('');
+
+  useEffect(() => {
+    let on = true;
+    adminGetOrgOnboarding(org.id)
+      .then((res) => { if (on) setData(res.data || {}); })
+      .catch(() => { /* empty draft is fine */ })
+      .finally(() => { if (on) setLoading(false); });
+    return () => { on = false; };
+  }, [org.id]);
+
+  const section = SECTIONS[step];
+  const sData = data[section.key] || {};
+  const setField = (k: string, v: any) =>
+    setData((d) => ({ ...d, [section.key]: { ...(d[section.key] || {}), [k]: v } }));
+
+  const save = async (status: 'draft' | 'submitted') => {
+    setBusy(true); setError(''); setSavedMsg('');
+    try {
+      await adminSaveOrgOnboarding(org.id, data, status);
+      setSavedMsg(status === 'submitted' ? 'Onboarding submitted ✓' : 'Draft saved ✓');
+      onSaved();
+      if (status === 'submitted') setTimeout(onClose, 700);
+    } catch (err) {
+      if (axios.isAxiosError(err)) setError(err.response?.data?.error || 'Could not save.');
+      else setError('Could not save.');
+    } finally { setBusy(false); }
+  };
+
+  const pct = Math.round(((step + 1) / SECTIONS.length) * 100);
+
+  return (
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="modal modal-wide ob-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="ob-head">
+          <div>
+            <h3>Onboarding — {org.name}</h3>
+            <p className="muted small">Step {step + 1} of {SECTIONS.length}: {section.title}</p>
+          </div>
+          <button className="ob-x" onClick={onClose} aria-label="Close">×</button>
+        </div>
+
+        <div className="ob-progress"><div className="ob-progress-bar" style={{ width: `${pct}%` }} /></div>
+
+        {/* Step rail */}
+        <div className="ob-rail">
+          {SECTIONS.map((s, i) => (
+            <button
+              key={s.key}
+              className={`ob-rail-item ${i === step ? 'on' : ''} ${i < step ? 'done' : ''}`}
+              onClick={() => setStep(i)}
+              title={s.title}
+            >{i + 1}</button>
+          ))}
+        </div>
+
+        <div className="ob-body">
+          {loading ? <p className="muted">Loading…</p> : (
+            <>
+              {section.intro && <p className="muted small ob-intro">{section.intro}</p>}
+              {section.fields.map((f) => {
+                if (f.showIf && !f.showIf(sData)) return null;
+                return <FieldRow key={f.key} field={f} value={sData[f.key]} onChange={(v) => setField(f.key, v)} />;
+              })}
+            </>
+          )}
+        </div>
+
+        {error && <div className="notice notice-error">{error}</div>}
+        {savedMsg && <div className="notice notice-success">{savedMsg}</div>}
+
+        <div className="ob-foot">
+          <button className="btn btn-secondary" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0 || busy}>← Back</button>
+          <button className="btn btn-ghost" onClick={() => save('draft')} disabled={busy}>{busy ? 'Saving…' : 'Save draft'}</button>
+          {step < SECTIONS.length - 1
+            ? <button className="btn btn-primary" onClick={() => setStep((s) => Math.min(SECTIONS.length - 1, s + 1))} disabled={busy}>Next →</button>
+            : <button className="btn btn-primary" onClick={() => save('submitted')} disabled={busy}>Submit onboarding</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FieldRow({ field, value, onChange }: { field: Field; value: any; onChange: (v: any) => void }) {
+  const arr: string[] = Array.isArray(value) ? value : [];
+  const toggle = (opt: string) => onChange(arr.includes(opt) ? arr.filter((x) => x !== opt) : [...arr, opt]);
+
+  return (
+    <div className="form-group ob-field">
+      <label>{field.label}</label>
+
+      {(field.type === 'text' || field.type === 'number' || field.type === 'tel' || field.type === 'email' || field.type === 'url') && (
+        <input
+          type={field.type === 'number' ? 'number' : field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : 'text'}
+          value={value ?? ''} placeholder={field.placeholder}
+          onChange={(e) => onChange(field.type === 'number' ? e.target.value.replace(/[^0-9]/g, '') : e.target.value)}
+        />
+      )}
+
+      {field.type === 'textarea' && (
+        <textarea rows={2} value={value ?? ''} placeholder={field.placeholder} onChange={(e) => onChange(e.target.value)} />
+      )}
+
+      {field.type === 'select' && (
+        <select value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+          <option value="">Select…</option>
+          {field.options!.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      )}
+
+      {field.type === 'yesno' && (
+        <div className="ob-yesno">
+          <button type="button" className={value === true ? 'on' : ''} onClick={() => onChange(true)}>Yes</button>
+          <button type="button" className={value === false ? 'on' : ''} onClick={() => onChange(false)}>No</button>
+        </div>
+      )}
+
+      {field.type === 'multiselect' && (
+        <div className="ob-chips">
+          {field.options!.map((o) => (
+            <button type="button" key={o} className={`ob-chip ${arr.includes(o) ? 'on' : ''}`} onClick={() => toggle(o)}>{o}</button>
+          ))}
+        </div>
+      )}
+
+      {field.type === 'agreement' && (
+        <label className="ob-agree">
+          <input type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked)} />
+          <span>I confirm the above</span>
+        </label>
+      )}
+
+      {field.type === 'branches' && (
+        <BranchList value={Array.isArray(value) ? value : []} onChange={onChange} />
+      )}
+    </div>
+  );
+}
+
+function BranchList({ value, onChange }: { value: any[]; onChange: (v: any[]) => void }) {
+  const set = (i: number, k: string, v: string) => {
+    const next = value.map((b, idx) => (idx === i ? { ...b, [k]: v } : b));
+    onChange(next);
+  };
+  return (
+    <div className="ob-branches">
+      {value.map((b, i) => (
+        <div className="ob-branch" key={i}>
+          <input placeholder="Branch name" value={b.name ?? ''} onChange={(e) => set(i, 'name', e.target.value)} />
+          <input placeholder="Staff" type="number" value={b.staff ?? ''} onChange={(e) => set(i, 'staff', e.target.value.replace(/[^0-9]/g, ''))} />
+          <button type="button" className="ob-branch-x" onClick={() => onChange(value.filter((_, idx) => idx !== i))}>×</button>
+        </div>
+      ))}
+      <button type="button" className="btn btn-secondary btn-sm" onClick={() => onChange([...value, { name: '', staff: '' }])}>+ Add branch</button>
+    </div>
+  );
+}

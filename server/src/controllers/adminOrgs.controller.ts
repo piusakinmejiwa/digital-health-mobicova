@@ -233,3 +233,77 @@ export async function adminUpdateOrgBranding(req: Request, res: Response): Promi
   await recordAudit(req, { action: 'branding.update', targetType: 'organisation', targetId: id, targetLabel: org.rows[0].name, orgId: id });
   res.json(await getOrgBranding(id));
 }
+
+// ── Organisation onboarding (8-section intake questionnaire) ───────────────
+
+// GET /admin/orgs/:id/onboarding — the saved profile (or an empty draft).
+export async function adminGetOrgOnboarding(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const r = await query(
+    `SELECT data, status, submitted_at, updated_at FROM org_onboarding WHERE org_id = $1`,
+    [id]
+  );
+  res.json(r.rows[0] || { data: {}, status: 'draft', submitted_at: null, updated_at: null });
+}
+
+const str = (v: unknown, max: number): string => String(v ?? '').slice(0, max);
+
+// PUT /admin/orgs/:id/onboarding — save the questionnaire (draft or submitted).
+// Stores the full payload as JSONB and mirrors the headline fields onto the
+// organisations row so they show in the list and feed other features.
+export async function adminSaveOrgOnboarding(req: Request, res: Response): Promise<void> {
+  const { id } = req.params;
+  const orgRes = await query('SELECT id, name FROM organisations WHERE id = $1', [id]);
+  if (orgRes.rows.length === 0) { res.status(404).json({ error: 'Organisation not found' }); return; }
+
+  const data = (req.body?.data && typeof req.body.data === 'object') ? req.body.data : {};
+  const status = req.body?.status === 'submitted' ? 'submitted' : 'draft';
+
+  await query(
+    `INSERT INTO org_onboarding (org_id, data, status, submitted_at, updated_at)
+       VALUES ($1, $2, $3, CASE WHEN $3 = 'submitted' THEN now() ELSE NULL END, now())
+     ON CONFLICT (org_id) DO UPDATE SET
+       data = EXCLUDED.data,
+       status = EXCLUDED.status,
+       submitted_at = CASE WHEN EXCLUDED.status = 'submitted'
+                           THEN COALESCE(org_onboarding.submitted_at, now())
+                           ELSE org_onboarding.submitted_at END,
+       updated_at = now()`,
+    [id, JSON.stringify(data), status]
+  );
+
+  // Mirror the headline fields onto the organisation row.
+  const idn = data.identity || {};
+  const wf = data.workforce || {};
+  const address = str(idn.address, 500);
+  const city = str(idn.city, 120);
+  let lat: number | null = null, lng: number | null = null;
+  if (address || city) {
+    const coords = await geocode([address, city].filter(Boolean).join(', '));
+    lat = coords?.lat ?? null; lng = coords?.lng ?? null;
+  }
+  const memberEstimate = Number.parseInt(String(wf.totalEmployees ?? ''), 10);
+
+  await query(
+    `UPDATE organisations SET
+       registered_name = $2, trading_name = $3, rc_number = $4, tin = $5,
+       industry = $6, company_size = $7, website = $8,
+       contact_name = $9, contact_role = $10, contact_phone = $11, contact_email = $12,
+       address = $13, city = $14, state = $15, postal_code = $16,
+       latitude = COALESCE($17, latitude), longitude = COALESCE($18, longitude),
+       member_estimate = $19, onboarding_status = $20, updated_at = now()
+     WHERE id = $1`,
+    [id, str(idn.registeredName, 255), str(idn.tradingName, 255), str(idn.rcNumber, 60),
+     str(idn.tin, 60), str(idn.industry, 120), str(idn.companySize, 20), str(idn.website, 255),
+     str(idn.contactName, 160), str(idn.contactRole, 120), str(idn.contactPhone, 40), str(idn.contactEmail, 255),
+     address, city, str(idn.state, 120), str(idn.postalCode, 40),
+     lat, lng, Number.isFinite(memberEstimate) ? memberEstimate : null, status]
+  );
+
+  await recordAudit(req, {
+    action: status === 'submitted' ? 'org.onboarding.submit' : 'org.onboarding.save',
+    targetType: 'organisation', targetId: id, targetLabel: orgRes.rows[0].name, orgId: id,
+  });
+
+  res.json({ ok: true, status });
+}

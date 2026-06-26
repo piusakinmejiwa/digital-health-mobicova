@@ -9,6 +9,7 @@ import {
 } from '../../api/admin';
 import type { SsoConfigInput } from '../../api/sso';
 import SsoConfigEditor from '../../components/sso/SsoConfigEditor';
+import OrgOnboardingWizard from '../../components/admin/OrgOnboardingWizard';
 import { useAuth } from '../../context/AuthContext';
 import { ORG_TYPES, orgTypeLabel, orgClassBadge, orgClassOf } from '../../lib/orgTypes';
 
@@ -32,6 +33,7 @@ export default function OrgsAdmin() {
   const [editing, setEditing] = useState<null | (Organisation)>(null);
   const [ssoOrg, setSsoOrg] = useState<null | Organisation>(null);
   const [brandingOrg, setBrandingOrg] = useState<null | Organisation>(null);
+  const [onboardingOrg, setOnboardingOrg] = useState<null | Organisation>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | { org: Organisation; admin?: AdminUser }>(null);
@@ -150,6 +152,7 @@ export default function OrgsAdmin() {
               <td><span className={`badge ${o.is_active ? 'badge-green' : 'badge-gray'}`}>{o.is_active ? 'active' : 'suspended'}</span></td>
               <td className="admin-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => { setError(''); setEditing(o); }}>Edit</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setOnboardingOrg(o)}>Onboarding</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setBrandingOrg(o)}>Branding</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSsoOrg(o)}>SSO</button>
                 <button
@@ -288,6 +291,13 @@ export default function OrgsAdmin() {
 
       {/* ---- Branding modal ---- */}
       {brandingOrg && <OrgBrandingModal org={brandingOrg} onClose={() => setBrandingOrg(null)} />}
+      {onboardingOrg && (
+        <OrgOnboardingWizard
+          org={onboardingOrg}
+          onClose={() => setOnboardingOrg(null)}
+          onSaved={() => qc.invalidateQueries({ queryKey: ['admin-orgs'] })}
+        />
+      )}
 
       {/* ---- Provisioned confirmation ---- */}
       {provisioned && (

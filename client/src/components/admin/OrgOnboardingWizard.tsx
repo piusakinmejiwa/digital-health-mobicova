@@ -514,14 +514,108 @@ const FINTECH_SECTIONS: Section[] = [
   },
 ];
 
-// Pick the questionnaire for an org's type. Insurers, clinics, pharmacies and
-// fintechs get purpose-built sets; everyone else (employer, telco…) uses the
-// employer set for now.
+// Telco onboarding — a distribution + payer channel. Reaches a huge subscriber
+// base, USSD/SMS-native, and can fund health via airtime deduction / direct
+// carrier billing. Identity keys stay shared; member estimate reads
+// distribution.expectedMembers (same as fintech).
+const TELCO_SECTIONS: Section[] = [
+  {
+    key: 'identity', title: 'Operator identity & licensing',
+    intro: 'Confirm the operator’s legal identity and NCC standing.',
+    fields: [
+      { key: 'registeredName', label: 'Registered company name', type: 'text' },
+      { key: 'tradingName', label: 'Brand name (if different)', type: 'text' },
+      { key: 'rcNumber', label: 'RC number (CAC)', type: 'text' },
+      { key: 'nccLicence', label: 'NCC operating licence number', type: 'text' },
+      { key: 'operatorType', label: 'Operator type', type: 'select', options: ['Mobile Network Operator (MNO)', 'MVNO', 'Value-Added Service (VAS) provider', 'ISP'] },
+      { key: 'tin', label: 'Tax Identification Number (TIN)', type: 'text' },
+      { key: 'website', label: 'Website', type: 'url', placeholder: 'https://' },
+      { key: 'address', label: 'Head office address', type: 'textarea' },
+      { key: 'city', label: 'City', type: 'text' },
+      { key: 'state', label: 'State', type: 'text' },
+      { key: 'contactName', label: 'Primary contact — name', type: 'text' },
+      { key: 'contactRole', label: 'Primary contact — role', type: 'text' },
+      { key: 'contactPhone', label: 'Primary contact — phone', type: 'tel' },
+      { key: 'contactEmail', label: 'Primary contact — email', type: 'email' },
+    ],
+  },
+  {
+    key: 'subscribers', title: 'Subscriber base & reach',
+    fields: [
+      { key: 'totalSubscribers', label: 'Total subscribers', type: 'number' },
+      { key: 'activeSubscribers', label: 'Active subscribers (90-day)', type: 'number' },
+      { key: 'coverage', label: 'Geographic coverage', type: 'text', placeholder: 'e.g. nationwide, or list states' },
+      { key: 'subscriberSegments', label: 'Subscriber segments', type: 'multiselect', options: ['Prepaid', 'Postpaid', 'Data-only', 'Enterprise / corporate', 'Rural / unbanked'] },
+      { key: 'deviceMix', label: 'Smartphone vs feature-phone mix', type: 'text', placeholder: 'e.g. 60% feature phone' },
+    ],
+  },
+  {
+    key: 'distribution', title: 'Distribution & channels',
+    intro: 'How subscribers discover and join MobiCova — telcos are USSD/SMS-native.',
+    fields: [
+      { key: 'distributionModel', label: 'Distribution model', type: 'select', options: ['Embedded VAS / bundle', 'Co-branded MobiCova', 'USSD / SMS offer', 'Standalone'] },
+      { key: 'enrolmentModel', label: 'How do subscribers become members?', type: 'select', options: ['Opt-in (dial / SMS)', 'Auto-enrol bundle subscribers', 'Auto-enrol selected segments', 'Mixed'] },
+      { key: 'primaryChannels', label: 'Primary channels', type: 'multiselect', options: ['USSD shortcode', 'SMS', 'App', 'WhatsApp', 'Agent / retail'] },
+      { key: 'ussdShortcode', label: 'USSD shortcode to host the service (if any)', type: 'text', placeholder: 'e.g. *347*123#' },
+      { key: 'bundleWithPlans', label: 'Bundle health with airtime / data plans?', type: 'yesno' },
+      { key: 'expectedMembers', label: 'Expected members on MobiCova', type: 'number' },
+    ],
+  },
+  {
+    key: 'funding', title: 'Member funding & billing',
+    intro: 'Airtime deduction / direct carrier billing is the telco hallmark — capture how members pay.',
+    fields: [
+      { key: 'billingMethods', label: 'Billing methods', type: 'multiselect', options: ['Airtime deduction', 'Direct carrier billing (DCB)', 'Dedicated wallet', 'Bank / card'] },
+      { key: 'carrierBillingLive', label: 'Direct carrier billing available now?', type: 'yesno' },
+      { key: 'premiumModel', label: 'Who pays for cover?', type: 'select', options: ['Subscriber pays (airtime)', 'Telco subsidises', 'Freemium + paid upgrades'] },
+      { key: 'microPayments', label: 'Support daily / weekly micro-deductions?', type: 'yesno' },
+      { key: 'settlementCadence', label: 'Settlement cadence', type: 'select', options: ['Weekly', 'Bi-weekly', 'Monthly'] },
+    ],
+  },
+  {
+    key: 'integration', title: 'Integration',
+    fields: [
+      { key: 'integrationType', label: 'Integration surfaces', type: 'multiselect', options: ['USSD gateway', 'SMS gateway', 'REST API', 'Webhooks', 'Carrier-billing API'] },
+      { key: 'aggregator', label: 'VAS / billing aggregator used (if any)', type: 'text' },
+      { key: 'identityByMsisdn', label: 'Identify members by MSISDN (phone number)?', type: 'yesno', help: 'MobiCova already identifies telco members by MSISDN' },
+      { key: 'subscriberDataMethod', label: 'How will member data flow?', type: 'select', options: ['API sync', 'Bulk file', 'Manual entry'] },
+    ],
+  },
+  {
+    key: 'commercials', title: 'Commercials & billing',
+    fields: [
+      { key: 'commercialModel', label: 'Commercial model', type: 'select', options: ['Revenue share', 'Per active member', 'Per transaction', 'Flat platform fee'] },
+      { key: 'revShareSplit', label: 'Revenue-share split (if applicable)', type: 'text', placeholder: 'e.g. 60/40' },
+      { key: 'invoiceName', label: 'Invoices / remittance to — name', type: 'text' },
+      { key: 'invoiceEmail', label: 'Invoices / remittance to — email', type: 'email' },
+      { key: 'paymentMethod', label: 'Payment method', type: 'select', options: ['Bank transfer', 'Direct debit', 'Wallet funding'] },
+    ],
+  },
+  {
+    key: 'compliance', title: 'Compliance & agreements',
+    intro: 'Confirmed before activation. Upload documents from the “Members & docs” area.',
+    fields: [
+      { key: 'nccCompliant', label: 'NCC-compliant for VAS / value-added services?', type: 'yesno' },
+      { key: 'ndprRegistered', label: 'Registered with NDPC (NDPR)?', type: 'yesno' },
+      { key: 'subscriberConsent', label: 'Subscriber consent for data sharing & billing?', type: 'yesno' },
+      { key: 'requireDpa', label: 'Require a signed Data Processing Agreement?', type: 'yesno' },
+      { key: 'agreeDataProtection', label: 'Agree to MobiCova’s data protection policy', type: 'agreement' },
+      { key: 'agreeSla', label: 'Agree to the service-level agreement (SLA)', type: 'agreement' },
+      { key: 'agreeApiTerms', label: 'Agree to MobiCova’s API & integration terms', type: 'agreement' },
+      { key: 'documentsReady', label: 'Documents ready to provide', type: 'multiselect', options: ['NCC licence', 'CAC certificate', 'Tax certificate', 'DPA template', 'VAS / billing agreement'] },
+    ],
+  },
+];
+
+// Pick the questionnaire for an org's type. Insurers, clinics, pharmacies,
+// fintechs and telcos get purpose-built sets; everyone else (employer,
+// cooperative, diagnostics…) uses the employer set for now.
 function sectionsForType(type: string): Section[] {
   if (type === 'underwriter') return INSURER_SECTIONS;
   if (type === 'clinic') return CLINIC_SECTIONS;
   if (type === 'pharmacy') return PHARMACY_SECTIONS;
   if (type === 'fintech') return FINTECH_SECTIONS;
+  if (type === 'telco') return TELCO_SECTIONS;
   return EMPLOYER_SECTIONS;
 }
 

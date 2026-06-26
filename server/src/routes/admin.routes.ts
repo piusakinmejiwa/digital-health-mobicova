@@ -35,10 +35,17 @@ const imageUpload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
 });
+// Onboarding documents (PDF/images/spreadsheets) → private Supabase bucket; 10 MB.
+const docUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 import {
   adminListProviders, adminCreateProvider, adminUpdateProvider,
   adminResetProviderPassword, adminDeleteProvider,
 } from '../controllers/adminProviders.controller';
+import {
+  adminListOrgDocuments, adminUploadOrgDocument, adminDeleteOrgDocument,
+  adminGetOrgHr, adminSaveOrgHr, adminSyncOrgHr,
+} from '../controllers/adminOrgData.controller';
+import { adminImportOrgMembers } from '../controllers/members.controller';
 
 const router = Router();
 
@@ -59,6 +66,16 @@ router.get('/organisations/:id/branding', asyncHandler(adminGetOrgBranding));
 router.put('/organisations/:id/branding', asyncHandler(adminUpdateOrgBranding));
 router.get('/organisations/:id/onboarding', asyncHandler(adminGetOrgOnboarding));
 router.put('/organisations/:id/onboarding', asyncHandler(adminSaveOrgOnboarding));
+// Onboarding documents
+router.get('/organisations/:id/documents', asyncHandler(adminListOrgDocuments));
+router.post('/organisations/:id/documents', docUpload.single('file'), asyncHandler(adminUploadOrgDocument));
+router.delete('/organisations/:id/documents/:docId', asyncHandler(adminDeleteOrgDocument));
+// HR / payroll integration (generic scaffold)
+router.get('/organisations/:id/hr', asyncHandler(adminGetOrgHr));
+router.put('/organisations/:id/hr', asyncHandler(adminSaveOrgHr));
+router.post('/organisations/:id/hr/sync', asyncHandler(adminSyncOrgHr));
+// Member CSV import into this specific org (platform admin onboarding a tenant)
+router.post('/organisations/:id/members/import', asyncHandler(adminImportOrgMembers));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

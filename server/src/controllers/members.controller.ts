@@ -123,7 +123,19 @@ function importArray(v: unknown): string[] {
 }
 
 export async function importMembers(req: Request, res: Response): Promise<void> {
-  const orgId = req.user!.orgId;
+  return runMemberImport(req, res, req.user!.orgId);
+}
+
+// Platform-admin variant: import members into a SPECIFIC target org (onboarding a
+// tenant on their behalf), rather than the caller's own org.
+export async function adminImportOrgMembers(req: Request, res: Response): Promise<void> {
+  const orgId = String(req.params.id);
+  const exists = await query('SELECT 1 FROM organisations WHERE id = $1', [orgId]);
+  if (exists.rows.length === 0) { res.status(404).json({ error: 'Organisation not found' }); return; }
+  return runMemberImport(req, res, orgId);
+}
+
+async function runMemberImport(req: Request, res: Response, orgId: string): Promise<void> {
   // Dry run: validate + preview only, never write. Lets onboarding teams check a
   // partner's CSV (e.g. AXA's pilot cohort) before committing.
   const dryRun = Boolean(req.body?.dryRun);

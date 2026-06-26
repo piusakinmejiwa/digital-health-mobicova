@@ -47,3 +47,30 @@ export async function uploadClaimFile(claimId: string, file: UploadableFile): Pr
 
   return { url: data.signedUrl, path };
 }
+
+// Upload an organisation onboarding document to the private bucket. We persist
+// only the storage_path and mint a short-lived signed URL on read (so links
+// can't leak permanently). Files are namespaced under org-<id>/.
+export async function uploadOrgFile(orgId: string, file: UploadableFile): Promise<{ path: string }> {
+  if (!client) throw new Error('storage_disabled');
+  const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-100) || 'file';
+  const path = `org-${orgId}/${Date.now()}-${safeName}`;
+  const { error } = await client.storage
+    .from(env.supabaseStorageBucket)
+    .upload(path, file.buffer, { contentType: file.mimetype || 'application/octet-stream', upsert: false });
+  if (error) throw error;
+  return { path };
+}
+
+// Mint a fresh signed URL for a stored path (default 1 hour). Null if storage off.
+export async function signedUrlForPath(path: string, seconds = 60 * 60): Promise<string | null> {
+  if (!client || !path) return null;
+  const { data, error } = await client.storage.from(env.supabaseStorageBucket).createSignedUrl(path, seconds);
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
+export async function deleteStoredFile(path: string): Promise<void> {
+  if (!client || !path) return;
+  await client.storage.from(env.supabaseStorageBucket).remove([path]);
+}

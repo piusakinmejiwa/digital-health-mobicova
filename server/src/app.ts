@@ -8,6 +8,7 @@ import routes from './routes';
 import publicApiRoutes from './routes/publicApi.routes';
 import { smsConfigured, whatsappConfigured } from './lib/messaging';
 import { pharmarunConfigured } from './lib/pharmacyFulfilment';
+import { storageEnabled } from './config/storage';
 
 const app = express();
 
@@ -86,6 +87,7 @@ app.get('/health', (_req, res) => {
       video: !!env.dailyApiKey,
       geocode: !!env.geocodeApiKey,
       pharmarun: pharmarunConfigured(),
+      documents: storageEnabled,
       otpDevMode: env.otpDevMode,
     },
   });

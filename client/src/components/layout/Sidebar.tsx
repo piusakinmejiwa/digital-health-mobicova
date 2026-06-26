@@ -84,19 +84,23 @@ export default function Sidebar() {
   const unread = inbox?.unread || 0;
   const isSupply = user?.orgClass === 'supply';
   const isAdmin = user?.role === 'admin';
+  // Platform admins are MobiCova staff — they operate across all orgs from the
+  // Admin Console and have no tenant workspace of their own.
+  const isPlatform = !!user?.isPlatformAdmin;
 
-  // Daily workspace — always visible.
-  const workspace = isSupply ? supplyNavItems : navItems;
+  // Daily workspace — for a platform admin, the Console *is* their workspace.
+  const workspace = isPlatform
+    ? [adminNavItem, feedbackAdminNavItem]
+    : (isSupply ? supplyNavItems : navItems);
   // Occasional items — tucked into collapsible groups to keep the bar short.
-  const settingsItems: NavItem[] = [
-    docsNavItem,
-    securityNavItem,
-    ...(isAdmin ? [brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
-  ];
-  const adminItems: NavItem[] = [
-    ...(isAdmin ? [activityNavItem] : []),
-    ...(user?.isPlatformAdmin ? [adminNavItem, feedbackAdminNavItem] : []),
-  ];
+  const settingsItems: NavItem[] = isPlatform
+    ? [docsNavItem, securityNavItem]
+    : [
+        docsNavItem,
+        securityNavItem,
+        ...(isAdmin ? [brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
+      ];
+  const adminItems: NavItem[] = isPlatform ? [] : (isAdmin ? [activityNavItem] : []);
 
   return (
     <aside className="sidebar">

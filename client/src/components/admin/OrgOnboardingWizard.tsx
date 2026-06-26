@@ -231,11 +231,106 @@ const INSURER_SECTIONS: Section[] = [
   },
 ];
 
-// Pick the questionnaire for an org's type. Underwriters/insurers get the
-// insurer set; everyone else (employer, telco, fintech, clinic…) gets the
+// Clinic / hospital onboarding — a SUPPLY-side facility that provides the
+// doctors and care: facility licensing, services, clinical staffing, operating
+// model. Identity keys stay shared so headline fields mirror onto the org row.
+const CLINIC_SECTIONS: Section[] = [
+  {
+    key: 'identity', title: 'Facility identity & licensing',
+    intro: 'Confirm the facility’s legal identity and that it is licensed to operate.',
+    fields: [
+      { key: 'registeredName', label: 'Registered facility name', type: 'text' },
+      { key: 'tradingName', label: 'Trading / brand name (if different)', type: 'text' },
+      { key: 'rcNumber', label: 'RC number (CAC)', type: 'text' },
+      { key: 'facilityLicenceNo', label: 'Facility licence no. (HEFAMAA / State MoH)', type: 'text' },
+      { key: 'facilityType', label: 'Facility type', type: 'select', options: ['Primary care clinic', 'General hospital', 'Specialist clinic', 'Diagnostic + clinic', 'Telemedicine-only'] },
+      { key: 'tin', label: 'Tax Identification Number (TIN)', type: 'text' },
+      { key: 'yearEstablished', label: 'Year established', type: 'number' },
+      { key: 'website', label: 'Website', type: 'url', placeholder: 'https://' },
+      { key: 'address', label: 'Facility address', type: 'textarea' },
+      { key: 'city', label: 'City', type: 'text' },
+      { key: 'state', label: 'State', type: 'text' },
+      { key: 'contactName', label: 'Primary contact — name', type: 'text' },
+      { key: 'contactRole', label: 'Primary contact — role', type: 'text' },
+      { key: 'contactPhone', label: 'Primary contact — phone', type: 'tel' },
+      { key: 'contactEmail', label: 'Primary contact — email', type: 'email' },
+    ],
+  },
+  {
+    key: 'services', title: 'Services & specialties',
+    fields: [
+      { key: 'services', label: 'Services offered', type: 'multiselect', options: ['General / Family medicine', 'Paediatrics', 'Obstetrics & gynaecology', 'Internal medicine', 'Surgery', 'Dental', 'Optical', 'Mental health', 'Antenatal', 'Vaccinations', 'Minor procedures', 'Emergency'] },
+      { key: 'specialties', label: 'Other specialties (free text)', type: 'text' },
+      { key: 'telemedicine', label: 'Offer telemedicine consults via MobiCova?', type: 'yesno' },
+      { key: 'homeVisits', label: 'Offer home visits?', type: 'yesno' },
+      { key: 'languages', label: 'Languages spoken', type: 'multiselect', options: ['English', 'Pidgin', 'Hausa', 'Yoruba', 'Igbo'] },
+    ],
+  },
+  {
+    key: 'staffing', title: 'Clinical staffing & capacity',
+    fields: [
+      { key: 'numDoctors', label: 'Number of doctors', type: 'number' },
+      { key: 'numNurses', label: 'Number of nurses', type: 'number' },
+      { key: 'mdcnVerified', label: 'All doctors MDCN-registered & current?', type: 'yesno' },
+      { key: 'consultCapacityPerDay', label: 'Consultation capacity per day', type: 'number' },
+      { key: 'bedsAvailable', label: 'Beds available (if any)', type: 'number' },
+      { key: 'acceptsReferrals', label: 'Accept referrals from other providers?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'operations', title: 'Operations & availability',
+    fields: [
+      { key: 'operatingHours', label: 'Operating hours', type: 'text', placeholder: 'e.g. Mon–Fri 8am–6pm, Sat 9am–2pm' },
+      { key: 'open247', label: 'Open 24/7?', type: 'yesno' },
+      { key: 'consultModes', label: 'Consultation modes', type: 'multiselect', options: ['In-person', 'Video', 'Voice', 'Chat'] },
+      { key: 'multipleBranches', label: 'Multiple branches?', type: 'yesno' },
+      { key: 'branches', label: 'Branches (name + staff count)', type: 'branches', showIf: (s) => s.multipleBranches === true },
+      { key: 'avgWaitTime', label: 'Typical wait time', type: 'text', placeholder: 'e.g. under 30 min' },
+    ],
+  },
+  {
+    key: 'integration', title: 'Integration & data',
+    fields: [
+      { key: 'ehrSystem', label: 'EHR / clinic-management software used', type: 'text' },
+      { key: 'ehrIntegration', label: 'Integrate your EHR with MobiCova?', type: 'yesno' },
+      { key: 'providerDataMethod', label: 'How will doctors be added?', type: 'select', options: ['We add them in the MobiCova provider portal', 'Excel upload', 'API integration'] },
+      { key: 'settlementAccountReady', label: 'Settlement bank account ready?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'commercials', title: 'Commercials & settlement',
+    fields: [
+      { key: 'pricingModel', label: 'Pricing model', type: 'select', options: ['Fee-for-service', 'Capitation', 'Per consultation', 'Negotiated tariff'] },
+      { key: 'consultFeeRange', label: 'Typical consultation fee range', type: 'text', placeholder: 'e.g. ₦5,000 – ₦15,000' },
+      { key: 'settlementCadence', label: 'Settlement cadence', type: 'select', options: ['Weekly', 'Bi-weekly', 'Monthly'] },
+      { key: 'invoiceName', label: 'Remittance / invoices to — name', type: 'text' },
+      { key: 'invoiceEmail', label: 'Remittance / invoices to — email', type: 'email' },
+      { key: 'paymentMethod', label: 'Payment method', type: 'select', options: ['Bank transfer', 'Direct debit', 'Wallet funding'] },
+    ],
+  },
+  {
+    key: 'compliance', title: 'Compliance & agreements',
+    intro: 'Confirmed before activation. Upload documents from the “Members & docs” area.',
+    fields: [
+      { key: 'facilityLicenceValid', label: 'Facility operating licence current & valid?', type: 'yesno' },
+      { key: 'indemnityInsurance', label: 'Professional indemnity insurance in place?', type: 'yesno' },
+      { key: 'ndprAware', label: 'Aware of NDPR / patient-data obligations?', type: 'yesno' },
+      { key: 'agreeDataProtection', label: 'Agree to MobiCova’s data protection policy', type: 'agreement' },
+      { key: 'agreeSla', label: 'Agree to the service-level agreement (SLA)', type: 'agreement' },
+      { key: 'agreeClinicalGovernance', label: 'Agree to MobiCova’s clinical governance standards', type: 'agreement' },
+      { key: 'requireContract', label: 'Require a signed contract?', type: 'yesno' },
+      { key: 'documentsReady', label: 'Documents ready to provide', type: 'multiselect', options: ['Facility licence', 'CAC certificate', 'MDCN certificates', 'Indemnity insurance', 'Tax certificate', 'Price list'] },
+    ],
+  },
+];
+
+// Pick the questionnaire for an org's type. Insurers and clinics get purpose-
+// built sets; everyone else (employer, telco, fintech, pharmacy…) uses the
 // employer set for now.
 function sectionsForType(type: string): Section[] {
-  return type === 'underwriter' ? INSURER_SECTIONS : EMPLOYER_SECTIONS;
+  if (type === 'underwriter') return INSURER_SECTIONS;
+  if (type === 'clinic') return CLINIC_SECTIONS;
+  return EMPLOYER_SECTIONS;
 }
 
 export default function OrgOnboardingWizard({ org, onClose, onSaved }: {

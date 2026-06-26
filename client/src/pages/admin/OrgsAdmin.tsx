@@ -186,7 +186,7 @@ export default function OrgsAdmin() {
         <div className="drawer-overlay" onClick={() => setCreating(null)}>
           <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
             <h3>Onboard organisation</h3>
-            <p className="muted small">Create any organisation — underwriter, company, telco, clinic or pharmacy — and, optionally, its first admin user in one step.</p>
+            <p className="muted small">Step 1 — create the organisation (and, optionally, its first admin user). You’ll then continue to the full onboarding questionnaire (company details, workforce, plans, billing, compliance).</p>
             {error && <div className="notice notice-error">{error}</div>}
             <div className="form-grid">
               <div className="form-group">
@@ -310,9 +310,16 @@ export default function OrgsAdmin() {
               {provisioned.admin
                 ? <li>Admin login: <code>{provisioned.admin.email}</code> — they’ll get a welcome email with their branded sign-in link (and a “set your password” link if you left the password blank).</li>
                 : <li className="muted">No admin user was created. Add one from the Users tab when ready.</li>}
+              <li><strong>Next:</strong> complete the full onboarding profile — company details, workforce, eligibility, plans, billing and compliance.</li>
             </ul>
             <div className="modal-actions">
-              <button className="btn btn-primary" onClick={() => setProvisioned(null)}>Done</button>
+              <button className="btn btn-secondary" onClick={() => setProvisioned(null)}>Later</button>
+              <button
+                className="btn btn-primary"
+                onClick={() => { const o = provisioned.org; setProvisioned(null); setOnboardingOrg(o); }}
+              >
+                Continue to onboarding →
+              </button>
             </div>
           </div>
         </div>

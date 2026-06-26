@@ -109,8 +109,11 @@ export async function requestOtp(req: Request, res: Response): Promise<void> {
 
   const delivered = delivery.channel !== 'none';
   if (!delivered) {
-    // No gateway could send it — log it server-side so it's recoverable for demos.
-    console.log(`[member-otp] code for ${identifier}: ${code}`);
+    // Couldn't send (member has no deliverable channel). Never log the actual
+    // code in production — only surface it under explicit dev mode. Otherwise an
+    // un-contactable member's code would land in logs.
+    if (devReveal) console.log(`[member-otp] code for ${identifier}: ${code}`);
+    else console.warn(`[member-otp] no deliverable channel for member ${member.id}`);
   }
 
   res.json({
@@ -118,9 +121,11 @@ export async function requestOtp(req: Request, res: Response): Promise<void> {
     delivered,
     channel: delivery.channel,
     destinationHint: delivery.destination || undefined,
-    // The code only ever rides back when we couldn't deliver it (or dev mode is
-    // on). With a live SMS/WhatsApp gateway this is absent.
-    ...((!delivered || devReveal) ? { devCode: code } : {}),
+    // The code ONLY ever rides back in explicit dev mode. It must never be
+    // returned just because delivery failed — for a member with no working
+    // channel that would hand an unauthenticated caller a valid login code
+    // (account takeover). Such members simply can't log in until contactable.
+    ...(devReveal ? { devCode: code } : {}),
   });
 }
 

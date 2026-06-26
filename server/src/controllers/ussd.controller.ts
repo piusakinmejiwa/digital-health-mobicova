@@ -37,8 +37,8 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  // Member self-service (options 1–4). Option 0 still goes to the Health Buddy below.
-  if (member && ['1', '2', '3', '4'].includes(parts[0])) {
+  // Member self-service (options 1–5). Option 0 still goes to the Health Buddy below.
+  if (member && ['1', '2', '3', '4', '5'].includes(parts[0])) {
     const out = await handleMemberChoice(member, parts[0], 'ussd');
     res.send(`END ${out ?? 'Sorry, please try again.'}`);
     return;

@@ -149,7 +149,7 @@ async function processInbound(identifier: string, message: string): Promise<{ re
   const member = await findMemberByPhone(identifier);
   if (member) {
     await setSessionMode(session.id, 'member');
-    if (['1', '2', '3', '4'].includes(cmd)) {
+    if (['1', '2', '3', '4', '5'].includes(cmd)) {
       const out = await handleMemberChoice(member, cmd, 'whatsapp');
       return { reply: `${out ?? 'Sorry, please try again.'}\n\nReply MENU for options, or BUDDY <question>.`, done: false, step: session.step };
     }

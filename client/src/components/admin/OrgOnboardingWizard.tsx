@@ -421,13 +421,107 @@ const PHARMACY_SECTIONS: Section[] = [
   },
 ];
 
-// Pick the questionnaire for an org's type. Insurers, clinics and pharmacies get
-// purpose-built sets; everyone else (employer, telco, fintech…) uses the
+// Fintech onboarding — a DISTRIBUTION partner (wallet / neobank / lending app)
+// that brings its user base onto MobiCova as members. API-first, so integration
+// and embedding matter; enrolment model is captured as a field since it varies
+// per partner. Payments is a light section (a fintech may also fund/collect).
+const FINTECH_SECTIONS: Section[] = [
+  {
+    key: 'identity', title: 'Company identity & licensing',
+    intro: 'Confirm the fintech’s legal identity and CBN/regulatory standing.',
+    fields: [
+      { key: 'registeredName', label: 'Registered company name', type: 'text' },
+      { key: 'tradingName', label: 'App / brand name (if different)', type: 'text' },
+      { key: 'rcNumber', label: 'RC number (CAC)', type: 'text' },
+      { key: 'cbnLicence', label: 'CBN licence type / number', type: 'text' },
+      { key: 'licenceCategory', label: 'Licence category', type: 'select', options: ['Payment Service Bank (PSB)', 'Mobile Money Operator (MMO)', 'Payment Solution Service Provider (PSSP)', 'Switching & Processing', 'Microfinance Bank', 'Lending (state/CBN)', 'Other / partner-licensed'] },
+      { key: 'tin', label: 'Tax Identification Number (TIN)', type: 'text' },
+      { key: 'website', label: 'Website / app store link', type: 'url', placeholder: 'https://' },
+      { key: 'address', label: 'Head office address', type: 'textarea' },
+      { key: 'city', label: 'City', type: 'text' },
+      { key: 'state', label: 'State', type: 'text' },
+      { key: 'contactName', label: 'Primary contact — name', type: 'text' },
+      { key: 'contactRole', label: 'Primary contact — role', type: 'text' },
+      { key: 'contactPhone', label: 'Primary contact — phone', type: 'tel' },
+      { key: 'contactEmail', label: 'Primary contact — email', type: 'email' },
+    ],
+  },
+  {
+    key: 'userbase', title: 'Business model & user base',
+    fields: [
+      { key: 'fintechType', label: 'What kind of fintech?', type: 'multiselect', options: ['Digital wallet', 'Neobank', 'Lending / BNPL', 'Savings / investments', 'Payments / transfers', 'Agency banking', 'Insurtech'] },
+      { key: 'totalUsers', label: 'Total registered users', type: 'number' },
+      { key: 'activeUsers', label: 'Monthly active users', type: 'number' },
+      { key: 'userSegments', label: 'Main user segments', type: 'multiselect', options: ['Retail / individual', 'SME / merchants', 'Gig / informal workers', 'Salary earners', 'Students'] },
+      { key: 'usersKyc', label: 'Are users already KYC-verified?', type: 'yesno', help: 'Verified identity speeds member onboarding' },
+    ],
+  },
+  {
+    key: 'distribution', title: 'Distribution & enrolment',
+    intro: 'How the fintech’s users discover and join MobiCova.',
+    fields: [
+      { key: 'distributionModel', label: 'Distribution model', type: 'select', options: ['Embedded in our app', 'Co-branded MobiCova', 'Referral / deep-link', 'Standalone offer'] },
+      { key: 'enrolmentModel', label: 'How do users become members?', type: 'select', options: ['Opt-in per user', 'Auto-enrol whole base', 'Auto-enrol selected segments', 'Mixed'] },
+      { key: 'enrolSegments', label: 'Which segments (if auto-enrol)', type: 'text', showIf: (s) => String(s.enrolmentModel || '').startsWith('Auto-enrol') || s.enrolmentModel === 'Mixed' },
+      { key: 'expectedMembers', label: 'Expected members on MobiCova', type: 'number' },
+      { key: 'expectedTakeup', label: 'Expected take-up rate (if opt-in)', type: 'text', placeholder: 'e.g. 10% of active users' },
+      { key: 'launchChannels', label: 'Launch channels', type: 'multiselect', options: ['In-app banner', 'Push notification', 'Email / SMS campaign', 'Agent network', 'Website'] },
+      { key: 'coBranding', label: 'Co-brand the member experience?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'integration', title: 'Integration (API-first)',
+    fields: [
+      { key: 'integrationType', label: 'Preferred integration', type: 'select', options: ['REST API', 'SDK / embedded', 'Webhooks', 'Manual / file'] },
+      { key: 'ssoForUsers', label: 'Single sign-on from your app into MobiCova?', type: 'yesno' },
+      { key: 'userDataMethod', label: 'How will member data flow?', type: 'select', options: ['API sync', 'Bulk file', 'Manual entry'] },
+      { key: 'sandboxNeeded', label: 'Need a sandbox / test environment?', type: 'yesno' },
+      { key: 'webhookEvents', label: 'Want webhook events (enrolment, claims)?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'payments', title: 'Member payments (optional)',
+    intro: 'A fintech may also collect or fund members’ health payments — capture it if so.',
+    fields: [
+      { key: 'handlesPayments', label: 'Will you collect / fund members’ health payments?', type: 'yesno' },
+      { key: 'paymentMethods', label: 'Payment methods', type: 'multiselect', options: ['Wallet deduction', 'BNPL', 'Card', 'Bank transfer'], showIf: (s) => s.handlesPayments === true },
+      { key: 'premiumModel', label: 'Who pays for cover?', type: 'select', options: ['Member pays', 'Fintech subsidises', 'Free tier + paid upgrades'] },
+      { key: 'settlementCadence', label: 'Settlement cadence', type: 'select', options: ['Weekly', 'Bi-weekly', 'Monthly'] },
+    ],
+  },
+  {
+    key: 'commercials', title: 'Commercials & billing',
+    fields: [
+      { key: 'commercialModel', label: 'Commercial model', type: 'select', options: ['Revenue share', 'Per active member', 'Flat platform fee', 'Referral fee'] },
+      { key: 'invoiceName', label: 'Invoices / remittance to — name', type: 'text' },
+      { key: 'invoiceEmail', label: 'Invoices / remittance to — email', type: 'email' },
+      { key: 'paymentMethod', label: 'Payment method', type: 'select', options: ['Bank transfer', 'Direct debit', 'Wallet funding'] },
+    ],
+  },
+  {
+    key: 'compliance', title: 'Compliance & agreements',
+    intro: 'Confirmed before activation. Upload documents from the “Members & docs” area.',
+    fields: [
+      { key: 'ndprRegistered', label: 'Registered with NDPC (NDPR)?', type: 'yesno' },
+      { key: 'dpoName', label: 'Data Protection Officer (name)', type: 'text' },
+      { key: 'userConsent', label: 'Users consent to sharing data with MobiCova?', type: 'yesno' },
+      { key: 'requireDpa', label: 'Require a signed Data Processing Agreement?', type: 'yesno' },
+      { key: 'agreeDataProtection', label: 'Agree to MobiCova’s data protection policy', type: 'agreement' },
+      { key: 'agreeSla', label: 'Agree to the service-level agreement (SLA)', type: 'agreement' },
+      { key: 'agreeApiTerms', label: 'Agree to MobiCova’s API & integration terms', type: 'agreement' },
+      { key: 'documentsReady', label: 'Documents ready to provide', type: 'multiselect', options: ['CBN licence', 'CAC certificate', 'Tax certificate', 'DPA template', 'API integration spec'] },
+    ],
+  },
+];
+
+// Pick the questionnaire for an org's type. Insurers, clinics, pharmacies and
+// fintechs get purpose-built sets; everyone else (employer, telco…) uses the
 // employer set for now.
 function sectionsForType(type: string): Section[] {
   if (type === 'underwriter') return INSURER_SECTIONS;
   if (type === 'clinic') return CLINIC_SECTIONS;
   if (type === 'pharmacy') return PHARMACY_SECTIONS;
+  if (type === 'fintech') return FINTECH_SECTIONS;
   return EMPLOYER_SECTIONS;
 }
 

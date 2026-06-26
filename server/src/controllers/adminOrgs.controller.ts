@@ -278,6 +278,7 @@ export async function adminSaveOrgOnboarding(req: Request, res: Response): Promi
   const idn = data.identity || {};
   const wf = data.workforce || {};
   const mem = data.membership || {};
+  const dist = data.distribution || {};
   const address = str(idn.address, 500);
   const city = str(idn.city, 120);
   let lat: number | null = null, lng: number | null = null;
@@ -286,7 +287,7 @@ export async function adminSaveOrgOnboarding(req: Request, res: Response): Promi
     lat = coords?.lat ?? null; lng = coords?.lng ?? null;
   }
   const memberEstimate = Number.parseInt(
-    String(wf.totalEmployees ?? mem.expectedMembersOnPlatform ?? mem.totalPolicyholders ?? ''), 10
+    String(wf.totalEmployees ?? mem.expectedMembersOnPlatform ?? mem.totalPolicyholders ?? dist.expectedMembers ?? ''), 10
   );
 
   await query(

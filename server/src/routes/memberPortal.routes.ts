@@ -6,6 +6,7 @@ import {
   listMemberClaims, getMemberClaim, createMemberClaim, memberTriage, createMemberConsultation,
   startMemberConsultation, completeMemberConsultation, startMemberPhoneCall,
   updateMemberLocation, getMemberDoctors, setPrescriptionFulfilment,
+  getMemberRewardsHandler,
 } from '../controllers/memberPortal.controller';
 import { authenticateMember } from '../middleware/memberAuth';
 import { validate } from '../middleware/validate';
@@ -31,6 +32,7 @@ router.post('/auth/verify-otp', otpLimiter, [body('identifier').trim().notEmpty(
 router.get('/me', authenticateMember, asyncHandler(getMemberMe));
 router.get('/overview', authenticateMember, asyncHandler(getMemberOverview));
 router.get('/doctors', authenticateMember, asyncHandler(getMemberDoctors));
+router.get('/rewards', authenticateMember, asyncHandler(getMemberRewardsHandler));
 router.get('/claims', authenticateMember, asyncHandler(listMemberClaims));
 router.get('/claims/:id', authenticateMember, asyncHandler(getMemberClaim));
 router.post('/claims', authenticateMember, [body('amount').notEmpty()], validate, asyncHandler(createMemberClaim));

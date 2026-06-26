@@ -15,6 +15,7 @@ import { voiceConfigured, originateCall, maskingNumber } from '../lib/voice';
 import { geocode } from '../lib/geo';
 import { sendSms, smsConfigured } from '../lib/messaging';
 import { sendEmail } from '../lib/email';
+import { award, getMemberRewards } from '../lib/rewards';
 
 // ── Identity resolution ─────────────────────────────────────────────────
 // A member identifies with either a phone number or an email already on their
@@ -209,7 +210,21 @@ export async function getMemberMe(req: Request, res: Response): Promise<void> {
     [memberId]
   );
   const branding = await getOrgBranding(req.member!.orgId);
-  res.json({ ...result.rows[0], counts: counts.rows[0], branding });
+
+  // Reward a completed health profile (once). "Complete" = the basics a clinician
+  // needs: DOB, blood group, and at least one contact method.
+  const me = result.rows[0];
+  if (me.date_of_birth && me.blood_group && (me.phone || me.email)) {
+    await award(memberId, req.member!.orgId, 'profile_complete');
+  }
+
+  res.json({ ...me, counts: counts.rows[0], branding });
+}
+
+// GET /member/rewards — points, streak and badge catalogue for the Rewards screen.
+export async function getMemberRewardsHandler(req: Request, res: Response): Promise<void> {
+  const data = await getMemberRewards(req.member!.memberId);
+  res.json(data);
 }
 
 // POST /member/prescriptions/:id/fulfilment — the member chooses pickup or
@@ -282,6 +297,9 @@ export async function getMemberOverview(req: Request, res: Response): Promise<vo
      FROM triage_sessions WHERE member_id = $1 ORDER BY created_at DESC`,
     [memberId]
   );
+
+  // Daily check-in: opening the portal once a day keeps the engagement streak alive.
+  await award(memberId, req.member!.orgId, 'daily_checkin');
 
   res.json({
     enrolments: enrolments.rows,
@@ -453,6 +471,7 @@ export async function memberTriage(req: Request, res: Response): Promise<void> {
      RETURNING id, messages, triage_level, recommendation, engine`,
     [session.id, JSON.stringify(history), result.triageLevel, result.recommendation, result.engine]
   );
+  await award(memberId, orgId, 'triage');
   res.json(updated.rows[0]);
 }
 
@@ -660,5 +679,6 @@ export async function completeMemberConsultation(req: Request, res: Response): P
       RETURNING *`,
     [notes, id, memberId]
   );
+  await award(memberId, req.member!.orgId, 'consult_complete', { ref: id });
   res.json(result.rows[0]);
 }

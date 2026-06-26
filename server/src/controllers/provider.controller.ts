@@ -5,6 +5,7 @@ import { signProviderToken } from '../lib/providerAuth';
 import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult, recordingConfigured, listRoomRecordings, getRecordingAccessLink } from '../lib/daily';
 import { haversineKm } from '../lib/geo';
 import { pharmarunConfigured, createFulfilmentOrder } from '../lib/pharmacyFulfilment';
+import { award } from '../lib/rewards';
 
 // ── Provider org context (unified model; a clinician may span several orgs) ──
 export interface ProviderOrg { id: string; name: string; type: string; is_primary: boolean }
@@ -561,5 +562,11 @@ export async function advancePrescription(req: Request, res: Response): Promise<
   if (status === 'collected' || status === 'delivered') sets.push('completed_at = NOW()');
 
   const result = await query(`UPDATE prescriptions SET ${sets.join(', ')} WHERE id = $1 RETURNING *`, params as any[]);
+
+  // Reward the member for an on-time medication collection (adherence).
+  if (status === 'collected' || status === 'delivered') {
+    await award(result.rows[0].member_id, null, 'prescription_collected', { ref: id });
+  }
+
   res.json(result.rows[0]);
 }

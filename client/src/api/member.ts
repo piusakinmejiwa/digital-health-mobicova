@@ -129,3 +129,23 @@ export async function setPrescriptionFulfilment(
   const res = await memberApi.post(`/member/prescriptions/${id}/fulfilment`, { method, address });
   return res.data;
 }
+
+// --- Rewards (gamification) ---
+export interface RewardBadge {
+  slug: string;
+  label: string;
+  emoji: string;
+  description: string;
+  earned: boolean;
+  earnedAt: string | null;
+}
+export interface MemberRewards {
+  totalPoints: number;
+  currentStreak: number;
+  longestStreak: number;
+  badges: RewardBadge[];
+}
+export async function getMemberRewards(): Promise<MemberRewards> {
+  const res = await memberApi.get('/member/rewards');
+  return res.data;
+}

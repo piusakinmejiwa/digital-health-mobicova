@@ -1,0 +1,55 @@
+/* Rewards screen — sits on top of the shared Member.css tokens. */
+
+.rw-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+}
+.rw-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.9rem 0.4rem;
+  background: #fff;
+  border: 1px solid #e7ecea;
+  border-radius: 14px;
+  text-align: center;
+}
+.rw-stat-points {
+  background: linear-gradient(135deg, var(--brand, #0f7d6b), var(--brand-2, #14a08a));
+  border-color: transparent;
+  color: #fff;
+}
+.rw-stat-num { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+.rw-stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.85; }
+
+.rw-h2 { font-size: 1rem; margin: 0 0 0.7rem; }
+
+.rw-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+.rw-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+  padding: 0.8rem 0.4rem;
+  border-radius: 14px;
+  border: 1px solid #e7ecea;
+}
+.rw-badge.earned { background: #f3fbf8; border-color: #b9e6d8; }
+.rw-badge.locked { background: #f7f8f8; opacity: 0.75; }
+.rw-badge.locked .rw-badge-emoji { filter: grayscale(1); }
+.rw-badge-emoji { font-size: 1.7rem; line-height: 1; }
+.rw-badge-label { font-size: 0.78rem; font-weight: 700; }
+.rw-badge-desc { font-size: 0.66rem; color: #5e6e6e; line-height: 1.25; }
+/* In the "to unlock" grid, give each tile room for the hint line. */
+.rw-badge.locked { grid-column: span 1; }
+
+.rw-foot { margin: 1rem 0 0; text-align: center; }

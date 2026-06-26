@@ -1,4 +1,5 @@
 import { query } from '../config/database';
+import { getMemberRewards } from './rewards';
 
 // Member self-service shared by the USSD and WhatsApp channels. On telco channels
 // there is no password — the member is identified by the phone number that
@@ -34,7 +35,7 @@ export async function findMemberByPhone(phone: string): Promise<ChannelMember | 
 // The member menu (numeric options work on both channels).
 export function memberMenu(fullName: string): string {
   const first = (fullName || '').split(' ')[0] || 'there';
-  return `Hi ${first}! MobiCova member services:\n1 My cover\n2 My claims\n3 My prescriptions\n4 Request a doctor callback\n0 Health Buddy`;
+  return `Hi ${first}! MobiCova member services:\n1 My cover\n2 My claims\n3 My prescriptions\n4 Request a doctor callback\n5 My rewards\n0 Health Buddy`;
 }
 
 // Handle a numeric menu choice and return the reply text. Returns null for an
@@ -83,6 +84,11 @@ export async function handleMemberChoice(member: ChannelMember, choice: string, 
       );
       const first = (member.full_name || '').split(' ')[0] || '';
       return `Thanks ${first}! A MobiCova doctor will call you back shortly.`;
+    }
+    case '5': {
+      const rw = await getMemberRewards(member.id);
+      const earned = rw.badges.filter((b) => b.earned).length;
+      return `MobiCova Rewards\nPoints: ${rw.totalPoints}\nStreak: ${rw.currentStreak} day(s)\nBadges: ${earned}/${rw.badges.length}\nOpen the app to see more.`;
     }
     default:
       return null;

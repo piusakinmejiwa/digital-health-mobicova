@@ -36,6 +36,7 @@ import MemberCarePage from './pages/member/MemberCarePage';
 import MemberSymptomCheckPage from './pages/member/MemberSymptomCheckPage';
 import MemberClaimsPage from './pages/member/MemberClaimsPage';
 import MemberProfilePage from './pages/member/MemberProfilePage';
+import MemberRewardsPage from './pages/member/MemberRewardsPage';
 import ProviderShell from './components/provider/ProviderShell';
 import ProviderProtectedRoute from './components/provider/ProviderProtectedRoute';
 import ProviderLoginPage from './pages/provider/ProviderLoginPage';
@@ -111,6 +112,7 @@ export const router = createBrowserRouter([
       { path: 'care', element: <MemberCarePage /> },
       { path: 'care/symptom-check', element: <MemberSymptomCheckPage /> },
       { path: 'claims', element: <MemberClaimsPage /> },
+      { path: 'rewards', element: <MemberRewardsPage /> },
       { path: 'profile', element: <MemberProfilePage /> },
     ],
   },

@@ -12,6 +12,7 @@ const TABS = [
   { to: '/member', label: 'Home', icon: '⌂', end: true },
   { to: '/member/care', label: 'Care', icon: '✚', end: false },
   { to: '/member/claims', label: 'Claims', icon: '▦', end: false },
+  { to: '/member/rewards', label: 'Rewards', icon: '★', end: false },
   { to: '/member/profile', label: 'Profile', icon: '◎', end: false },
 ];
 

@@ -272,9 +272,12 @@ export async function adminSaveOrgOnboarding(req: Request, res: Response): Promi
     [id, JSON.stringify(data), status]
   );
 
-  // Mirror the headline fields onto the organisation row.
+  // Mirror the headline fields onto the organisation row. Identity keys are shared
+  // across the employer and insurer questionnaires; the member estimate comes from
+  // whichever section the org's questionnaire used.
   const idn = data.identity || {};
   const wf = data.workforce || {};
+  const mem = data.membership || {};
   const address = str(idn.address, 500);
   const city = str(idn.city, 120);
   let lat: number | null = null, lng: number | null = null;
@@ -282,7 +285,9 @@ export async function adminSaveOrgOnboarding(req: Request, res: Response): Promi
     const coords = await geocode([address, city].filter(Boolean).join(', '));
     lat = coords?.lat ?? null; lng = coords?.lng ?? null;
   }
-  const memberEstimate = Number.parseInt(String(wf.totalEmployees ?? ''), 10);
+  const memberEstimate = Number.parseInt(
+    String(wf.totalEmployees ?? mem.expectedMembersOnPlatform ?? mem.totalPolicyholders ?? ''), 10
+  );
 
   await query(
     `UPDATE organisations SET

@@ -29,7 +29,7 @@ interface Section { key: string; title: string; intro?: string; fields: Field[];
 
 const SIZE = ['Micro (1–9)', 'Small (10–49)', 'Medium (50–249)', 'Large (250+)'];
 
-const SECTIONS: Section[] = [
+const EMPLOYER_SECTIONS: Section[] = [
   {
     key: 'identity', title: 'Company identity & verification',
     intro: 'Confirm who the organisation is and who is authorised to act for them.',
@@ -135,9 +135,113 @@ const SECTIONS: Section[] = [
   },
 ];
 
+// Insurer / underwriter / HMO onboarding — a different shape from an employer:
+// licensing, products underwritten, the policyholder book, claims & settlement,
+// provider network, commercials. The identity keys are kept the same as the
+// employer set (registeredName, rcNumber, tin, contact*, address…) so the same
+// headline fields mirror onto the org row server-side.
+const INSURER_SECTIONS: Section[] = [
+  {
+    key: 'identity', title: 'Insurer identity & licensing',
+    intro: 'Confirm the underwriter’s legal identity and regulatory standing.',
+    fields: [
+      { key: 'registeredName', label: 'Registered company name', type: 'text' },
+      { key: 'tradingName', label: 'Trading name (if different)', type: 'text' },
+      { key: 'rcNumber', label: 'RC number (CAC)', type: 'text' },
+      { key: 'naicomLicence', label: 'NAICOM / regulator licence number', type: 'text' },
+      { key: 'licenceType', label: 'Licence type', type: 'select', options: ['Health / HMO', 'Life', 'General', 'Composite', 'Micro-insurance'] },
+      { key: 'tin', label: 'Tax Identification Number (TIN)', type: 'text' },
+      { key: 'yearEstablished', label: 'Year established', type: 'number' },
+      { key: 'website', label: 'Website', type: 'url', placeholder: 'https://' },
+      { key: 'address', label: 'Head office address', type: 'textarea' },
+      { key: 'city', label: 'City', type: 'text' },
+      { key: 'state', label: 'State', type: 'text' },
+      { key: 'contactName', label: 'Primary contact — name', type: 'text' },
+      { key: 'contactRole', label: 'Primary contact — role', type: 'text' },
+      { key: 'contactPhone', label: 'Primary contact — phone', type: 'tel' },
+      { key: 'contactEmail', label: 'Primary contact — email', type: 'email' },
+    ],
+  },
+  {
+    key: 'products', title: 'Products & benefits underwritten',
+    fields: [
+      { key: 'productLines', label: 'Product lines', type: 'multiselect', options: ['HMO / managed care', 'Group health', 'Individual health', 'Micro-insurance', 'Hospital cash', 'Critical illness', 'Life'] },
+      { key: 'planTiers', label: 'Plan tiers (e.g. Bronze, Silver, Gold)', type: 'text' },
+      { key: 'benefitsCovered', label: 'Benefits covered', type: 'multiselect', options: ['Outpatient', 'Inpatient', 'Maternity', 'Dental', 'Optical', 'Pharmacy', 'Chronic care', 'Emergency', 'Diagnostics', 'Telemedicine'] },
+      { key: 'annualLimits', label: 'Typical annual limit range', type: 'text', placeholder: 'e.g. ₦250k – ₦5m' },
+      { key: 'waitingPeriods', label: 'Any waiting periods?', type: 'yesno' },
+      { key: 'waitingPeriodDetail', label: 'Waiting period details', type: 'text', showIf: (s) => s.waitingPeriods === true },
+    ],
+  },
+  {
+    key: 'membership', title: 'Policyholder book',
+    intro: 'How many members, and how their data reaches us.',
+    fields: [
+      { key: 'totalPolicyholders', label: 'Total policyholders', type: 'number' },
+      { key: 'expectedMembersOnPlatform', label: 'Expected members on MobiCova', type: 'number' },
+      { key: 'memberSegments', label: 'Member segments', type: 'multiselect', options: ['Retail / individual', 'Corporate / group', 'SME', 'Family / dependents'] },
+      { key: 'coversDependents', label: 'Cover includes dependents?', type: 'yesno' },
+      { key: 'dataProvisionMethod', label: 'How will member data be provided?', type: 'select', options: ['Excel upload', 'API integration', 'Manual entry'] },
+    ],
+  },
+  {
+    key: 'claims', title: 'Claims & settlement',
+    fields: [
+      { key: 'claimsHandling', label: 'Claims handling', type: 'select', options: ['In-house', 'Third-party administrator (TPA)', 'Hybrid'] },
+      { key: 'tpaName', label: 'TPA name', type: 'text', showIf: (s) => s.claimsHandling && s.claimsHandling !== 'In-house' },
+      { key: 'preAuthRequired', label: 'Pre-authorisation required?', type: 'yesno' },
+      { key: 'claimsApprover', label: 'Who approves claims?', type: 'text' },
+      { key: 'settlementCadence', label: 'Settlement cadence', type: 'select', options: ['Weekly', 'Bi-weekly', 'Monthly'] },
+      { key: 'avgSettlementDays', label: 'Average settlement time (days)', type: 'number' },
+      { key: 'realTimeClaims', label: 'Want real-time claim notifications?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'network', title: 'Provider network & fulfilment',
+    fields: [
+      { key: 'ownNetwork', label: 'Do you have your own provider network?', type: 'yesno' },
+      { key: 'networkSize', label: 'Number of network providers', type: 'number', showIf: (s) => s.ownNetwork === true },
+      { key: 'useMobicovaNetwork', label: 'Use MobiCova’s provider network?', type: 'yesno' },
+      { key: 'telemedicine', label: 'Offer telemedicine to members?', type: 'yesno' },
+      { key: 'pharmacyFulfilment', label: 'Pharmacy fulfilment', type: 'select', options: ['Own pharmacies', 'PharmaRun', 'Either'] },
+    ],
+  },
+  {
+    key: 'billing', title: 'Commercials & billing',
+    fields: [
+      { key: 'commercialModel', label: 'Commercial model', type: 'select', options: ['Per member per month (PMPM)', 'Revenue share', 'Flat platform fee', 'Per transaction'] },
+      { key: 'billingCycle', label: 'Billing cycle', type: 'select', options: ['Monthly', 'Quarterly', 'Annual'] },
+      { key: 'invoiceName', label: 'Invoices to — name', type: 'text' },
+      { key: 'invoiceEmail', label: 'Invoices to — email', type: 'email' },
+      { key: 'paymentMethod', label: 'Payment method', type: 'select', options: ['Bank transfer', 'Direct debit', 'Wallet funding'] },
+    ],
+  },
+  {
+    key: 'compliance', title: 'Compliance & agreements',
+    intro: 'Confirmed before activation. Upload documents from the “Members & docs” area.',
+    fields: [
+      { key: 'ndprRegistered', label: 'Registered with NDPC (NDPR)?', type: 'yesno' },
+      { key: 'dpoName', label: 'Data Protection Officer (name)', type: 'text' },
+      { key: 'requireDpa', label: 'Require a signed Data Processing Agreement?', type: 'yesno' },
+      { key: 'agreeDataProtection', label: 'Agree to MobiCova’s data protection policy', type: 'agreement' },
+      { key: 'agreeSla', label: 'Agree to the service-level agreement (SLA)', type: 'agreement' },
+      { key: 'agreeBilling', label: 'Agree to the billing and settlement terms', type: 'agreement' },
+      { key: 'documentsReady', label: 'Documents ready to provide', type: 'multiselect', options: ['NAICOM licence', 'CAC certificate', 'Tax certificate', 'DPA template', 'Product brochure'] },
+    ],
+  },
+];
+
+// Pick the questionnaire for an org's type. Underwriters/insurers get the
+// insurer set; everyone else (employer, telco, fintech, clinic…) gets the
+// employer set for now.
+function sectionsForType(type: string): Section[] {
+  return type === 'underwriter' ? INSURER_SECTIONS : EMPLOYER_SECTIONS;
+}
+
 export default function OrgOnboardingWizard({ org, onClose, onSaved }: {
   org: Organisation; onClose: () => void; onSaved: () => void;
 }) {
+  const SECTIONS = sectionsForType(org.type);
   const [data, setData] = useState<Record<string, any>>({});
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);

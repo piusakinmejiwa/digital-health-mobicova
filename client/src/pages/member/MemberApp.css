@@ -14,7 +14,11 @@
 
 /* Bottom tab bar */
 .m-tabbar {
-  flex: none; height: 72px; background: #fff;
+  flex: none; background: #fff;
+  /* Reserve the phone's home-indicator / gesture-bar space below the tabs so
+     labels are never clipped (needs viewport-fit=cover; env() is 0 elsewhere). */
+  height: calc(72px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   border-top: 1px solid var(--gray-200, #e2ebf0);
   display: flex; align-items: flex-start; padding-top: 10px;
 }

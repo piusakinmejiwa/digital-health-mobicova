@@ -11,6 +11,7 @@ import {
   adminListOrgs, adminCreateOrg, adminUpdateOrg, adminDeleteOrg,
   adminGetOrgBranding, adminUpdateOrgBranding,
   adminGetOrgOnboarding, adminSaveOrgOnboarding,
+  adminImpersonateOrg,
 } from '../controllers/adminOrgs.controller';
 import {
   adminListUsers, adminCreateUser, adminUpdateUser,
@@ -79,6 +80,8 @@ router.post('/organisations/:id/members/import', asyncHandler(adminImportOrgMemb
 // Cross-org member management (platform admin — any org, not just their own)
 router.get('/organisations/:id/members', asyncHandler(adminListOrgMembers));
 router.patch('/organisations/:id/members/:memberId', asyncHandler(adminUpdateOrgMember));
+// "View as org" — issue a token scoped to the tenant
+router.post('/organisations/:id/impersonate', asyncHandler(adminImpersonateOrg));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

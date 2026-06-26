@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { query } from '../config/database';
+import { env } from '../config/env';
+import { JwtPayload } from '../middleware/auth';
 import { generateJoinCode, uniqueSlug } from '../lib/org';
 import { passwordIssue } from '../lib/password';
 import { randomPlaceholderSecret } from '../lib/invites';
@@ -312,4 +315,23 @@ export async function adminSaveOrgOnboarding(req: Request, res: Response): Promi
   });
 
   res.json({ ok: true, status });
+}
+
+// POST /admin/organisations/:id/impersonate — "View as org". Re-issues the
+// platform admin a token scoped to the target tenant (orgId = tenant, userId
+// still the admin for audit). The client swaps to this token; existing org-
+// scoped endpoints then operate within that tenant. Cannot target the platform org.
+export async function adminImpersonateOrg(req: Request, res: Response): Promise<void> {
+  const id = String(req.params.id);
+  const org = await query('SELECT id, name FROM organisations WHERE id = $1 AND is_platform = false', [id]);
+  if (org.rows.length === 0) { res.status(404).json({ error: 'Organisation not found' }); return; }
+
+  const payload: JwtPayload = { userId: req.user!.userId, orgId: id, role: 'admin', actingAs: id };
+  const token = jwt.sign(payload, env.jwtSecret, { expiresIn: '7d' });
+
+  await recordAudit(req, {
+    action: 'admin.impersonate', targetType: 'organisation', targetId: id,
+    targetLabel: org.rows[0].name, orgId: id,
+  });
+  res.json({ token, org: { id: org.rows[0].id, name: org.rows[0].name } });
 }

@@ -11,6 +11,8 @@ export interface User {
   joinCode?: string;
   mfaEnabled?: boolean;
   isPlatformAdmin?: boolean;
+  // True when a platform admin is currently "viewing as" this (tenant) org.
+  acting?: boolean;
 }
 
 export interface AuthResponse {

@@ -331,12 +331,14 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // Report the EFFECTIVE org from the token's orgId (not the user's home org) so
+  // that a platform admin "viewing as" a tenant sees that tenant's context.
   const result = await query(
-    `SELECT u.id, u.email, u.full_name, u.role, u.org_id, u.totp_enabled,
-            o.name as org_name, o.type AS partner_type, o.plan_tier, o.join_code
-     FROM users u JOIN organisations o ON u.org_id = o.id
-     WHERE u.id = $1`,
-    [req.user.userId]
+    `SELECT u.id, u.email, u.full_name, u.role, u.totp_enabled,
+            o.id AS org_id, o.name as org_name, o.type AS partner_type, o.plan_tier, o.join_code
+     FROM users u, organisations o
+     WHERE u.id = $1 AND o.id = $2`,
+    [req.user.userId, req.user.orgId]
   );
 
   if (result.rows.length === 0) {
@@ -358,6 +360,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
     joinCode: user.join_code,
     mfaEnabled: user.totp_enabled,
     isPlatformAdmin: await isPlatformAdmin(req.user.userId),
+    acting: Boolean(req.user.actingAs),
   });
 }
 

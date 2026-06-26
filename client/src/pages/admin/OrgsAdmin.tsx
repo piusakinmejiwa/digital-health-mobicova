@@ -11,7 +11,9 @@ import type { SsoConfigInput } from '../../api/sso';
 import SsoConfigEditor from '../../components/sso/SsoConfigEditor';
 import OrgOnboardingWizard from '../../components/admin/OrgOnboardingWizard';
 import OrgDataModal from '../../components/admin/OrgDataModal';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { adminImpersonateOrg } from '../../api/admin';
 import { ORG_TYPES, orgTypeLabel, orgClassBadge, orgClassOf } from '../../lib/orgTypes';
 
 const PLAN_TIERS = ['starter', 'growth', 'scale', 'enterprise'];
@@ -28,7 +30,18 @@ const emptyOrg = {
 
 export default function OrgsAdmin() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, impersonate } = useAuth();
+  const navigate = useNavigate();
+
+  const viewAsOrg = async (o: Organisation) => {
+    try {
+      const res = await adminImpersonateOrg(o.id);
+      impersonate(res.token);
+      navigate('/dashboard');
+    } catch {
+      setError(`Could not open ${o.name}.`);
+    }
+  };
   const { data: orgs } = useQuery({ queryKey: ['admin-orgs'], queryFn: adminListOrgs });
   const [creating, setCreating] = useState<null | typeof emptyOrg>(null);
   const [editing, setEditing] = useState<null | (Organisation)>(null);
@@ -153,6 +166,7 @@ export default function OrgsAdmin() {
               <td className="muted small">{o.user_count}</td>
               <td><span className={`badge ${o.is_active ? 'badge-green' : 'badge-gray'}`}>{o.is_active ? 'active' : 'suspended'}</span></td>
               <td className="admin-actions">
+                <button className="btn btn-secondary btn-sm" onClick={() => viewAsOrg(o)}>View as org</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => { setError(''); setEditing(o); }}>Edit</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setOnboardingOrg(o)}>Onboarding</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setDataOrg(o)}>Members &amp; docs</button>

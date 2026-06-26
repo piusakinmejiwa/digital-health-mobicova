@@ -85,8 +85,9 @@ export default function Sidebar() {
   const isSupply = user?.orgClass === 'supply';
   const isAdmin = user?.role === 'admin';
   // Platform admins are MobiCova staff — they operate across all orgs from the
-  // Admin Console and have no tenant workspace of their own.
-  const isPlatform = !!user?.isPlatformAdmin;
+  // Admin Console and have no tenant workspace of their own. EXCEPT while
+  // "viewing as" a tenant, where they get that org's normal workspace.
+  const isPlatform = !!user?.isPlatformAdmin && !user?.acting;
 
   // Daily workspace — for a platform admin, the Console *is* their workspace.
   const workspace = isPlatform

@@ -13,7 +13,13 @@ interface AuthContextType {
   canWrite: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  // Platform-admin "View as org": swap to a tenant-scoped token (keeping the
+  // platform token in reserve), and restore it on exit.
+  impersonate: (token: string) => void;
+  stopImpersonating: () => void;
 }
+
+const PLATFORM_TOKEN_KEY = 'mobicova_platform_token';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -44,14 +50,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem('mobicova_token');
+    localStorage.removeItem(PLATFORM_TOKEN_KEY);
     setToken(null);
     setUser(null);
+  };
+
+  // Enter a tenant: stash the current (platform) token, switch to the tenant one.
+  // Changing the token triggers the effect above to refetch /me as that tenant.
+  const impersonate = (tenantToken: string) => {
+    const current = localStorage.getItem('mobicova_token');
+    if (current) localStorage.setItem(PLATFORM_TOKEN_KEY, current);
+    localStorage.setItem('mobicova_token', tenantToken);
+    setToken(tenantToken);
+  };
+
+  const stopImpersonating = () => {
+    const platform = localStorage.getItem(PLATFORM_TOKEN_KEY);
+    if (!platform) return;
+    localStorage.setItem('mobicova_token', platform);
+    localStorage.removeItem(PLATFORM_TOKEN_KEY);
+    setToken(platform);
   };
 
   const canWrite = user?.role === 'admin' || user?.role === 'manager';
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, canWrite, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, canWrite, login, logout, impersonate, stopImpersonating }}>
       {children}
     </AuthContext.Provider>
   );

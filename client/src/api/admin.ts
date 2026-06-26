@@ -150,6 +150,11 @@ export async function adminUpdateOrgMember(
   return (await api.patch(`/admin/organisations/${id}/members/${memberId}`, data)).data;
 }
 
+// "View as org" — get a tenant-scoped token to act inside that org.
+export async function adminImpersonateOrg(id: string): Promise<{ token: string; org: { id: string; name: string } }> {
+  return (await api.post(`/admin/organisations/${id}/impersonate`, {})).data;
+}
+
 // Dashboard users
 export async function adminListUsers(orgId?: string): Promise<AdminUser[]> {
   return (await api.get('/admin/users', { params: orgId ? { orgId } : undefined })).data;

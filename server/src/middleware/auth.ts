@@ -12,6 +12,9 @@ export interface JwtPayload {
   userId: string;
   orgId: string;
   role: Role;
+  // Set when a platform admin is "viewing as" a tenant org: orgId is the tenant
+  // they're acting in, userId is still the platform admin (for audit).
+  actingAs?: string;
 }
 
 declare global {

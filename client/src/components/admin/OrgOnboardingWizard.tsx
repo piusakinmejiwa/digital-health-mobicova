@@ -324,12 +324,110 @@ const CLINIC_SECTIONS: Section[] = [
   },
 ];
 
-// Pick the questionnaire for an org's type. Insurers and clinics get purpose-
-// built sets; everyone else (employer, telco, fintech, pharmacy…) uses the
+// Pharmacy onboarding — SUPPLY-side dispensing partner. Generic enough for both
+// an aggregator/network (PharmaRun, our first partner) and individual pharmacies
+// onboarded later: PCN licensing, dispensing, coverage, fulfilment/delivery,
+// integration (how e-prescriptions are received), commercials.
+const PHARMACY_SECTIONS: Section[] = [
+  {
+    key: 'identity', title: 'Pharmacy identity & licensing',
+    intro: 'Confirm the pharmacy’s legal identity and PCN registration.',
+    fields: [
+      { key: 'registeredName', label: 'Registered pharmacy name', type: 'text' },
+      { key: 'tradingName', label: 'Trading / brand name (if different)', type: 'text' },
+      { key: 'rcNumber', label: 'RC number (CAC)', type: 'text' },
+      { key: 'pcnPremisesLicence', label: 'PCN premises registration number', type: 'text' },
+      { key: 'superintendentPharmacist', label: 'Superintendent pharmacist (name)', type: 'text' },
+      { key: 'superintendentPcnNo', label: 'Superintendent PCN registration no.', type: 'text' },
+      { key: 'pharmacyType', label: 'Pharmacy type', type: 'select', options: ['Community / retail', 'Hospital pharmacy', 'Online / e-pharmacy', 'Distribution / wholesale', 'Network / aggregator'] },
+      { key: 'tin', label: 'Tax Identification Number (TIN)', type: 'text' },
+      { key: 'website', label: 'Website', type: 'url', placeholder: 'https://' },
+      { key: 'address', label: 'Premises address', type: 'textarea' },
+      { key: 'city', label: 'City', type: 'text' },
+      { key: 'state', label: 'State', type: 'text' },
+      { key: 'contactName', label: 'Primary contact — name', type: 'text' },
+      { key: 'contactRole', label: 'Primary contact — role', type: 'text' },
+      { key: 'contactPhone', label: 'Primary contact — phone', type: 'tel' },
+      { key: 'contactEmail', label: 'Primary contact — email', type: 'email' },
+    ],
+  },
+  {
+    key: 'dispensing', title: 'Dispensing & services',
+    fields: [
+      { key: 'services', label: 'Services offered', type: 'multiselect', options: ['Prescription dispensing', 'OTC medicines', 'Chronic / refill programmes', 'Vaccinations', 'Health screening (BP/sugar)', 'Medicine counselling', 'Compounding', 'Medical consumables'] },
+      { key: 'controlledDrugs', label: 'Handle controlled / scheduled medicines?', type: 'yesno' },
+      { key: 'coldChain', label: 'Cold-chain storage (vaccines, insulin)?', type: 'yesno' },
+      { key: 'substitution', label: 'Offer generic substitution?', type: 'yesno' },
+      { key: 'formularyBreadth', label: 'Typical formulary breadth / key brands', type: 'text' },
+    ],
+  },
+  {
+    key: 'coverage', title: 'Coverage & locations',
+    fields: [
+      { key: 'isAggregator', label: 'Are you a pharmacy network / aggregator?', type: 'yesno', help: 'PharmaRun = yes' },
+      { key: 'numOutlets', label: 'Number of outlets / branches', type: 'number' },
+      { key: 'coverageAreas', label: 'States / cities covered', type: 'text' },
+      { key: 'nearestOutletRouting', label: 'Can route an order to the nearest outlet to the patient?', type: 'yesno' },
+      { key: 'multipleBranches', label: 'List individual branches?', type: 'yesno' },
+      { key: 'branches', label: 'Branches (name + staff count)', type: 'branches', showIf: (s) => s.multipleBranches === true },
+    ],
+  },
+  {
+    key: 'fulfilment', title: 'Fulfilment & delivery',
+    fields: [
+      { key: 'fulfilmentModes', label: 'Fulfilment modes', type: 'multiselect', options: ['Pickup', 'Delivery', 'Both'] },
+      { key: 'deliveryCoverage', label: 'Delivery coverage (radius / areas)', type: 'text' },
+      { key: 'deliverySla', label: 'Typical delivery time', type: 'text', placeholder: 'e.g. same day, under 2 hours' },
+      { key: 'ownRiders', label: 'Own delivery fleet / riders?', type: 'yesno' },
+      { key: 'tracking', label: 'Provide delivery tracking to the member?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'integration', title: 'Integration & data',
+    intro: 'How e-prescriptions reach the pharmacy.',
+    fields: [
+      { key: 'prescriptionChannel', label: 'How are e-prescriptions received?', type: 'select', options: ['PharmaRun network', 'Direct API to MobiCova', 'Pharmacy portal (manual)', 'Other'] },
+      { key: 'pharmacySystem', label: 'POS / inventory software used', type: 'text' },
+      { key: 'inventoryIntegration', label: 'Real-time stock-availability integration?', type: 'yesno' },
+      { key: 'apiAvailable', label: 'Do you have an API we can integrate?', type: 'yesno' },
+      { key: 'settlementAccountReady', label: 'Settlement bank account ready?', type: 'yesno' },
+    ],
+  },
+  {
+    key: 'commercials', title: 'Commercials & settlement',
+    fields: [
+      { key: 'pricingModel', label: 'Pricing model', type: 'select', options: ['Cost-plus margin', 'Fixed dispensing fee', 'Negotiated tariff', 'Per order'] },
+      { key: 'dispensingFee', label: 'Dispensing / service fee', type: 'text' },
+      { key: 'settlementCadence', label: 'Settlement cadence', type: 'select', options: ['Weekly', 'Bi-weekly', 'Monthly'] },
+      { key: 'invoiceName', label: 'Remittance / invoices to — name', type: 'text' },
+      { key: 'invoiceEmail', label: 'Remittance / invoices to — email', type: 'email' },
+      { key: 'paymentMethod', label: 'Payment method', type: 'select', options: ['Bank transfer', 'Direct debit', 'Wallet funding'] },
+    ],
+  },
+  {
+    key: 'compliance', title: 'Compliance & agreements',
+    intro: 'Confirmed before activation. Upload documents from the “Members & docs” area.',
+    fields: [
+      { key: 'pcnLicenceValid', label: 'PCN premises licence current & valid?', type: 'yesno' },
+      { key: 'superintendentPresent', label: 'Superintendent pharmacist on record & available?', type: 'yesno' },
+      { key: 'storageStandards', label: 'Meet PCN storage / good-distribution standards?', type: 'yesno' },
+      { key: 'ndprAware', label: 'Aware of NDPR / patient-data obligations?', type: 'yesno' },
+      { key: 'agreeDataProtection', label: 'Agree to MobiCova’s data protection policy', type: 'agreement' },
+      { key: 'agreeSla', label: 'Agree to the service-level agreement (SLA)', type: 'agreement' },
+      { key: 'agreePharmacyStandards', label: 'Agree to MobiCova’s dispensing & quality standards', type: 'agreement' },
+      { key: 'requireContract', label: 'Require a signed contract?', type: 'yesno' },
+      { key: 'documentsReady', label: 'Documents ready to provide', type: 'multiselect', options: ['PCN premises licence', 'Superintendent pharmacist licence', 'CAC certificate', 'Tax certificate', 'Price list', 'Delivery SLA'] },
+    ],
+  },
+];
+
+// Pick the questionnaire for an org's type. Insurers, clinics and pharmacies get
+// purpose-built sets; everyone else (employer, telco, fintech…) uses the
 // employer set for now.
 function sectionsForType(type: string): Section[] {
   if (type === 'underwriter') return INSURER_SECTIONS;
   if (type === 'clinic') return CLINIC_SECTIONS;
+  if (type === 'pharmacy') return PHARMACY_SECTIONS;
   return EMPLOYER_SECTIONS;
 }
 

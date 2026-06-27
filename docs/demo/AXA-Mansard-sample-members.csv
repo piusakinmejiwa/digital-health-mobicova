@@ -1,0 +1,16 @@
+fullName,phone,email,dateOfBirth,gender,channel,bloodGroup,allergies,chronicConditions,currentMedications
+Adaeze Okafor,+2348031000001,adaeze.okafor@example.com,1990-04-12,female,app,O+,Penicillin,Hypertension,Amlodipine 5mg
+Chidi Eze,+2348031000002,chidi.eze@example.com,1985-09-03,male,whatsapp,A+,,,
+Ngozi Balogun,+2348031000003,ngozi.balogun@example.com,1992-11-21,female,app,B+,Peanuts,Asthma,Salbutamol inhaler
+Emeka Nwosu,+2348031000004,emeka.nwosu@example.com,1978-02-17,male,ussd,AB+,,Diabetes Type 2,Metformin 500mg
+Fatima Bello,+2348031000005,fatima.bello@example.com,1995-07-30,female,app,O-,,,
+Tunde Adeyemi,+2348031000006,tunde.adeyemi@example.com,1983-12-05,male,web,A-,Sulfa drugs,,
+Aisha Sani,+2348031000007,aisha.sani@example.com,1998-06-14,female,whatsapp,B-,,,
+Ifeoma Obi,+2348031000008,ifeoma.obi@example.com,1988-01-09,female,app,O+,,Hypertension,Lisinopril 10mg
+Yusuf Ibrahim,+2348031000009,yusuf.ibrahim@example.com,1975-10-28,male,ussd,A+,,High cholesterol,Atorvastatin 20mg
+Blessing Etim,+2348031000010,blessing.etim@example.com,1993-03-22,female,app,AB-,Latex,,
+Kelechi Onyeka,+2348031000011,kelechi.onyeka@example.com,1991-08-08,male,app,O+,,,
+Halima Yakubu,+2348031000012,halima.yakubu@example.com,1987-05-19,female,whatsapp,B+,,Asthma,Beclometasone inhaler
+Segun Ojo,+2348031000013,segun.ojo@example.com,1980-09-25,male,web,A+,,,
+Chiamaka Nnaji,+2348031000014,chiamaka.nnaji@example.com,1996-12-01,female,app,O-,Penicillin;Aspirin,,
+Abubakar Musa,+2348031000015,abubakar.musa@example.com,1982-04-04,male,ussd,A+,,Diabetes Type 2,Insulin

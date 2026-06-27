@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import type { Partner, OrgDocument } from '../../types';
+import type { Partner } from '../../types';
 import {
   adminBulkImportProviders, adminListPartnerDocuments, adminUploadPartnerDocument,
-  adminDeletePartnerDocument, type ProviderImportResult,
+  adminDeletePartnerDocument, type ProviderImportResult, type OrgDocument,
 } from '../../api/admin';
 import './OrgOnboarding.css';
 

@@ -129,11 +129,19 @@ export async function adminUpdateOrg(req: Request, res: Response): Promise<void>
     if (coords) { lat = coords.lat; lng = coords.lng; }
   }
 
+  // Optional per-org member seat-cap override. Empty / null / ≤0 clears it
+  // (back to the plan tier default); a positive number sets a custom cap.
+  let memberLimitOverride = cur.member_limit_override;
+  if (b.member_limit_override !== undefined) {
+    const v = b.member_limit_override;
+    memberLimitOverride = (v === null || v === '' || Number(v) <= 0) ? null : Math.floor(Number(v));
+  }
+
   const result = await query(
     `UPDATE organisations
         SET name = $2, type = $3, plan_tier = $4, country = $5, is_active = $6,
             address = $7, city = $8, latitude = $9, longitude = $10,
-            updated_at = NOW()
+            member_limit_override = $11, updated_at = NOW()
       WHERE id = $1 RETURNING *`,
     [
       id,
@@ -143,6 +151,7 @@ export async function adminUpdateOrg(req: Request, res: Response): Promise<void>
       b.country ?? cur.country,
       b.is_active ?? cur.is_active,
       address, city, lat, lng,
+      memberLimitOverride,
     ]
   );
   const updated = result.rows[0];

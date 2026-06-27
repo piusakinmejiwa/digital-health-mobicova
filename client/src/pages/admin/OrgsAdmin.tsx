@@ -103,6 +103,7 @@ export default function OrgsAdmin() {
         name: editing.name, type: editing.type,
         plan_tier: editing.plan_tier, country: editing.country,
         address: editing.address ?? '', city: editing.city ?? '',
+        member_limit_override: editing.member_limit_override ?? null,
       });
       setEditing(null);
       refresh();
@@ -282,6 +283,16 @@ export default function OrgsAdmin() {
                 <select value={editing.plan_tier} onChange={(e) => setEditing({ ...editing, plan_tier: e.target.value })}>
                   {PLAN_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
+              </div>
+              <div className="form-group">
+                <label>Member limit override</label>
+                <input
+                  type="number" min={0}
+                  value={editing.member_limit_override ?? ''}
+                  onChange={(e) => setEditing({ ...editing, member_limit_override: e.target.value === '' ? null : Number(e.target.value) })}
+                  placeholder="Blank = plan default"
+                />
+                <span className="muted small">Custom member seat cap for this org. Blank uses the plan tier’s limit.</span>
               </div>
               {editing.type === 'pharmacy' && (
                 <>

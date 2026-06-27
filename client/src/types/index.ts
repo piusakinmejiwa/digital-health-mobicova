@@ -97,6 +97,8 @@ export interface Organisation {
   city?: string;
   latitude?: number | null;
   longitude?: number | null;
+  // Per-org member seat-cap override (null = use plan tier default).
+  member_limit_override?: number | null;
 }
 
 export interface AdminUser {

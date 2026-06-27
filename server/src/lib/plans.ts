@@ -68,9 +68,17 @@ export interface UsageItem {
 
 // Live usage signals for an org — real counts, never estimates. Shared by the
 // billing page and the dashboard usage widget.
+// The effective member cap for an org: a per-org override (if set) wins over the
+// plan tier's default. Lets platform admins set a bespoke cap (enterprise deals,
+// or a low value to exercise the limit/notification flow).
+function effectiveMemberLimit(tier: Tier, override: number | null | undefined): number {
+  return override == null ? tier.limits.members : Number(override);
+}
+
 export async function getUsage(orgId: string): Promise<{ tier: Tier; items: UsageItem[] }> {
-  const org = await query('SELECT plan_tier FROM organisations WHERE id = $1', [orgId]);
+  const org = await query('SELECT plan_tier, member_limit_override FROM organisations WHERE id = $1', [orgId]);
   const tier = tierFor(org.rows[0]?.plan_tier);
+  const memberLimit = effectiveMemberLimit(tier, org.rows[0]?.member_limit_override);
 
   const [members, deliveries, intake] = await Promise.all([
     query('SELECT COUNT(*)::int AS n FROM members WHERE org_id = $1', [orgId]),
@@ -88,7 +96,7 @@ export async function getUsage(orgId: string): Promise<{ tier: Tier; items: Usag
   ]);
 
   const build = (key: LimitKey, label: string, used: number): UsageItem => {
-    const limit = tier.limits[key];
+    const limit = key === 'members' ? memberLimit : tier.limits[key];
     const unlimited = isUnlimited(limit);
     return {
       key, label, used, limit, hard: HARD_LIMITS.has(key), unlimited,
@@ -120,9 +128,9 @@ export interface SeatCheck {
 // Hard seat check for member creation/import. `adding` is how many new members
 // the action would create.
 export async function checkMemberSeats(orgId: string, adding = 1): Promise<SeatCheck> {
-  const org = await query('SELECT plan_tier FROM organisations WHERE id = $1', [orgId]);
+  const org = await query('SELECT plan_tier, member_limit_override FROM organisations WHERE id = $1', [orgId]);
   const tier = tierFor(org.rows[0]?.plan_tier);
-  const limit = tier.limits.members;
+  const limit = effectiveMemberLimit(tier, org.rows[0]?.member_limit_override);
   const unlimited = isUnlimited(limit);
   const cur = await query('SELECT COUNT(*)::int AS n FROM members WHERE org_id = $1', [orgId]);
   const used = cur.rows[0].n;

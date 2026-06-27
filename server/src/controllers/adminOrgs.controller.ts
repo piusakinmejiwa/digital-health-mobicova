@@ -262,6 +262,7 @@ export async function adminSaveOrgOnboarding(req: Request, res: Response): Promi
   const data = (req.body?.data && typeof req.body.data === 'object') ? req.body.data : {};
   const status = req.body?.status === 'submitted' ? 'submitted' : 'draft';
 
+  try {
   await query(
     `INSERT INTO org_onboarding (org_id, data, status, submitted_at, updated_at)
        VALUES ($1, $2, $3, CASE WHEN $3 = 'submitted' THEN now() ELSE NULL END, now())
@@ -315,6 +316,10 @@ export async function adminSaveOrgOnboarding(req: Request, res: Response): Promi
   });
 
   res.json({ ok: true, status });
+  } catch (err) {
+    console.error('[onboarding save] failed:', err);
+    res.status(500).json({ error: `Save failed: ${(err as Error).message}` });
+  }
 }
 
 // POST /admin/organisations/:id/impersonate — "View as org". Re-issues the

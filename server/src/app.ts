@@ -88,6 +88,8 @@ app.get('/health', (_req, res) => {
       geocode: !!env.geocodeApiKey,
       pharmarun: pharmarunConfigured(),
       documents: storageEnabled,
+      email: !!env.resendApiKey,
+      reportsCron: !!env.reportsCronSecret,
       otpDevMode: env.otpDevMode,
     },
   });

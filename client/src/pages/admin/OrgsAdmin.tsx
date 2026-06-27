@@ -11,6 +11,7 @@ import type { SsoConfigInput } from '../../api/sso';
 import SsoConfigEditor from '../../components/sso/SsoConfigEditor';
 import OrgOnboardingWizard from '../../components/admin/OrgOnboardingWizard';
 import OrgDataModal from '../../components/admin/OrgDataModal';
+import OrgReportsModal from '../../components/admin/OrgReportsModal';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminImpersonateOrg } from '../../api/admin';
@@ -49,6 +50,7 @@ export default function OrgsAdmin() {
   const [brandingOrg, setBrandingOrg] = useState<null | Organisation>(null);
   const [onboardingOrg, setOnboardingOrg] = useState<null | Organisation>(null);
   const [dataOrg, setDataOrg] = useState<null | Organisation>(null);
+  const [reportsOrg, setReportsOrg] = useState<null | Organisation>(null);
   const [menuOrg, setMenuOrg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -178,6 +180,7 @@ export default function OrgsAdmin() {
                         <button onClick={() => { setError(''); setEditing(o); }}>Edit</button>
                         <button onClick={() => setOnboardingOrg(o)}>Onboarding</button>
                         <button onClick={() => setDataOrg(o)}>Members &amp; docs</button>
+                        <button onClick={() => setReportsOrg(o)}>Reports</button>
                         <button onClick={() => setBrandingOrg(o)}>Branding</button>
                         <button onClick={() => setSsoOrg(o)}>SSO</button>
                         <button onClick={() => toggleActive(o)} disabled={o.id === user?.orgId}>
@@ -320,6 +323,9 @@ export default function OrgsAdmin() {
           org={dataOrg}
           onClose={() => { setDataOrg(null); qc.invalidateQueries({ queryKey: ['admin-orgs'] }); }}
         />
+      )}
+      {reportsOrg && (
+        <OrgReportsModal org={reportsOrg} onClose={() => setReportsOrg(null)} />
       )}
 
       {/* ---- Provisioned confirmation ---- */}

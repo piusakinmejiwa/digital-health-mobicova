@@ -50,6 +50,9 @@ import { adminImportOrgMembers, adminListOrgMembers, adminUpdateOrgMember } from
 import {
   adminBulkImportProviders, adminListPartnerDocuments, adminUploadPartnerDocument, adminDeletePartnerDocument,
 } from '../controllers/adminPartnerData.controller';
+import {
+  adminGetOrgReports, adminSaveOrgReports, adminPreviewOrgReport, adminSendOrgReportNow,
+} from '../controllers/reports.controller';
 
 const router = Router();
 
@@ -85,6 +88,12 @@ router.get('/organisations/:id/members', asyncHandler(adminListOrgMembers));
 router.patch('/organisations/:id/members/:memberId', asyncHandler(adminUpdateOrgMember));
 // "View as org" — issue a token scoped to the tenant
 router.post('/organisations/:id/impersonate', asyncHandler(adminImpersonateOrg));
+
+// Scheduled client reports — per-tenant cadence/recipients, preview & send-now
+router.get('/organisations/:id/reports', asyncHandler(adminGetOrgReports));
+router.put('/organisations/:id/reports', asyncHandler(adminSaveOrgReports));
+router.post('/organisations/:id/reports/preview', asyncHandler(adminPreviewOrgReport));
+router.post('/organisations/:id/reports/send-now', asyncHandler(adminSendOrgReportNow));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

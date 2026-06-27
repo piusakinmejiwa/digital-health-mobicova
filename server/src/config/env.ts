@@ -103,6 +103,9 @@ export const env = {
   // Shared secret a scheduler presents to POST /health-tips/run-daily so only
   // your cron (Render Cron / cron-job.org / GitHub Actions) can trigger sends.
   healthTipsCronSecret: process.env.HEALTH_TIPS_CRON_SECRET || '',
+  // Shared secret guarding POST /reports/run (scheduled client reports). Point a
+  // daily/weekly/monthly cron at /reports/run?cadence=… with this secret.
+  reportsCronSecret: process.env.REPORTS_CRON_SECRET || '',
   // Google Geocoding API key — turns pharmacy/member addresses into coordinates
   // so prescriptions can route to the nearest pharmacy. Absent ⇒ geocoding is
   // skipped (coords can still be set directly); distance ranking just needs coords.

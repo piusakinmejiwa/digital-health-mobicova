@@ -176,6 +176,36 @@ export async function adminUpdateOrgMember(
   return (await api.patch(`/admin/organisations/${id}/members/${memberId}`, data)).data;
 }
 
+// Scheduled client reports — per-tenant cadence/recipients, preview & send-now.
+export type ReportCadence = 'daily' | 'weekly' | 'monthly';
+export interface ReportSubscription {
+  cadence: ReportCadence;
+  recipients: string[];
+  isActive: boolean;
+}
+export interface ReportRun {
+  id: string; cadence: ReportCadence; period_key: string;
+  period_start: string; period_end: string; recipients: string[];
+  sent_count: number; status: string; created_at: string;
+}
+export interface OrgReportsConfig {
+  subscriptions: ReportSubscription[];
+  runs: ReportRun[];
+  emailConfigured: boolean;
+}
+export async function adminGetOrgReports(id: string): Promise<OrgReportsConfig> {
+  return (await api.get(`/admin/organisations/${id}/reports`)).data;
+}
+export async function adminSaveOrgReports(id: string, subscriptions: ReportSubscription[]): Promise<OrgReportsConfig> {
+  return (await api.put(`/admin/organisations/${id}/reports`, { subscriptions })).data;
+}
+export async function adminPreviewOrgReport(id: string, cadence: ReportCadence): Promise<{ snapshot: unknown; html: string; periodLabel: string }> {
+  return (await api.post(`/admin/organisations/${id}/reports/preview`, { cadence })).data;
+}
+export async function adminSendOrgReportNow(id: string, cadence: ReportCadence, recipients?: string[]): Promise<{ sent: number; failed: number; recipients: string[]; periodLabel: string; emailConfigured: boolean }> {
+  return (await api.post(`/admin/organisations/${id}/reports/send-now`, { cadence, recipients })).data;
+}
+
 // "View as org" — get a tenant-scoped token to act inside that org.
 export async function adminImpersonateOrg(id: string): Promise<{ token: string; org: { id: string; name: string } }> {
   return (await api.post(`/admin/organisations/${id}/impersonate`, {})).data;

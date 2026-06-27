@@ -1,3 +1,21 @@
+/* Compact per-row "⋯ More" actions menu (keeps long admin rows short) */
+.row-menu { position: relative; display: inline-block; }
+.row-menu-backdrop { position: fixed; inset: 0; z-index: 40; }
+.row-menu-pop {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 41; min-width: 170px;
+  background: #fff; border: 1px solid #e2ebf0; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(13, 42, 42, .14); padding: 4px;
+  display: flex; flex-direction: column;
+}
+.row-menu-pop button {
+  text-align: left; background: none; border: none; padding: .5rem .7rem;
+  border-radius: 6px; cursor: pointer; font-size: .85rem; color: #1f2d2b; white-space: nowrap;
+}
+.row-menu-pop button:hover { background: #eef3f3; }
+.row-menu-pop button.danger { color: #b04a4a; }
+.row-menu-pop button.danger:hover { background: #fbeeee; }
+.row-menu-pop button:disabled { color: #b8c2c0; cursor: not-allowed; background: none; }
+
 /* Provider photo upload field */
 .provider-photo { display: flex; align-items: center; gap: 0.8rem; }
 .provider-photo-img { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; border: 1px solid #e2ebf0; }

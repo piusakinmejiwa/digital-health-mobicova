@@ -49,6 +49,7 @@ export default function OrgsAdmin() {
   const [brandingOrg, setBrandingOrg] = useState<null | Organisation>(null);
   const [onboardingOrg, setOnboardingOrg] = useState<null | Organisation>(null);
   const [dataOrg, setDataOrg] = useState<null | Organisation>(null);
+  const [menuOrg, setMenuOrg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | { org: Organisation; admin?: AdminUser }>(null);
@@ -167,27 +168,26 @@ export default function OrgsAdmin() {
               <td><span className={`badge ${o.is_active ? 'badge-green' : 'badge-gray'}`}>{o.is_active ? 'active' : 'suspended'}</span></td>
               <td className="admin-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => viewAsOrg(o)}>View as org</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => { setError(''); setEditing(o); }}>Edit</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setOnboardingOrg(o)}>Onboarding</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setDataOrg(o)}>Members &amp; docs</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setBrandingOrg(o)}>Branding</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setSsoOrg(o)}>SSO</button>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => toggleActive(o)}
-                  disabled={o.id === user?.orgId}
-                  title={o.id === user?.orgId ? 'You cannot suspend your own organisation' : ''}
-                >
-                  {o.is_active ? 'Suspend' : 'Reactivate'}
-                </button>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => remove(o)}
-                  disabled={o.id === user?.orgId}
-                  title={o.id === user?.orgId ? 'You cannot delete your own organisation' : ''}
-                >
-                  Delete
-                </button>
+                <div className="row-menu">
+                  <button className="btn btn-secondary btn-sm" title="More actions"
+                    onClick={() => setMenuOrg(menuOrg === o.id ? null : o.id)}>⋯</button>
+                  {menuOrg === o.id && (
+                    <>
+                      <div className="row-menu-backdrop" onClick={() => setMenuOrg(null)} />
+                      <div className="row-menu-pop" onClick={() => setMenuOrg(null)}>
+                        <button onClick={() => { setError(''); setEditing(o); }}>Edit</button>
+                        <button onClick={() => setOnboardingOrg(o)}>Onboarding</button>
+                        <button onClick={() => setDataOrg(o)}>Members &amp; docs</button>
+                        <button onClick={() => setBrandingOrg(o)}>Branding</button>
+                        <button onClick={() => setSsoOrg(o)}>SSO</button>
+                        <button onClick={() => toggleActive(o)} disabled={o.id === user?.orgId}>
+                          {o.is_active ? 'Suspend' : 'Reactivate'}
+                        </button>
+                        <button className="danger" onClick={() => remove(o)} disabled={o.id === user?.orgId}>Delete</button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

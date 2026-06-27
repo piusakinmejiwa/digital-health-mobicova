@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { importMembers, type MemberImportResult } from '../../api/resources';
 import { parseMemberCsv, type ParsedImport } from '../../lib/csv';
@@ -44,6 +45,8 @@ export default function MemberImportModal({ onClose, onImported }: {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<MemberImportResult | null>(null);
   const [dry, setDry] = useState<MemberImportResult | null>(null);
+  // Set when the server blocks the import for exceeding the plan's seat cap.
+  const [limitHit, setLimitHit] = useState(false);
 
   const onFile = async (file: File) => {
     setError(''); setResult(null); setDry(null);
@@ -89,7 +92,7 @@ export default function MemberImportModal({ onClose, onImported }: {
 
   const doImport = async () => {
     if (!parsed) return;
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setLimitHit(false);
     try {
       // Send every parsed row; the server is the authority on validation and
       // returns which rows it skipped and why.
@@ -97,8 +100,10 @@ export default function MemberImportModal({ onClose, onImported }: {
       setResult(res);
       if (res.inserted > 0) onImported();
     } catch (err) {
-      if (axios.isAxiosError(err)) setError(err.response?.data?.error || 'Import failed.');
-      else setError('Import failed.');
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.error || 'Import failed.');
+        setLimitHit(err.response?.data?.code === 'member_limit_reached');
+      } else setError('Import failed.');
     } finally {
       setBusy(false);
     }
@@ -163,7 +168,12 @@ export default function MemberImportModal({ onClose, onImported }: {
               />
             </div>
 
-            {error && <div className="notice notice-error">{error}</div>}
+            {error && (
+              <div className="notice notice-error">
+                {error}
+                {limitHit && <> <Link to="/settings/billing">View plans & upgrade →</Link></>}
+              </div>
+            )}
 
             {parsed && (
               <>
@@ -202,6 +212,13 @@ export default function MemberImportModal({ onClose, onImported }: {
                   )}
                 </div>
               </>
+            )}
+
+            {/* ---- Seat-cap blocker (surfaced in dry run) ---- */}
+            {dry?.seatLimit && (
+              <div className="notice notice-error" style={{ marginTop: 12 }}>
+                🚫 {dry.seatLimit.error} <Link to="/settings/billing">View plans & upgrade →</Link>
+              </div>
             )}
 
             {/* ---- Dry-run report (server validated, nothing written) ---- */}

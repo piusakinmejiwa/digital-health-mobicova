@@ -8,7 +8,7 @@ import '../../pages/marketing/Marketing.css';
 // match the rest of the site. Section links route home; route links navigate.
 const FOOT_COLS: { h: string; items: [string, string][] }[] = [
   { h: 'Platform', items: [['Telemedicine', '/telemedicine'], ['AI Assistant', '/ask'], ['Daily Health Tips', '/health-tips'], ['Insurance', '/insurance'], ['Channels', '/channels']] },
-  { h: 'Company', items: [['About', '/about'], ['Partners', '/partners'], ['Careers', '/careers'], ['Contact', '/contact'], ['Shape MobiCova', '/shape']] },
+  { h: 'Company', items: [['About', '/about'], ['Partners', '/partners'], ['Trust & security', '/trust'], ['Careers', '/careers'], ['Contact', '/contact'], ['Shape MobiCova', '/shape']] },
   { h: 'Developers', items: [['API reference', '/developers/api'], ['Webhooks', '/webhooks'], ['Pricing', '/pricing'], ['Security', '/security']] },
 ];
 

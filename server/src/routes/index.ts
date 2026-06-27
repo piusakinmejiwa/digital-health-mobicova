@@ -32,6 +32,7 @@ import voiceRoutes from './voice.routes';
 import healthTipsRoutes from './healthTips.routes';
 import pharmarunRoutes from './pharmarun.routes';
 import reportsRoutes from './reports.routes';
+import notificationsRoutes from './notifications.routes';
 import diagRoutes from './diag.routes';
 
 const router = Router();
@@ -69,6 +70,7 @@ router.use('/voice', voiceRoutes);
 router.use('/health-tips', healthTipsRoutes);
 router.use('/pharmarun', pharmarunRoutes);
 router.use('/reports', reportsRoutes);
+router.use('/notifications', notificationsRoutes);
 router.use('/diag', diagRoutes);
 
 export default router;

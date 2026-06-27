@@ -34,6 +34,7 @@ export default function MemberCreatePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
+  const [limitHit, setLimitHit] = useState(false);
   const [loading, setLoading] = useState(false);
   const selectedState = watch('state');
 
@@ -41,7 +42,7 @@ export default function MemberCreatePage() {
   if (!canWrite) return <Navigate to="/members" replace />;
 
   const onSubmit = async (values: FormValues) => {
-    setError('');
+    setError(''); setLimitHit(false);
     setLoading(true);
     try {
       const member = await createMember({
@@ -64,6 +65,7 @@ export default function MemberCreatePage() {
       navigate(`/members/${member.id}`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to create member');
+      setLimitHit(err.response?.data?.code === 'member_limit_reached');
     } finally {
       setLoading(false);
     }
@@ -170,7 +172,12 @@ export default function MemberCreatePage() {
           </div>
         </div>
 
-        {error && <div className="error-text">{error}</div>}
+        {error && (
+          <div className="error-text">
+            {error}
+            {limitHit && <> <Link to="/settings/billing">View plans & upgrade →</Link></>}
+          </div>
+        )}
         <div className="form-actions">
           <button className="btn btn-primary" type="submit" disabled={loading}>
             {loading ? 'Saving…' : 'Create member'}

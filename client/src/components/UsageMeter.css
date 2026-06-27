@@ -1,0 +1,16 @@
+.usage-card .card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+.usage-bars { display: flex; flex-direction: column; gap: .7rem; margin-top: .4rem; }
+.usage-row-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .25rem; font-size: .85rem; color: #1f2d2b; }
+.usage-cap { color: #94a8ad; font-size: .72rem; }
+.usage-unlimited { color: #0a7b3b; }
+.usage-track { height: 8px; border-radius: 6px; background: #eef3f3; overflow: hidden; }
+.usage-fill { height: 100%; border-radius: 6px; transition: width .3s; }
+.usage-fill.ok { background: #0a7b7b; }
+.usage-fill.near { background: #e8a13c; }
+.usage-fill.over { background: #c0504a; }
+.usage-alert {
+  border-radius: 8px; padding: .55rem .75rem; font-size: .85rem; margin-bottom: .7rem;
+}
+.usage-alert.near { background: #fff7e8; border: 1px solid #f0d48a; color: #7a5b00; }
+.usage-alert.over { background: #fdeceb; border: 1px solid #f1b6b2; color: #8d2e28; }
+.usage-alert a { font-weight: 600; white-space: nowrap; }

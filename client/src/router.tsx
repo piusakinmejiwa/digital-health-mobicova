@@ -8,6 +8,9 @@ import ActivatePage from './pages/auth/ActivatePage';
 import SsoCallbackPage from './pages/auth/SsoCallbackPage';
 import SsoSettingsPage from './pages/settings/SsoSettingsPage';
 import SecuritySettingsPage from './pages/settings/SecuritySettingsPage';
+import CompliancePage from './pages/settings/CompliancePage';
+import NotificationPrefsPage from './pages/settings/NotificationPrefsPage';
+import NotificationsPage from './pages/notifications/NotificationsPage';
 import DeveloperSettingsPage from './pages/settings/DeveloperSettingsPage';
 import BillingPage from './pages/settings/BillingPage';
 import BrandingPage from './pages/settings/BrandingPage';
@@ -45,6 +48,7 @@ import ShapePage from './pages/feedback/ShapePage';
 import ProspectFeedbackPage from './pages/admin/ProspectFeedbackPage';
 import BuddyPage from './pages/buddy/BuddyPage';
 import { PrivacyPage, CookiePolicyPage, AiPolicyPage } from './pages/legal/LegalPages';
+import TrustCenterPage from './pages/trust/TrustCenterPage';
 import AskPage from './pages/ask/AskPage';
 import BlogIndexPage from './pages/blog/BlogIndexPage';
 import BlogPostPage from './pages/blog/BlogPostPage';
@@ -84,7 +88,9 @@ export const router = createBrowserRouter([
   { path: '/developers/api', element: <ApiDocsPage /> },
   { path: '/webhooks', element: <ContentPage slug="webhooks" /> },
   { path: '/pricing', element: <ContentPage slug="pricing" /> },
-  { path: '/security', element: <ContentPage slug="security" /> },
+  // Trust & Security Centre — security measures, sub-processors, compliance posture.
+  { path: '/trust', element: <TrustCenterPage /> },
+  { path: '/security', element: <TrustCenterPage /> },
 
   // Public legal / policy pages.
   { path: '/privacy', element: <PrivacyPage /> },
@@ -156,6 +162,9 @@ export const router = createBrowserRouter([
       { path: 'channels', element: <ChannelsPage /> },
       { path: 'settings/sso', element: <SsoSettingsPage /> },
       { path: 'settings/security', element: <SecuritySettingsPage /> },
+      { path: 'settings/compliance', element: <CompliancePage /> },
+      { path: 'settings/notifications', element: <NotificationPrefsPage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'settings/developer', element: <DeveloperSettingsPage /> },
       { path: 'settings/billing', element: <BillingPage /> },
       { path: 'settings/branding', element: <BrandingPage /> },

@@ -7,6 +7,7 @@ import {
   CADENCES, isCadence, periodFor, computeReportSnapshot,
   renderReportHtml, renderReportText, type Cadence,
 } from '../lib/reports';
+import { notify } from '../lib/notify';
 
 const CADENCE_SUBJECT: Record<Cadence, string> = {
   daily: 'Daily snapshot',
@@ -61,6 +62,14 @@ async function buildReport(
       [orgId, cadence, period.key, period.start.toISOString(), period.end.toISOString(),
         JSON.stringify(snapshot), recipients, sent, status]
     );
+    // In-app heads-up that the period's report was generated/sent (one per period).
+    void notify({
+      orgId, category: 'reports', severity: 'info',
+      title: `${cadence[0].toUpperCase()}${cadence.slice(1)} report ready`,
+      body: `Your ${cadence} report for ${period.label} has been generated${opts.send ? ` and emailed to ${sent} recipient(s)` : ''}.`,
+      href: '/analytics',
+      dedupeKey: `report:${cadence}:${period.key}`,
+    });
   }
 
   return { sent, failed, snapshot, html, periodKey: period.key, periodLabel: period.label };

@@ -1,78 +1,23 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { recordAudit } from '../lib/audit';
+import { TIERS, tierFor, getUsage } from '../lib/plans';
 
-// Demo-grade billing. Plan tiers and limits are defined here; usage meters are
-// REAL counts from the org's data; invoices are representative samples (no real
-// invoicing engine yet). Changing plan switches the org's tier directly — a real
-// deployment would route this through Paystack/Stripe checkout.
-
-interface Tier {
-  key: string;
-  name: string;
-  price: number | null; // NGN/mo, null = "Custom"
-  features: string[];
-  limits: { members: number; webhooks: number; intake: number };
-}
-
-const INF = 1_000_000_000;
-
-export const TIERS: Tier[] = [
-  {
-    key: 'starter', name: 'Starter', price: 60000,
-    features: ['Up to 1,000 members', 'Telemedicine & AI triage', 'WhatsApp & USSD intake', 'Email support'],
-    limits: { members: 1000, webhooks: 5000, intake: 2000 },
-  },
-  {
-    key: 'growth', name: 'Growth', price: 180000,
-    features: ['Up to 10,000 members', 'Claims workflow', 'Public API & webhooks', 'Analytics & reporting', 'Priority support'],
-    limits: { members: 10000, webhooks: 50000, intake: 20000 },
-  },
-  {
-    key: 'scale', name: 'Scale', price: 340000,
-    features: ['Up to 50,000 members', 'White-label branding', 'SAML single sign-on', 'Custom domain', 'Dedicated success manager'],
-    limits: { members: 50000, webhooks: 250000, intake: 100000 },
-  },
-  {
-    key: 'enterprise', name: 'Enterprise', price: null,
-    features: ['Unlimited members', 'Custom integrations', 'Bespoke SLAs', 'On-prem / VPC options', '24/7 support'],
-    limits: { members: INF, webhooks: INF, intake: INF },
-  },
-];
-
-function tierFor(key: string): Tier {
-  return TIERS.find((t) => t.key === key) || TIERS[0];
-}
+// Demo-grade billing. Plan tiers/limits live in lib/plans.ts (shared with the
+// usage meters + limit enforcement); usage figures are REAL counts from the
+// org's data; invoices are representative samples (no real invoicing engine
+// yet). Changing plan switches the org's tier directly — a real deployment would
+// route this through Paystack/Stripe checkout.
 
 // GET /billing — plan, usage vs limits, sample invoices.
 export async function getBillingAccount(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
 
   const org = await query('SELECT name, plan_tier, created_at FROM organisations WHERE id = $1', [orgId]);
-  const planKey = org.rows[0]?.plan_tier || 'starter';
-  const tier = tierFor(planKey);
 
-  // Real usage signals.
-  const [members, deliveries, intake] = await Promise.all([
-    query('SELECT COUNT(*)::int AS n FROM members WHERE org_id = $1', [orgId]),
-    query(
-      `SELECT COUNT(*)::int AS n FROM webhook_deliveries d
-       JOIN webhook_endpoints w ON d.endpoint_id = w.id
-       WHERE w.org_id = $1 AND d.created_at >= date_trunc('month', NOW())`,
-      [orgId]
-    ),
-    query(
-      `SELECT COUNT(*)::int AS n FROM intake_sessions
-       WHERE org_id = $1 AND created_at >= date_trunc('month', NOW())`,
-      [orgId]
-    ),
-  ]);
-
-  const usage = [
-    { key: 'members', label: 'Members', used: members.rows[0].n, limit: tier.limits.members },
-    { key: 'webhooks', label: 'Webhook deliveries (this month)', used: deliveries.rows[0].n, limit: tier.limits.webhooks },
-    { key: 'intake', label: 'WhatsApp / USSD intake (this month)', used: intake.rows[0].n, limit: tier.limits.intake },
-  ];
+  // Live usage vs limits (shared engine).
+  const { tier, items } = await getUsage(orgId);
+  const usage = items.map((i) => ({ key: i.key, label: i.label, used: i.used, limit: i.limit }));
 
   // Next tier up (for the upsell card).
   const idx = TIERS.findIndex((t) => t.key === tier.key);
@@ -108,6 +53,13 @@ export async function getBillingAccount(req: Request, res: Response): Promise<vo
     recommendedTier: recommended,
     invoices,
   });
+}
+
+// GET /billing/usage — lightweight live usage vs limits (no invoices). Used by
+// the dashboard usage widget and the member create/import "seats remaining" hints.
+export async function getOrgUsage(req: Request, res: Response): Promise<void> {
+  const { tier, items } = await getUsage(req.user!.orgId);
+  res.json({ plan: { key: tier.key, name: tier.name }, usage: items });
 }
 
 // POST /billing/plan { tier } — switch plan (admin). Demo: sets the tier directly.

@@ -49,6 +49,10 @@ export interface MemberImportResult {
   dryRun?: boolean;
   wouldImport?: number;
   preview?: { fullName: string; phone: string; email: string }[];
+  // Set on a dry run when the import would exceed the plan's member seat cap.
+  seatLimit?: { error: string; code: string; limit: number; used: number; remaining: number; upgradeTo: string | null } | null;
+  // Present on a 403 limit-block response body.
+  code?: string;
 }
 // dryRun=true validates against the server and previews without writing anything.
 export async function importMembers(members: Record<string, unknown>[], dryRun = false): Promise<MemberImportResult> {

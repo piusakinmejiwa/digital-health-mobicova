@@ -4,6 +4,14 @@ import { sendMemberWelcome } from '../lib/onboarding';
 import { newMembershipId, generateMembershipId } from '../lib/membership';
 import { recordAudit } from '../lib/audit';
 import { geocode } from '../lib/geo';
+import { checkMemberSeats, seatLimitError } from '../lib/plans';
+import { notify } from '../lib/notify';
+
+// Platform admins "viewing as" a tenant (actingAs set) bypass plan limits so
+// support work is never blocked by the tenant's own cap.
+function bypassLimits(req: Request): boolean {
+  return Boolean(req.user?.actingAs);
+}
 
 export async function listMembers(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
@@ -60,6 +68,14 @@ export async function getMember(req: Request, res: Response): Promise<void> {
 
 export async function createMember(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
+
+  // Hard seat cap — block creating a member past the plan limit (Enterprise is
+  // unlimited; platform admins acting in the tenant bypass).
+  if (!bypassLimits(req)) {
+    const seats = await checkMemberSeats(orgId, 1);
+    if (seats.exceeded) { res.status(403).json(seatLimitError(seats, 1)); return; }
+  }
+
   const {
     fullName, phone, email, dateOfBirth, gender, channel,
     bloodGroup, allergies, chronicConditions, currentMedications, address, city, state, lga,
@@ -101,6 +117,27 @@ export async function createMember(req: Request, res: Response): Promise<void> {
     targetLabel: member.full_name, orgId, metadata: { channel: member.channel, membershipId },
   });
 
+  // Usage-threshold alert (ties into plan limits): notify once per (limit,
+  // threshold) as the org crosses 80% / 90% / 100% of its member seat cap.
+  if (!bypassLimits(req)) {
+    const after = await checkMemberSeats(orgId, 0);
+    if (!after.unlimited && after.limit > 0) {
+      const pct = (after.used / after.limit) * 100;
+      const threshold = pct >= 100 ? 100 : pct >= 90 ? 90 : pct >= 80 ? 80 : 0;
+      if (threshold) {
+        void notify({
+          orgId, category: 'billing',
+          severity: threshold >= 100 ? 'critical' : 'warn',
+          title: threshold >= 100 ? 'Member limit reached' : `Member usage at ${threshold}%`,
+          body: `${after.used.toLocaleString()} of ${after.limit.toLocaleString()} members on your ${after.tier.name} plan.`
+            + (threshold >= 100 ? ' New members are blocked until you upgrade.' : ''),
+          href: '/settings/billing',
+          dedupeKey: `usage:members:${after.limit}:${threshold}`,
+        });
+      }
+    }
+  }
+
   res.status(201).json(member);
 }
 
@@ -125,16 +162,18 @@ function importArray(v: unknown): string[] {
 }
 
 export async function importMembers(req: Request, res: Response): Promise<void> {
-  return runMemberImport(req, res, req.user!.orgId);
+  // Tenant self-service import → enforce the plan's seat cap.
+  return runMemberImport(req, res, req.user!.orgId, true);
 }
 
 // Platform-admin variant: import members into a SPECIFIC target org (onboarding a
-// tenant on their behalf), rather than the caller's own org.
+// tenant on their behalf), rather than the caller's own org. Platform admin →
+// seat cap is not enforced (deliberate onboarding action).
 export async function adminImportOrgMembers(req: Request, res: Response): Promise<void> {
   const orgId = String(req.params.id);
   const exists = await query('SELECT 1 FROM organisations WHERE id = $1', [orgId]);
   if (exists.rows.length === 0) { res.status(404).json({ error: 'Organisation not found' }); return; }
-  return runMemberImport(req, res, orgId);
+  return runMemberImport(req, res, orgId, false);
 }
 
 // Platform-admin: list members of ANY org (cross-org, not limited to own org).
@@ -182,7 +221,7 @@ export async function adminUpdateOrgMember(req: Request, res: Response): Promise
   res.json(r.rows[0]);
 }
 
-async function runMemberImport(req: Request, res: Response, orgId: string): Promise<void> {
+async function runMemberImport(req: Request, res: Response, orgId: string, enforce: boolean): Promise<void> {
   // Dry run: validate + preview only, never write. Lets onboarding teams check a
   // partner's CSV (e.g. AXA's pilot cohort) before committing.
   const dryRun = Boolean(req.body?.dryRun);
@@ -233,6 +272,11 @@ async function runMemberImport(req: Request, res: Response, orgId: string): Prom
     ]);
   });
 
+  // Seat-cap check for the valid rows (only enforced on tenant self-service
+  // imports). Surfaced in the dry run as a warning so uploaders see it before
+  // committing; blocks the real import if it would push past the plan limit.
+  const seats = enforce ? await checkMemberSeats(orgId, valid.length) : null;
+
   // Dry run stops here: report what *would* import, with a small preview, and
   // every skipped row + reason — without touching the database.
   if (dryRun) {
@@ -243,12 +287,18 @@ async function runMemberImport(req: Request, res: Response, orgId: string): Prom
       warnings,
       total: rows.length,
       preview: valid.slice(0, 8).map((v) => ({ fullName: v[1], phone: v[2], email: v[3] })),
+      seatLimit: seats && seats.exceeded ? seatLimitError(seats, valid.length) : null,
     });
     return;
   }
 
   if (valid.length === 0) {
     res.status(400).json({ inserted: 0, skipped, total: rows.length, error: 'No valid rows to import.' });
+    return;
+  }
+
+  if (seats && seats.exceeded) {
+    res.status(403).json(seatLimitError(seats, valid.length));
     return;
   }
 

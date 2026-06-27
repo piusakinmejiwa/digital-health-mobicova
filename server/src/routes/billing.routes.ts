@@ -4,7 +4,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { authenticate, requireRole } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { handleStripeWebhook, handlePaystackWebhook } from '../controllers/billing.controller';
-import { getBillingAccount, changePlan } from '../controllers/billingAccount.controller';
+import { getBillingAccount, changePlan, getOrgUsage } from '../controllers/billingAccount.controller';
 
 const router = Router();
 
@@ -17,6 +17,7 @@ router.post('/paystack/webhook', asyncHandler(handlePaystackWebhook));
 // Authenticated billing account: plan, usage, invoices. Read open to any role;
 // changing plan is admin-only.
 router.get('/account', authenticate, asyncHandler(getBillingAccount));
+router.get('/usage', authenticate, asyncHandler(getOrgUsage));
 router.post(
   '/account/plan',
   authenticate,

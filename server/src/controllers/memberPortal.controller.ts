@@ -16,6 +16,7 @@ import { geocode } from '../lib/geo';
 import { sendSms, smsConfigured } from '../lib/messaging';
 import { sendEmail } from '../lib/email';
 import { award, getMemberRewards } from '../lib/rewards';
+import { notify } from '../lib/notify';
 
 // ── Identity resolution ─────────────────────────────────────────────────
 // A member identifies with either a phone number or an email already on their
@@ -409,6 +410,13 @@ export async function createMemberClaim(req: Request, res: Response): Promise<vo
     submitted_via: claim.submitted_via,
     created_at: claim.created_at,
     updated_at: claim.updated_at,
+  });
+
+  void notify({
+    orgId, category: 'claims', severity: 'info',
+    title: `New claim ${claim.reference} submitted`,
+    body: `₦${Number(claim.amount).toLocaleString('en-NG')} · submitted via the member app.`,
+    href: '/claims',
   });
 
   res.status(201).json(claim);

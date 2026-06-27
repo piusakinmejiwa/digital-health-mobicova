@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import HelpLayer from '../help/HelpLayer';
+import NotificationBell from './NotificationBell';
 import { useAuth } from '../../context/AuthContext';
 import './AppShell.css';
 
@@ -14,6 +15,7 @@ export default function AppShell() {
   return (
     <div className="app-shell">
       <Sidebar />
+      <NotificationBell />
       <main className="app-main">
         {acting && (
           <div className="impersonation-banner">

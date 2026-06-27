@@ -35,6 +35,10 @@ const billingNavItem = { to: '/settings/billing', label: 'Billing & plan', icon:
 const docsNavItem = { to: '/docs', label: 'Help & docs', icon: '▤' };
 // Shown to every signed-in user — self-service two-factor authentication.
 const securityNavItem = { to: '/settings/security', label: 'Security', icon: '⛨' };
+// Shown to every signed-in user — personal notification preferences.
+const notificationsNavItem = { to: '/settings/notifications', label: 'Notifications', icon: '◉' };
+// Shown only to org admins — DPA, sub-processors & data rights (Trust Centre).
+const complianceNavItem = { to: '/settings/compliance', label: 'Compliance', icon: '⛉' };
 // Shown only to org admins (role === 'admin') — self-service SSO setup.
 const ssoNavItem = { to: '/settings/sso', label: 'Single sign-on', icon: '⚷' };
 // Shown only to org admins — public API keys + webhooks.
@@ -95,11 +99,12 @@ export default function Sidebar() {
     : (isSupply ? supplyNavItems : navItems);
   // Occasional items — tucked into collapsible groups to keep the bar short.
   const settingsItems: NavItem[] = isPlatform
-    ? [docsNavItem, securityNavItem]
+    ? [docsNavItem, securityNavItem, notificationsNavItem]
     : [
         docsNavItem,
         securityNavItem,
-        ...(isAdmin ? [brandingNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
+        notificationsNavItem,
+        ...(isAdmin ? [brandingNavItem, complianceNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
       ];
   const adminItems: NavItem[] = isPlatform ? [] : (isAdmin ? [activityNavItem] : []);
 

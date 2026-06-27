@@ -47,6 +47,9 @@ import {
   adminGetOrgHr, adminSaveOrgHr, adminSyncOrgHr,
 } from '../controllers/adminOrgData.controller';
 import { adminImportOrgMembers, adminListOrgMembers, adminUpdateOrgMember } from '../controllers/members.controller';
+import {
+  adminBulkImportProviders, adminListPartnerDocuments, adminUploadPartnerDocument, adminDeletePartnerDocument,
+} from '../controllers/adminPartnerData.controller';
 
 const router = Router();
 
@@ -95,6 +98,11 @@ router.get('/partners', asyncHandler(adminListPartners));
 router.post('/partners', asyncHandler(adminCreatePartner));
 router.patch('/partners/:id', asyncHandler(adminUpdatePartner));
 router.delete('/partners/:id', asyncHandler(adminDeletePartner));
+// Doctor-network onboarding: bulk-register providers + the network's documents
+router.post('/partners/:id/providers/import', asyncHandler(adminBulkImportProviders));
+router.get('/partners/:id/documents', asyncHandler(adminListPartnerDocuments));
+router.post('/partners/:id/documents', docUpload.single('file'), asyncHandler(adminUploadPartnerDocument));
+router.delete('/partners/:id/documents/:docId', asyncHandler(adminDeletePartnerDocument));
 
 // Providers (clinicians & pharmacists)
 router.get('/providers', asyncHandler(adminListProviders));

@@ -62,25 +62,27 @@ export async function createMember(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
   const {
     fullName, phone, email, dateOfBirth, gender, channel,
-    bloodGroup, allergies, chronicConditions, currentMedications, address, city,
+    bloodGroup, allergies, chronicConditions, currentMedications, address, city, state, lga,
   } = req.body;
 
   // Geocode the address so prescriptions can route to the nearest pharmacy.
   const addr = String(address || '').trim();
   const town = String(city || '').trim();
-  const coords = (addr || town) ? await geocode([addr, town].filter(Boolean).join(', ')) : null;
+  const st = String(state || '').slice(0, 60);
+  const localGov = String(lga || '').slice(0, 80);
+  const coords = (addr || town || st) ? await geocode([addr, town, localGov, st].filter(Boolean).join(', ')) : null;
 
   const membershipId = await newMembershipId(orgId);
   const result = await query(
     `INSERT INTO members (org_id, full_name, phone, email, date_of_birth, gender, channel,
                           blood_group, allergies, chronic_conditions, current_medications, membership_id,
-                          address, city, latitude, longitude)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                          address, city, state, lga, latitude, longitude)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
      RETURNING *`,
     [
       orgId, fullName, phone || '', email || '', dateOfBirth || null, gender || '',
       channel || 'app', bloodGroup || '', allergies || [], chronicConditions || [], currentMedications || [],
-      membershipId, addr, town, coords?.lat ?? null, coords?.lng ?? null,
+      membershipId, addr, town, st, localGov, coords?.lat ?? null, coords?.lng ?? null,
     ]
   );
   const member = result.rows[0];
@@ -288,7 +290,7 @@ export async function updateMember(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
   const {
     fullName, phone, email, dateOfBirth, gender, channel,
-    bloodGroup, allergies, chronicConditions, currentMedications, status, address, city,
+    bloodGroup, allergies, chronicConditions, currentMedications, status, address, city, state, lga,
   } = req.body;
 
   // Re-geocode when an address/city is supplied (so coords stay in sync).
@@ -317,12 +319,15 @@ export async function updateMember(req: Request, res: Response): Promise<void> {
        city = COALESCE($15, city),
        latitude = COALESCE($16, latitude),
        longitude = COALESCE($17, longitude),
+       state = COALESCE($18, state),
+       lga = COALESCE($19, lga),
        updated_at = NOW()
      WHERE id = $1 AND org_id = $2
      RETURNING *`,
     [id, orgId, fullName, phone, email, dateOfBirth, gender, channel,
      bloodGroup, allergies, chronicConditions, currentMedications, status,
-     address ?? null, city ?? null, lat ?? null, lng ?? null]
+     address ?? null, city ?? null, lat ?? null, lng ?? null,
+     state ?? null, lga ?? null]
   );
 
   if (result.rows.length === 0) {

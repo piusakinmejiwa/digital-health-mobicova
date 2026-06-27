@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { createMember } from '../../api/resources';
 import { useAuth } from '../../context/AuthContext';
+import { NIGERIA_STATES, lgasForState } from '../../lib/nigeriaLgas';
 import './Members.css';
 
 interface FormValues {
@@ -19,19 +20,22 @@ interface FormValues {
   currentMedications: string;
   address: string;
   city: string;
+  state: string;
+  lga: string;
 }
 
 const toArray = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
 
 export default function MemberCreatePage() {
   const { canWrite } = useAuth();
-  const { register, handleSubmit } = useForm<FormValues>({
-    defaultValues: { channel: 'app', gender: '' },
+  const { register, handleSubmit, watch, setValue } = useForm<FormValues>({
+    defaultValues: { channel: 'app', gender: '', state: '', lga: '' },
   });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const selectedState = watch('state');
 
   // Read-only analysts can't create members; the server rejects it too.
   if (!canWrite) return <Navigate to="/members" replace />;
@@ -53,6 +57,8 @@ export default function MemberCreatePage() {
         currentMedications: toArray(values.currentMedications),
         address: values.address,
         city: values.city,
+        state: values.state,
+        lga: values.lga,
       });
       queryClient.invalidateQueries({ queryKey: ['members'] });
       navigate(`/members/${member.id}`);
@@ -122,6 +128,23 @@ export default function MemberCreatePage() {
           <div className="form-group">
             <label>City / town</label>
             <input {...register('city')} placeholder="e.g. Lagos" />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>State</label>
+            <select {...register('state', { onChange: () => setValue('lga', '') })}>
+              <option value="">Select state…</option>
+              {NIGERIA_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Local Government Area</label>
+            <select {...register('lga')} disabled={!selectedState}>
+              <option value="">{selectedState ? 'Select LGA…' : 'Choose a state first'}</option>
+              {lgasForState(selectedState).map((l) => <option key={l} value={l}>{l}</option>)}
+            </select>
           </div>
         </div>
 

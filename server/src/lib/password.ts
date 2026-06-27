@@ -12,8 +12,9 @@ export function passwordIssue(input: unknown): string | null {
   if (input.length < MIN_LENGTH) {
     return `Password must be at least ${MIN_LENGTH} characters`;
   }
-  if (!/[A-Za-z]/.test(input) || !/[0-9]/.test(input)) {
-    return 'Password must contain at least one letter and one number';
-  }
+  if (!/[a-z]/.test(input)) return 'Password must contain a lowercase letter';
+  if (!/[A-Z]/.test(input)) return 'Password must contain an uppercase letter';
+  if (!/[0-9]/.test(input)) return 'Password must contain a number';
+  if (!/[^A-Za-z0-9]/.test(input)) return 'Password must contain a symbol';
   return null;
 }

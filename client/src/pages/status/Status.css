@@ -1,0 +1,30 @@
+.status { max-width: 760px; margin: 0 auto; padding: 40px 20px 72px; }
+.status section { margin-top: 36px; }
+.status h2 { font-size: 1.3rem; color: #11302e; margin: 0 0 .5rem; }
+.status-note { color: #5e6e6e; font-size: .9rem; margin: 0 0 12px; }
+.status a { color: #0a7b7b; font-weight: 600; }
+
+.status-hero {
+  text-align: center; padding: 28px 22px; border-radius: 14px; border: 1px solid #e3eded; background: #fbfdfd;
+}
+.status-hero h1 { font-size: 1.7rem; margin: 12px 0 6px; color: #0d2a28; }
+.status-hero p { color: #5e6e6e; margin: 0; }
+.status-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; }
+.status-hero.operational { background: #f1faf4; border-color: #c8e9d4; }
+.status-hero.operational .status-dot { background: #1aa251; box-shadow: 0 0 0 4px rgba(26,162,81,.16); }
+.status-hero.degraded { background: #fdf3f2; border-color: #f1c4bf; }
+.status-hero.degraded .status-dot { background: #c0504a; box-shadow: 0 0 0 4px rgba(192,80,74,.16); }
+.status-hero.checking .status-dot { background: #c9b95a; }
+
+.status-rows { border: 1px solid #e3eded; border-radius: 12px; overflow: hidden; }
+.status-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 13px 16px; border-bottom: 1px solid #eef3f3; color: #1f2d2b; font-size: .95rem;
+}
+.status-row:last-child { border-bottom: none; }
+.status-pill { font-size: .78rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; }
+.status-pill.op, .status-pill.on { background: #e6f6ee; color: #0a7b3b; }
+.status-pill.down { background: #fdeceb; color: #b5302a; }
+.status-pill.off { background: #eef3f3; color: #8a9a98; }
+
+.status-foot { margin-top: 32px; color: #94a8ad; font-size: .85rem; }

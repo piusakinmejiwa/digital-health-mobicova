@@ -1,0 +1,37 @@
+.ig { max-width: 1000px; margin: 0 auto; padding: 40px 20px 72px; }
+.ig section { margin-top: 40px; }
+.ig h2 { font-size: 1.4rem; color: #11302e; margin: 0 0 16px; }
+.ig a { color: #0a7b7b; font-weight: 600; }
+
+.ig-hero { text-align: center; padding: 24px 0 8px; border-bottom: 1px solid #e8efee; }
+.ig-eyebrow {
+  display: inline-block; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: #0a7b7b; background: #e6f4f2; padding: .25rem .7rem; border-radius: 999px;
+}
+.ig-hero h1 { font-size: 1.9rem; margin: .7rem 0 .5rem; color: #0d2a28; }
+.ig-hero p { max-width: 620px; margin: .4rem auto; color: #4a5a58; }
+
+.ig-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.ig-tile {
+  display: block; text-decoration: none; color: inherit;
+  border: 1px solid #e3eded; border-radius: 14px; padding: 18px; background: #fff; transition: box-shadow .15s, transform .15s;
+}
+a.ig-tile:hover { box-shadow: 0 8px 22px rgba(13,42,42,.10); transform: translateY(-2px); }
+.ig-tile-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ig-logo {
+  width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+  background: #0a7b7b; color: #fff; font-weight: 700; font-size: 1.1rem;
+}
+.ig-status { font-size: .72rem; font-weight: 700; padding: .18rem .55rem; border-radius: 999px; }
+.ig-status.available { background: #e6f6ee; color: #0a7b3b; }
+.ig-status.soon { background: #eef3f3; color: #8a9a98; }
+.ig-tile h3 { margin: 0 0 .3rem; font-size: 1.02rem; color: #11302e; }
+.ig-tile p { margin: 0 0 12px; font-size: .87rem; color: #5a6a68; line-height: 1.5; }
+.ig-cat { font-size: .74rem; color: #94a8ad; text-transform: uppercase; letter-spacing: .04em; }
+
+.ig-cta { background: #f3faf8; border: 1px solid #cfeae3; border-radius: 14px; padding: 22px 24px; text-align: center; }
+.ig-cta h2 { margin: 0 0 .4rem; }
+.ig-cta p { margin: 0; color: #4a5a58; }
+
+@media (max-width: 860px) { .ig-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .ig-grid { grid-template-columns: 1fr; } }

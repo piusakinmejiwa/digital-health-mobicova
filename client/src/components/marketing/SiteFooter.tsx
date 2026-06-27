@@ -7,9 +7,9 @@ import '../../pages/marketing/Marketing.css';
 // Shared marketing footer for standalone public pages (/shape, /buddy) so they
 // match the rest of the site. Section links route home; route links navigate.
 const FOOT_COLS: { h: string; items: [string, string][] }[] = [
-  { h: 'Platform', items: [['Telemedicine', '/telemedicine'], ['AI Assistant', '/ask'], ['Daily Health Tips', '/health-tips'], ['Insurance', '/insurance'], ['Channels', '/channels']] },
-  { h: 'Company', items: [['About', '/about'], ['Partners', '/partners'], ['Trust & security', '/trust'], ['Careers', '/careers'], ['Contact', '/contact'], ['Shape MobiCova', '/shape']] },
-  { h: 'Developers', items: [['API reference', '/developers/api'], ['Webhooks', '/webhooks'], ['Pricing', '/pricing'], ['Security', '/security']] },
+  { h: 'Platform', items: [['Telemedicine', '/telemedicine'], ['AI Assistant', '/ask'], ['Daily Health Tips', '/health-tips'], ['Insurance', '/insurance'], ['Channels', '/channels'], ['Integrations', '/integrations']] },
+  { h: 'Company', items: [['About', '/about'], ['Partners', '/partners'], ['Trust & security', '/trust'], ['Status', '/status'], ['Careers', '/careers'], ['Contact', '/contact'], ['Shape MobiCova', '/shape']] },
+  { h: 'Developers', items: [['API reference', '/developers/api'], ['Webhooks', '/webhooks'], ['Pricing', '/pricing'], ['Security', '/security'], ["What's new", '/changelog']] },
 ];
 
 export default function SiteFooter() {

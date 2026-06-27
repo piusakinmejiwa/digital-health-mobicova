@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { getInbox } from '../../api/inbox';
+import { useUnseenChangelog } from '../../lib/changelog';
 import BrandLogo from '../common/BrandLogo';
 import './Sidebar.css';
 
@@ -37,6 +38,8 @@ const docsNavItem = { to: '/docs', label: 'Help & docs', icon: '▤' };
 const securityNavItem = { to: '/settings/security', label: 'Security', icon: '⛨' };
 // Shown to every signed-in user — personal notification preferences.
 const notificationsNavItem = { to: '/settings/notifications', label: 'Notifications', icon: '◉' };
+// Shown to every signed-in user — in-product changelog (badge = unseen count).
+const whatsNewNavItem = { to: '/whats-new', label: "What's new", icon: '✦' };
 // Shown only to org admins — DPA, sub-processors & data rights (Trust Centre).
 const complianceNavItem = { to: '/settings/compliance', label: 'Compliance', icon: '⛉' };
 // Shown only to org admins (role === 'admin') — self-service SSO setup.
@@ -52,12 +55,13 @@ const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
 // Shown only to platform admins — prospect discovery / feature-priority results.
 const feedbackAdminNavItem = { to: '/admin/feedback', label: 'Prospect feedback', icon: '✎' };
 
-function SidebarLink({ item, unread }: { item: NavItem; unread: number }) {
+function SidebarLink({ item, unread, whatsNew = 0 }: { item: NavItem; unread: number; whatsNew?: number }) {
   return (
     <NavLink to={item.to} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
       <span className="sidebar-icon">{item.icon}</span>
       {item.label}
       {item.to === '/inbox' && unread > 0 && <span className="sidebar-badge">{unread}</span>}
+      {item.to === '/whats-new' && whatsNew > 0 && <span className="sidebar-badge">{whatsNew}</span>}
     </NavLink>
   );
 }
@@ -86,6 +90,7 @@ export default function Sidebar() {
   // Lightweight poll for the unread action-centre count (shared cache with /inbox).
   const { data: inbox } = useQuery({ queryKey: ['inbox'], queryFn: getInbox, refetchInterval: 60000 });
   const unread = inbox?.unread || 0;
+  const whatsNew = useUnseenChangelog();
   const isSupply = user?.orgClass === 'supply';
   const isAdmin = user?.role === 'admin';
   // Platform admins are MobiCova staff — they operate across all orgs from the
@@ -116,6 +121,7 @@ export default function Sidebar() {
 
       <nav className="sidebar-nav">
         {workspace.map((item) => <SidebarLink key={item.to} item={item} unread={unread} />)}
+        <SidebarLink item={whatsNewNavItem} unread={0} whatsNew={whatsNew} />
         {settingsItems.length > 0 && <SidebarGroup label="Settings" items={settingsItems} unread={unread} />}
         {adminItems.length > 0 && <SidebarGroup label="Admin" items={adminItems} unread={unread} />}
       </nav>

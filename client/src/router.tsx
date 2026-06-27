@@ -11,6 +11,10 @@ import SecuritySettingsPage from './pages/settings/SecuritySettingsPage';
 import CompliancePage from './pages/settings/CompliancePage';
 import NotificationPrefsPage from './pages/settings/NotificationPrefsPage';
 import NotificationsPage from './pages/notifications/NotificationsPage';
+import ChangelogPage from './pages/changelog/ChangelogPage';
+import WhatsNewPage from './pages/changelog/WhatsNewPage';
+import StatusPage from './pages/status/StatusPage';
+import IntegrationsPage from './pages/integrations/IntegrationsPage';
 import DeveloperSettingsPage from './pages/settings/DeveloperSettingsPage';
 import BillingPage from './pages/settings/BillingPage';
 import BrandingPage from './pages/settings/BrandingPage';
@@ -91,6 +95,12 @@ export const router = createBrowserRouter([
   // Trust & Security Centre — security measures, sub-processors, compliance posture.
   { path: '/trust', element: <TrustCenterPage /> },
   { path: '/security', element: <TrustCenterPage /> },
+  // Public product changelog.
+  { path: '/changelog', element: <ChangelogPage /> },
+  // Public platform status.
+  { path: '/status', element: <StatusPage /> },
+  // Public integrations directory.
+  { path: '/integrations', element: <IntegrationsPage /> },
 
   // Public legal / policy pages.
   { path: '/privacy', element: <PrivacyPage /> },
@@ -165,6 +175,7 @@ export const router = createBrowserRouter([
       { path: 'settings/compliance', element: <CompliancePage /> },
       { path: 'settings/notifications', element: <NotificationPrefsPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
+      { path: 'whats-new', element: <WhatsNewPage /> },
       { path: 'settings/developer', element: <DeveloperSettingsPage /> },
       { path: 'settings/billing', element: <BillingPage /> },
       { path: 'settings/branding', element: <BrandingPage /> },

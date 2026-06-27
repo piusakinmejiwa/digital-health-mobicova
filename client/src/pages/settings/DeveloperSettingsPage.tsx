@@ -28,6 +28,7 @@ export default function DeveloperSettingsPage() {
           <h1>API &amp; webhooks</h1>
           <p>Integrate MobiCova with your core policy and claims systems.</p>
         </div>
+        <a className="btn btn-secondary" href="/integrations" target="_blank" rel="noreferrer">Browse all integrations →</a>
       </div>
 
       <div className="api-tabs">

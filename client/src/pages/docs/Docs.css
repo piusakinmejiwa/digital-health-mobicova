@@ -41,3 +41,11 @@
   .docs { grid-template-columns: 1fr; }
   .docs-toc { display: none; }
 }
+
+/* Resource links in the Help & docs header (status, trust, what's new, integrations). */
+.docs-resources { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
+.docs-resources a {
+  font-size: .82rem; font-weight: 600; color: #0a7b7b; text-decoration: none;
+  border: 1px solid #d6e7e4; border-radius: 8px; padding: .35rem .6rem; white-space: nowrap;
+}
+.docs-resources a:hover { background: #eef6f5; }

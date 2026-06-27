@@ -103,6 +103,12 @@ export default function DocsPage() {
           <h1>Help &amp; docs</h1>
           <p>Guides for getting the most out of MobiCova.</p>
         </div>
+        <div className="docs-resources">
+          <a href="/whats-new">What’s new</a>
+          <a href="/status" target="_blank" rel="noreferrer">Platform status ↗</a>
+          <a href="/trust" target="_blank" rel="noreferrer">Trust &amp; security ↗</a>
+          <a href="/integrations" target="_blank" rel="noreferrer">Integrations ↗</a>
+        </div>
       </div>
 
       <div className="docs">

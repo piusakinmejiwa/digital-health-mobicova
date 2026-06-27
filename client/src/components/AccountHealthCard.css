@@ -1,0 +1,28 @@
+.ah-card { margin-bottom: 1rem; }
+.ah-main { display: flex; gap: 18px; align-items: flex-start; }
+.ah-ring { position: relative; flex: none; width: 84px; height: 84px; }
+.ah-ring-text { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.3rem; color: #11302e; }
+.ah-ring.ah-excellent .ah-ring-fg { stroke: #1aa251; }
+.ah-ring.ah-good .ah-ring-fg { stroke: #0a7b7b; }
+.ah-ring.ah-fair .ah-ring-fg { stroke: #e8a13c; }
+.ah-ring.ah-low .ah-ring-fg { stroke: #c0504a; }
+
+.ah-head { flex: 1; min-width: 0; }
+.ah-head .card-title { display: inline-block; margin: 0 8px 0 0; }
+.ah-badge.ah-excellent { background: #e6f6ee; color: #0a7b3b; }
+.ah-badge.ah-good { background: #e6f4f2; color: #0a7b7b; }
+.ah-badge.ah-fair { background: #fdf3e3; color: #9a6a14; }
+.ah-badge.ah-low { background: #fdeceb; color: #b5302a; }
+
+.ah-factors { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.ah-factor { font-size: .78rem; color: #5a6a68; }
+.ah-factor > span { display: block; margin-bottom: 2px; }
+.ah-bar { height: 6px; background: #eef3f3; border-radius: 5px; overflow: hidden; }
+.ah-bar-fill { height: 100%; background: #0a7b7b; border-radius: 5px; }
+
+.ah-tips { margin: 14px 0 10px; padding-left: 1.1rem; color: #2b3a38; font-size: .88rem; line-height: 1.5; }
+.ah-tips li { margin-bottom: .2rem; }
+.ah-contact { font-size: .82rem; color: #5e6e6e; border-top: 1px solid #eef3f3; padding-top: 10px; }
+.ah-contact a { color: #0a7b7b; font-weight: 600; }
+
+@media (max-width: 560px) { .ah-factors { grid-template-columns: 1fr; } }

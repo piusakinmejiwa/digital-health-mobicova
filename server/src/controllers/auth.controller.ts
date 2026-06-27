@@ -20,6 +20,7 @@ import {
   verifyMfaPendingToken,
 } from '../lib/mfa';
 import { recordAudit, writeAudit } from '../lib/audit';
+import { createSession } from '../lib/sessions';
 import QRCode from 'qrcode';
 
 // Shape of the session a successful auth hands back to the client.
@@ -33,8 +34,9 @@ interface SessionUserRow {
   partner_type: string;
 }
 
-function issueSession(user: SessionUserRow) {
-  const payload: JwtPayload = { userId: user.id, orgId: user.org_id, role: user.role as JwtPayload['role'] };
+async function issueSession(user: SessionUserRow, req: Request) {
+  const sid = await createSession(user.id, req);
+  const payload: JwtPayload = { userId: user.id, orgId: user.org_id, role: user.role as JwtPayload['role'], ...(sid ? { sid } : {}) };
   const token = jwt.sign(payload, env.jwtSecret, { expiresIn: '7d' });
   return {
     token,
@@ -92,7 +94,8 @@ export async function register(req: Request, res: Response): Promise<void> {
     [orgId, email, passwordHash, fullName]
   );
 
-  const payload: JwtPayload = { userId: userResult.rows[0].id, orgId, role: 'admin' };
+  const sid = await createSession(userResult.rows[0].id, req);
+  const payload: JwtPayload = { userId: userResult.rows[0].id, orgId, role: 'admin', ...(sid ? { sid } : {}) };
   const token = jwt.sign(payload, env.jwtSecret, { expiresIn: '7d' });
 
   res.status(201).json({
@@ -138,7 +141,7 @@ export async function login(req: Request, res: Response): Promise<void> {
   }
 
   await writeAudit({ actorId: user.id, actorEmail: user.email, action: 'auth.login', orgId: user.org_id, ip: req.ip, metadata: { method: 'password' } });
-  res.json(issueSession(user));
+  res.json(await issueSession(user, req));
 }
 
 // Second step of MFA login: exchange the pending token + a TOTP (or backup) code
@@ -186,7 +189,7 @@ export async function mfaChallenge(req: Request, res: Response): Promise<void> {
   }
 
   await writeAudit({ actorId: user.id, actorEmail: user.email, action: 'auth.login', orgId: user.org_id, ip: req.ip, metadata: { method: 'mfa' } });
-  res.json(issueSession(user));
+  res.json(await issueSession(user, req));
 }
 
 // Start MFA setup: generate a secret, store it (not yet enabled), and return the
@@ -395,4 +398,40 @@ export async function activateAccount(req: Request, res: Response): Promise<void
     [result.rows[0].id, passwordHash]
   );
   res.json({ ok: true, email: result.rows[0].email });
+}
+
+// --- Active sessions (device management) ---
+
+// GET /auth/sessions — the signed-in user's active sessions, current one flagged.
+export async function listSessions(req: Request, res: Response): Promise<void> {
+  const r = await query(
+    `SELECT id, user_agent, ip, created_at, last_seen_at
+       FROM user_sessions
+      WHERE user_id = $1 AND revoked_at IS NULL
+      ORDER BY last_seen_at DESC LIMIT 50`,
+    [req.user!.userId]
+  );
+  const current = req.user!.sid;
+  res.json({ sessions: r.rows.map((s) => ({ ...s, current: s.id === current })) });
+}
+
+// POST /auth/sessions/:id/revoke — sign out one device (own sessions only).
+export async function revokeSession(req: Request, res: Response): Promise<void> {
+  await query(
+    `UPDATE user_sessions SET revoked_at = now()
+      WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL`,
+    [String(req.params.id), req.user!.userId]
+  );
+  res.json({ ok: true });
+}
+
+// POST /auth/sessions/revoke-others — sign out everywhere except this device.
+export async function revokeOtherSessions(req: Request, res: Response): Promise<void> {
+  await query(
+    `UPDATE user_sessions SET revoked_at = now()
+      WHERE user_id = $1 AND revoked_at IS NULL AND id <> $2`,
+    [req.user!.userId, req.user!.sid || '00000000-0000-0000-0000-000000000000']
+  );
+  await recordAudit(req, { action: 'auth.signout_others', targetType: 'user', targetId: req.user!.userId, orgId: req.user!.orgId });
+  res.json({ ok: true });
 }

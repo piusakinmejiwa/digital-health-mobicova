@@ -54,3 +54,18 @@ export async function disableMfa(password: string): Promise<{ enabled: boolean }
   const res = await api.post('/auth/mfa/disable', { password });
   return res.data;
 }
+
+// --- Active sessions (device management) ---
+export interface UserSession {
+  id: string; user_agent: string; ip: string;
+  created_at: string; last_seen_at: string; current: boolean;
+}
+export async function listSessions(): Promise<{ sessions: UserSession[] }> {
+  return (await api.get('/auth/sessions')).data;
+}
+export async function revokeSession(id: string): Promise<void> {
+  await api.post(`/auth/sessions/${id}/revoke`, {});
+}
+export async function revokeOtherSessions(): Promise<void> {
+  await api.post('/auth/sessions/revoke-others', {});
+}

@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import type { Onboarding } from '../../types';
 import { naira, formatDateTime, triageLabel, badgeClass } from '../../lib/format';
 import UsageMeter from '../../components/UsageMeter';
+import AccountHealthCard from '../../components/AccountHealthCard';
 import './Dashboard.css';
 
 const CHANNEL_COLORS: Record<string, string> = {
@@ -38,6 +39,8 @@ export default function DashboardPage() {
       </div>
 
       {showOnboarding && <OnboardingPanel onboarding={onboarding} />}
+
+      <AccountHealthCard />
 
       <UsageMeter />
 

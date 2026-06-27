@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getMfaStatus, startMfaSetup, enableMfa, disableMfa } from '../../api/auth';
+import { getMfaStatus, startMfaSetup, enableMfa, disableMfa,
+  listSessions, revokeSession, revokeOtherSessions, type UserSession } from '../../api/auth';
 import type { MfaSetup } from '../../types';
 import './Security.css';
 
@@ -181,6 +182,69 @@ export default function SecuritySettingsPage() {
           </div>
         )}
       </div>
+
+      <ActiveSessions />
+    </div>
+  );
+}
+
+// Active devices/sessions — sign out a single device or everywhere else.
+function ActiveSessions() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ['sessions'], queryFn: listSessions });
+  const [busy, setBusy] = useState(false);
+  const refresh = () => qc.invalidateQueries({ queryKey: ['sessions'] });
+
+  const fmt = (s: string) => new Date(s).toLocaleString('en-GB');
+  const device = (ua: string) => {
+    if (!ua) return 'Unknown device';
+    const browser = /Edg/.test(ua) ? 'Edge' : /Chrome/.test(ua) ? 'Chrome' : /Firefox/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : 'Browser';
+    const os = /Windows/.test(ua) ? 'Windows' : /Mac OS|Macintosh/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad|iOS/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
+    return `${browser}${os ? ` · ${os}` : ''}`;
+  };
+
+  const revokeOne = async (s: UserSession) => {
+    if (!confirm('Sign out this device?')) return;
+    setBusy(true);
+    try { await revokeSession(s.id); refresh(); } finally { setBusy(false); }
+  };
+  const revokeOthers = async () => {
+    if (!confirm('Sign out of all other devices? You’ll stay signed in here.')) return;
+    setBusy(true);
+    try { await revokeOtherSessions(); refresh(); } finally { setBusy(false); }
+  };
+
+  const sessions = data?.sessions || [];
+  const others = sessions.filter((s) => !s.current).length;
+
+  return (
+    <div className="card card-pad" style={{ maxWidth: 640, marginTop: 16 }}>
+      <h2 style={{ marginTop: 0 }}>Active sessions</h2>
+      <p className="muted small">Devices currently signed in to your account. If you don’t recognise one, sign it out.</p>
+      {isLoading ? <p className="muted">Loading…</p> : sessions.length === 0 ? (
+        <p className="muted small">No active sessions tracked yet — sign out and back in to start tracking this device.</p>
+      ) : (
+        <>
+          {sessions.map((s) => (
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: '1px solid #eef3f3' }}>
+              <div>
+                <div style={{ fontWeight: 600, color: '#11302e' }}>
+                  {device(s.user_agent)} {s.current && <span className="badge badge-green" style={{ marginLeft: 6 }}>This device</span>}
+                </div>
+                <div className="muted small">{s.ip || 'IP unknown'} · last active {fmt(s.last_seen_at)}</div>
+              </div>
+              {!s.current && (
+                <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => revokeOne(s)}>Sign out</button>
+              )}
+            </div>
+          ))}
+          {others > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <button className="btn btn-secondary" disabled={busy} onClick={revokeOthers}>Sign out all other devices ({others})</button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

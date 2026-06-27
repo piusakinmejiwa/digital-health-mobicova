@@ -10,6 +10,9 @@ import {
   mfaEnable,
   mfaDisable,
   mfaStatus,
+  listSessions,
+  revokeSession,
+  revokeOtherSessions,
 } from '../controllers/auth.controller';
 import { ssoMetadata, ssoStatus, ssoLogin, ssoCallback } from '../controllers/sso.controller';
 import { authenticate } from '../middleware/auth';
@@ -38,6 +41,11 @@ router.post(
 );
 
 router.get('/me', authenticate, asyncHandler(getMe));
+
+// Active-device management (self-service).
+router.get('/sessions', authenticate, asyncHandler(listSessions));
+router.post('/sessions/revoke-others', authenticate, asyncHandler(revokeOtherSessions));
+router.post('/sessions/:id/revoke', authenticate, asyncHandler(revokeSession));
 
 // Account activation — an invited admin sets their password (public; token-gated).
 router.post(

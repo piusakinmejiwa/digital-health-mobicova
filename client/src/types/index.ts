@@ -55,6 +55,10 @@ export interface Member {
   current_medications: string[];
   status: string;
   created_at: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  lga?: string;
   consultation_count?: number;
   enrolment_count?: number;
 }

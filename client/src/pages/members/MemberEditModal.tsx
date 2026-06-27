@@ -2,6 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { updateMember } from '../../api/resources';
 import type { Member } from '../../types';
+import { NIGERIA_STATES, lgasForState } from '../../lib/nigeriaLgas';
 
 // Edit a member's full profile. The server's updateMember accepts every field
 // here; this drawer is the UI for it (the detail page itself is read-only).
@@ -28,6 +29,8 @@ export default function MemberEditModal({ member, onClose, onSaved }: {
     allergies: fromArray(member.allergies),
     chronicConditions: fromArray(member.chronic_conditions),
     currentMedications: fromArray(member.current_medications),
+    state: member.state || '',
+    lga: member.lga || '',
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +54,8 @@ export default function MemberEditModal({ member, onClose, onSaved }: {
         allergies: toArray(form.allergies),
         chronicConditions: toArray(form.chronicConditions),
         currentMedications: toArray(form.currentMedications),
+        state: form.state,
+        lga: form.lga,
       });
       onSaved();
     } catch (err) {
@@ -120,6 +125,23 @@ export default function MemberEditModal({ member, onClose, onSaved }: {
           <div className="form-group">
             <label>Blood group</label>
             <input value={form.bloodGroup} onChange={set('bloodGroup')} placeholder="e.g. O+" />
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>State</label>
+            <select value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value, lga: '' })}>
+              <option value="">Select state…</option>
+              {NIGERIA_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Local Government Area</label>
+            <select value={form.lga} onChange={set('lga')} disabled={!form.state}>
+              <option value="">{form.state ? 'Select LGA…' : 'Choose a state first'}</option>
+              {lgasForState(form.state).map((l) => <option key={l} value={l}>{l}</option>)}
+            </select>
           </div>
         </div>
 

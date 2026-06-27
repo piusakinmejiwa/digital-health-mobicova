@@ -30,7 +30,7 @@ function passwordIssue(pw: string): string | null {
 }
 
 const emptyProvider = {
-  partnerId: '', fullName: '', email: '', password: '', role: 'doctor', specialty: '', photoUrl: '', phone: '',
+  partnerId: '', fullName: '', email: '', password: '', role: 'doctor', specialty: '', photoUrl: '', phone: '', mdcnNumber: '',
 };
 
 export default function ProvidersAdmin() {
@@ -73,7 +73,7 @@ export default function ProvidersAdmin() {
       await adminCreateProvider({
         partnerId: creating.partnerId, fullName: creating.fullName.trim(), email: creating.email.trim(),
         password: creating.password, role: creating.role, specialty: creating.specialty.trim(),
-        photoUrl: creating.photoUrl.trim(), phone: creating.phone.trim(),
+        photoUrl: creating.photoUrl.trim(), phone: creating.phone.trim(), mdcnNumber: creating.mdcnNumber.trim(),
       });
       setCreating(null);
       refresh();
@@ -89,7 +89,7 @@ export default function ProvidersAdmin() {
       await adminUpdateProvider(editing.id, {
         partnerId: editing.partner_id, fullName: editing.full_name, role: editing.role,
         specialty: editing.specialty, photoUrl: editing.photo_url, is_active: editing.is_active,
-        phone: editing.phone ?? '',
+        phone: editing.phone ?? '', mdcnNumber: editing.mdcn_number ?? '',
       });
       setEditing(null);
       refresh();
@@ -185,6 +185,10 @@ export default function ProvidersAdmin() {
                 <input value={creating.specialty} onChange={(e) => setCreating({ ...creating, specialty: e.target.value })} placeholder="e.g. Cardiology" />
               </div>
               <div className="form-group">
+                <label>MDCN / registration no.</label>
+                <input value={creating.mdcnNumber} onChange={(e) => setCreating({ ...creating, mdcnNumber: e.target.value })} placeholder="e.g. MDCN/12345" />
+              </div>
+              <div className="form-group">
                 <label>Email (login)</label>
                 <input value={creating.email} onChange={(e) => setCreating({ ...creating, email: e.target.value })} />
               </div>
@@ -248,6 +252,10 @@ export default function ProvidersAdmin() {
               <div className="form-group">
                 <label>Specialty</label>
                 <input value={editing.specialty} onChange={(e) => setEditing({ ...editing, specialty: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>MDCN / registration no.</label>
+                <input value={editing.mdcn_number ?? ''} onChange={(e) => setEditing({ ...editing, mdcn_number: e.target.value })} />
               </div>
               {editing.role === 'doctor' && (
                 <div className="form-group">

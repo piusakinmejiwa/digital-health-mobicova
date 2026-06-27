@@ -324,6 +324,7 @@ export interface AdminProvider {
   email: string;
   role: 'doctor' | 'pharmacist';
   specialty: string;
+  mdcn_number?: string;
   photo_url: string;
   phone?: string;
   is_active: boolean;

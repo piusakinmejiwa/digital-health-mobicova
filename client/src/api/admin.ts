@@ -30,6 +30,32 @@ export async function adminListPartners(): Promise<Partner[]> {
 export async function adminCreatePartner(data: Record<string, unknown>): Promise<Partner> {
   return (await api.post('/admin/partners', data)).data;
 }
+// Doctor-network onboarding: bulk-register providers + the network's documents.
+export interface ProviderImportResult {
+  dryRun?: boolean;
+  wouldImport?: number;
+  inserted?: number;
+  total: number;
+  skipped: { row: number; reason: string }[];
+  preview?: { fullName: string; email: string; role: string; mdcn: string }[];
+  credentials?: { fullName: string; email: string; tempPassword: string }[];
+}
+export async function adminBulkImportProviders(partnerId: string, providers: Record<string, unknown>[], dryRun = false): Promise<ProviderImportResult> {
+  return (await api.post(`/admin/partners/${partnerId}/providers/import`, { providers, dryRun })).data;
+}
+export async function adminListPartnerDocuments(partnerId: string): Promise<{ storageEnabled: boolean; documents: OrgDocument[] }> {
+  return (await api.get(`/admin/partners/${partnerId}/documents`)).data;
+}
+export async function adminUploadPartnerDocument(partnerId: string, file: File, docType: string): Promise<OrgDocument> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('docType', docType);
+  return (await api.post(`/admin/partners/${partnerId}/documents`, form)).data;
+}
+export async function adminDeletePartnerDocument(partnerId: string, docId: string): Promise<void> {
+  await api.delete(`/admin/partners/${partnerId}/documents/${docId}`);
+}
+
 export async function adminUpdatePartner(id: string, data: Record<string, unknown>): Promise<Partner> {
   return (await api.patch(`/admin/partners/${id}`, data)).data;
 }

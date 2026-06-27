@@ -10,6 +10,7 @@ import {
 import {
   adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, uploadBlogImage, type AdminBlogPost,
 } from '../../api/blog';
+import PartnerDoctorsModal from '../../components/admin/PartnerDoctorsModal';
 import { adminListContactMessages, adminDeleteContactMessage } from '../../api/contact';
 import { adminListPageAssets, adminSavePageAsset, adminGenerateImage } from '../../api/pageAssets';
 import { adminListNewsletter, adminDeleteNewsletter } from '../../api/newsletter';
@@ -838,12 +839,14 @@ function PartnersAdmin() {
   const qc = useQueryClient();
   const { data: partners } = useQuery({ queryKey: ['admin-partners'], queryFn: adminListPartners });
   const [editing, setEditing] = useState<null | (typeof emptyPartner & { id?: string })>(null);
+  const [doctorsPartner, setDoctorsPartner] = useState<null | Partner>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['admin-partners'] });
     qc.invalidateQueries({ queryKey: ['partners'] }); // public ecosystem page
+    qc.invalidateQueries({ queryKey: ['admin-providers'] });
   };
 
   const openNew = () => { setError(''); setEditing({ ...emptyPartner }); };
@@ -903,6 +906,9 @@ function PartnersAdmin() {
               <td className="muted small">{p.licence}</td>
               <td><span className={`badge ${p.status === 'active' ? 'badge-green' : 'badge-gray'}`}>{p.status}</span></td>
               <td className="admin-actions">
+                {(p.category === 'telemedicine' || p.category === 'pharmacy') && (
+                  <button className="btn btn-secondary btn-sm" onClick={() => setDoctorsPartner(p)}>Doctors &amp; docs</button>
+                )}
                 <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}>Edit</button>
                 <button className="btn btn-secondary btn-sm" onClick={() => toggleStatus(p)}>{p.status === 'active' ? 'Deactivate' : 'Activate'}</button>
                 <button className="btn btn-danger btn-sm" onClick={() => remove(p)}>Delete</button>
@@ -912,6 +918,10 @@ function PartnersAdmin() {
         </tbody>
       </table>
       {(!partners || partners.length === 0) && <p className="empty-state">No partners yet. Add one to get started.</p>}
+
+      {doctorsPartner && (
+        <PartnerDoctorsModal partner={doctorsPartner} onClose={() => setDoctorsPartner(null)} onChanged={refresh} />
+      )}
 
       {editing && (
         <div className="drawer-overlay" onClick={() => setEditing(null)}>

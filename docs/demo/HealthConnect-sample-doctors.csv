@@ -1,0 +1,9 @@
+fullName,email,mdcnNumber,specialty,phone,role
+Dr. Chidi Okeke,chidi.okeke@example.com,MDCN/45201,Cardiology,+2348041000201,doctor
+Dr. Amaka Eze,amaka.eze@example.com,MDCN/45202,Paediatrics,+2348041000202,doctor
+Dr. Tunde Bello,tunde.bello@example.com,MDCN/45203,General practice,+2348041000203,doctor
+Dr. Ngozi Umeh,ngozi.umeh@example.com,MDCN/45204,Obstetrics & gynaecology,+2348041000204,doctor
+Dr. Yusuf Aliyu,yusuf.aliyu@example.com,MDCN/45205,Internal medicine,+2348041000205,doctor
+Dr. Funke Ade,funke.ade@example.com,MDCN/45206,Dermatology,+2348041000206,doctor
+Dr. Emeka Nnamdi,emeka.nnamdi@example.com,MDCN/45207,Family medicine,+2348041000207,doctor
+Dr. Halima Sani,halima.sani@example.com,MDCN/45208,Mental health,+2348041000208,doctor

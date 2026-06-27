@@ -265,7 +265,7 @@ export async function adminSaveOrgOnboarding(req: Request, res: Response): Promi
   try {
   await query(
     `INSERT INTO org_onboarding (org_id, data, status, submitted_at, updated_at)
-       VALUES ($1, $2, $3, CASE WHEN $3 = 'submitted' THEN now() ELSE NULL END, now())
+       VALUES ($1, $2::jsonb, $3::text, CASE WHEN $3::text = 'submitted' THEN now() ELSE NULL END, now())
      ON CONFLICT (org_id) DO UPDATE SET
        data = EXCLUDED.data,
        status = EXCLUDED.status,

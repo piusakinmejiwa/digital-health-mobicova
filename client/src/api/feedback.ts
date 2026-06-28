@@ -30,6 +30,16 @@ export type ProspectSubmission = {
   pilot_interest: boolean;
   consent: boolean;
   created_at: string;
+  ai_sentiment?: '' | 'positive' | 'neutral' | 'negative';
+  ai_themes?: string[];
+};
+
+export type FeedbackInsights = {
+  analyzed: number;
+  unanalyzed: number;
+  analyzedThisWeek: number;
+  sentiment: { positive: number; neutral: number; negative: number };
+  topThemes: { theme: string; count: number }[];
 };
 
 export type ProspectFeedbackResult = {
@@ -37,9 +47,15 @@ export type ProspectFeedbackResult = {
   total: number;
   interest: Record<string, number>;
   score: Record<string, number>;
+  insights: FeedbackInsights;
 };
 
 export async function getProspectFeedback(): Promise<ProspectFeedbackResult> {
   const { data } = await api.get<ProspectFeedbackResult>('/admin/prospect-feedback');
+  return data;
+}
+
+export async function analyzeProspectFeedback(): Promise<{ analyzed: number; insights: FeedbackInsights }> {
+  const { data } = await api.post('/admin/prospect-feedback/analyze');
   return data;
 }

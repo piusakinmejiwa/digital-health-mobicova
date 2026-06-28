@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { env } from '../config/env';
 import { sendEmail } from '../lib/email';
+import { analyzeFeedback, getFeedbackInsights, FeedbackAnalysisUnavailable } from '../lib/feedbackInsights';
 
 // Public "Help shape MobiCova" capture: a prospect tells us which features they
 // want and their order of priority. Unauthenticated; contact details only, no PHI.
@@ -93,7 +94,8 @@ export async function createProspectFeedback(req: Request, res: Response): Promi
 export async function adminListProspectFeedback(_req: Request, res: Response): Promise<void> {
   const result = await query(
     `SELECT id, name, email, organisation, role, country,
-            wanted_features, priorities, use_case, pilot_interest, consent, created_at
+            wanted_features, priorities, use_case, pilot_interest, consent, created_at,
+            ai_sentiment, ai_themes
      FROM prospect_feedback ORDER BY created_at DESC LIMIT 1000`
   );
 
@@ -105,5 +107,23 @@ export async function adminListProspectFeedback(_req: Request, res: Response): P
     pr.forEach((f, i) => { score[f] = (score[f] || 0) + (pr.length - i); });
   }
 
-  res.json({ submissions: result.rows, total: result.rows.length, interest, score });
+  const insights = await getFeedbackInsights();
+  res.json({ submissions: result.rows, total: result.rows.length, interest, score, insights });
+}
+
+// POST /admin/prospect-feedback/analyze — run AI sentiment + theme analysis over
+// the next batch of un-analysed entries. Platform-admin only (router-gated).
+export async function analyzeProspectFeedback(_req: Request, res: Response): Promise<void> {
+  try {
+    const analyzed = await analyzeFeedback();
+    const insights = await getFeedbackInsights();
+    res.json({ analyzed, insights });
+  } catch (err) {
+    if (err instanceof FeedbackAnalysisUnavailable) {
+      res.status(503).json({ error: err.message });
+      return;
+    }
+    console.error('Feedback analysis failed:', err);
+    res.status(500).json({ error: 'Could not analyse feedback. Please try again.' });
+  }
 }

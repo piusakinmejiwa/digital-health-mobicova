@@ -18,7 +18,7 @@ import {
   adminResetUserPassword, adminDeleteUser,
 } from '../controllers/adminUsers.controller';
 import { adminListAudit } from '../controllers/adminAudit.controller';
-import { adminListProspectFeedback } from '../controllers/prospectFeedback.controller';
+import { adminListProspectFeedback, analyzeProspectFeedback } from '../controllers/prospectFeedback.controller';
 import { adminGetOrgSso, adminUpdateOrgSso } from '../controllers/sso.controller';
 import { adminAiStatus, adminBuddySafety } from '../controllers/adminDiagnostics.controller';
 import { adminListPosts, adminCreatePost, adminUpdatePost, adminDeletePost, adminUploadImage } from '../controllers/blog.controller';
@@ -147,8 +147,9 @@ router.delete('/plans/:id', asyncHandler(adminDeletePlan));
 // Audit trail (read-only)
 router.get('/audit', asyncHandler(adminListAudit));
 
-// Prospect discovery / feature-priority feedback (read-only)
+// Prospect discovery / feature-priority feedback (read-only) + AI analysis
 router.get('/prospect-feedback', asyncHandler(adminListProspectFeedback));
+router.post('/prospect-feedback/analyze', asyncHandler(analyzeProspectFeedback));
 
 // AI integration health — makes a tiny live call to confirm Anthropic is working
 // (vs the Buddy silently running in fallback mode). Never exposes the key.

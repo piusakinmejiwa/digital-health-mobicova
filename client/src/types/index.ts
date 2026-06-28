@@ -468,6 +468,7 @@ export interface WebhookDelivery {
 export interface OrgBranding {
   displayName: string;
   logoLetter: string;
+  logoUrl: string;
   primaryColor: string;
   accentColor: string;
   supportContact: string;

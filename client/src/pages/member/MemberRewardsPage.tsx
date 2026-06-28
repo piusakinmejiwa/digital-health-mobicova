@@ -2,8 +2,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
   getMemberRewards, getMemberChallenges, getMemberLeaderboard, setMemberLeaderboardOptIn,
-  getMemberCatalogue, redeemReward, getMemberRedemptions,
+  getMemberCatalogue, redeemReward, getMemberRedemptions, getMemberMe,
 } from '../../api/member';
+import OrgLogo from '../../components/common/OrgLogo';
 import './Member.css';
 import './MemberRewards.css';
 
@@ -14,6 +15,8 @@ import './MemberRewards.css';
 export default function MemberRewardsPage() {
   const { data, isLoading } = useQuery({ queryKey: ['member-rewards'], queryFn: getMemberRewards });
   const { data: ch } = useQuery({ queryKey: ['member-challenges'], queryFn: getMemberChallenges });
+  const { data: me } = useQuery({ queryKey: ['member-me'], queryFn: getMemberMe });
+  const brand = me?.branding;
 
   const earned = data?.badges.filter((b) => b.earned) ?? [];
   const locked = data?.badges.filter((b) => !b.earned) ?? [];
@@ -22,9 +25,12 @@ export default function MemberRewardsPage() {
   return (
     <div className="member-page">
       <section className="member-hero">
-        <div>
-          <h1>My rewards</h1>
-          <p className="muted">Earn points and badges for looking after your health.</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {brand && <OrgLogo url={brand.logoUrl} letter={brand.logoLetter} name={brand.displayName} color={brand.primaryColor} size={44} />}
+          <div>
+            <h1>My rewards</h1>
+            <p className="muted">{brand?.displayName ? `${brand.displayName} · ` : ''}Earn points and badges for looking after your health.</p>
+          </div>
         </div>
       </section>
 
@@ -55,7 +61,7 @@ export default function MemberRewardsPage() {
               {challenges.map((c) => (
                 <div key={c.id} className="rw-challenge">
                   <div className="rw-challenge-head">
-                    <span><strong>{c.title}</strong>{c.completed && <span className="rw-done"> ✓ done</span>}</span>
+                    <span><strong>{c.title}</strong>{c.sponsored && <span className="rw-sponsor">★ {brand?.displayName || 'Your organisation'}</span>}{c.completed && <span className="rw-done"> ✓ done</span>}</span>
                     <span className="muted small">+{c.bonusPoints} pts</span>
                   </div>
                   {c.description && <div className="muted small">{c.description}</div>}
@@ -147,6 +153,7 @@ function RedeemSection() {
           <div key={it.id} className="rw-reward">
             <div>
               <strong>{it.title}</strong> {it.value_label && <span className="muted small">· {it.value_label}</span>}
+              {it.sponsored && <span className="rw-sponsor">★ Sponsored</span>}
               {it.description && <div className="muted small">{it.description}</div>}
             </div>
             <button className="btn btn-primary btn-sm" disabled={!affordable || out || busy === it.id}

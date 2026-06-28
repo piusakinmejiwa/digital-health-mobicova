@@ -1,9 +1,10 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getBranding, updateBranding } from '../../api/branding';
+import { getBranding, updateBranding, uploadBrandingLogo } from '../../api/branding';
 import type { OrgBranding } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import OrgLogo from '../../components/common/OrgLogo';
 import './Branding.css';
 
 // Preset primary / accent colour pairs.
@@ -63,15 +64,15 @@ export default function BrandingPage() {
           </div>
 
           <div className="bf-group">
-            <label className="bf-label">Logo mark</label>
+            <label className="bf-label">Logo</label>
             <div className="logo-pick">
-              <div className="logo-opt on" style={{ background: form.primaryColor }}>
-                {(form.logoLetter || form.displayName.charAt(0) || 'M').toUpperCase()}
-              </div>
-              <input className="bf-input logo-letter" value={form.logoLetter} maxLength={2}
-                onChange={(e) => set({ logoLetter: e.target.value })} placeholder="Letter(s)" />
-              <span className="muted small">Shown on the member portal &amp; card.</span>
+              <OrgLogo url={form.logoUrl} letter={form.logoLetter} name={form.displayName} color={form.primaryColor} size={48} />
+              <LogoUpload onUploaded={(url) => set({ logoUrl: url })} />
+              {form.logoUrl && <button className="btn btn-ghost btn-sm" onClick={() => set({ logoUrl: '' })}>Remove</button>}
             </div>
+            <span className="muted small">Upload your logo (PNG/SVG, max 5MB). No image? We’ll show the letter(s) below instead.</span>
+            <input className="bf-input logo-letter" style={{ marginTop: 8 }} value={form.logoLetter} maxLength={2}
+              onChange={(e) => set({ logoLetter: e.target.value })} placeholder="Fallback letter(s)" />
           </div>
 
           <div className="bf-group">
@@ -118,7 +119,9 @@ export default function BrandingPage() {
             <div className="bp-screen">
               <div className="bp-status"><span>9:41</span><span>●●●</span></div>
               <div className="bp-head">
-                <div className="bp-logo">{(form.logoLetter || form.displayName.charAt(0) || 'M').toUpperCase()}</div>
+                {form.logoUrl
+                  ? <img className="bp-logo" src={form.logoUrl} alt="" style={{ objectFit: 'contain', background: '#fff' }} />
+                  : <div className="bp-logo">{(form.logoLetter || form.displayName.charAt(0) || 'M').toUpperCase()}</div>}
                 <div className="bp-greet">
                   <small>Good morning</small>
                   <b>{form.displayName || 'Your brand'}</b>
@@ -145,5 +148,28 @@ export default function BrandingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Logo image picker — uploads to storage and hands back the public URL.
+function LogoUpload({ onUploaded }: { onUploaded: (url: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const pick = async (file: File) => {
+    setBusy(true); setErr('');
+    try { const { url } = await uploadBrandingLogo(file); onUploaded(url); }
+    catch (e: any) { setErr(e?.response?.data?.error || 'Upload failed.'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <>
+      <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => ref.current?.click()}>
+        {busy ? 'Uploading…' : 'Upload logo'}
+      </button>
+      <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = ''; }} />
+      {err && <span className="error-text" style={{ fontSize: '.8rem' }}>{err}</span>}
+    </>
   );
 }

@@ -153,7 +153,7 @@ export async function getMemberRewards(): Promise<MemberRewards> {
 // --- Phase 2: challenges + leaderboard ---
 export interface MemberChallenge {
   id: string; title: string; description: string; target: number;
-  window: string; bonusPoints: number; current: number; completed: boolean;
+  window: string; bonusPoints: number; current: number; completed: boolean; sponsored: boolean;
 }
 export async function getMemberChallenges(): Promise<{ challenges: MemberChallenge[] }> {
   return (await memberApi.get('/member/challenges')).data;
@@ -172,7 +172,7 @@ export async function setMemberLeaderboardOptIn(optIn: boolean): Promise<Leaderb
 // --- Phase 3: redemption ---
 export interface CatalogueItem {
   id: string; title: string; description: string; kind: string;
-  cost_points: number; value_label: string; stock: number | null;
+  cost_points: number; value_label: string; stock: number | null; sponsored?: boolean;
 }
 export interface Redemption {
   id: string; title: string; cost_points: number; status: string; note: string; created_at: string;

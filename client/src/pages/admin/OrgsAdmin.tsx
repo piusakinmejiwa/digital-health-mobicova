@@ -15,7 +15,19 @@ import OrgReportsModal from '../../components/admin/OrgReportsModal';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminImpersonateOrg } from '../../api/admin';
+import { uploadBlogImage } from '../../api/blog';
+import OrgLogo from '../../components/common/OrgLogo';
 import { ORG_TYPES, orgTypeLabel, orgClassBadge, orgClassOf } from '../../lib/orgTypes';
+
+// Open a file dialog and resolve to the chosen image (or null).
+function pickImage(): Promise<File | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/*';
+    input.onchange = () => resolve(input.files?.[0] || null);
+    input.click();
+  });
+}
 
 const PLAN_TIERS = ['starter', 'growth', 'scale', 'enterprise'];
 
@@ -395,7 +407,7 @@ function OrgSsoModal({ org, onClose }: { org: Organisation; onClose: () => void 
 // name, logo letter, colours, support contact and WhatsApp greeting during
 // onboarding, without needing their own login.
 const EMPTY_BRANDING: OrgBranding = {
-  displayName: '', logoLetter: '', primaryColor: '#0a7b7b', accentColor: '#12a3a3',
+  displayName: '', logoLetter: '', logoUrl: '', primaryColor: '#0a7b7b', accentColor: '#12a3a3',
   supportContact: '', whatsappGreeting: '',
 };
 function OrgBrandingModal({ org, onClose }: { org: Organisation; onClose: () => void }) {
@@ -429,8 +441,22 @@ function OrgBrandingModal({ org, onClose }: { org: Organisation; onClose: () => 
                 <input value={form.displayName} onChange={(e) => set('displayName', e.target.value)} placeholder="e.g. AXA Mansard Health" />
               </div>
               <div className="form-group">
-                <label>Logo letter(s)</label>
+                <label>Logo letter(s) <span className="muted">— fallback</span></label>
                 <input value={form.logoLetter} onChange={(e) => set('logoLetter', e.target.value)} maxLength={4} placeholder="e.g. AX" />
+              </div>
+              <div className="form-group form-span-2">
+                <label>Logo image</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <OrgLogo url={form.logoUrl} letter={form.logoLetter} name={form.displayName} color={form.primaryColor} size={48} />
+                  <button className="btn btn-secondary btn-sm" disabled={busy} onClick={async () => {
+                    const f = await pickImage(); if (!f) return;
+                    setBusy(true); setErr('');
+                    try { const url = await uploadBlogImage(f); set('logoUrl', url); }
+                    catch (e) { setErr(errMessage(e, 'Upload failed.')); }
+                    finally { setBusy(false); }
+                  }}>Upload logo</button>
+                  {form.logoUrl && <button className="btn btn-ghost btn-sm" onClick={() => set('logoUrl', '')}>Remove</button>}
+                </div>
               </div>
               <div className="form-group">
                 <label>Primary colour</label>

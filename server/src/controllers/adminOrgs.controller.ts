@@ -228,6 +228,7 @@ export async function adminUpdateOrgBranding(req: Request, res: Response): Promi
   const cur = await getOrgBranding(id);
   const displayName = String(req.body?.displayName ?? cur.displayName).slice(0, 120);
   const logoLetter = String(req.body?.logoLetter ?? cur.logoLetter).slice(0, 4);
+  const logoUrl = String(req.body?.logoUrl ?? cur.logoUrl).slice(0, 600);
   const primary = hex(req.body?.primaryColor, cur.primaryColor);
   const accent = hex(req.body?.accentColor, cur.accentColor);
   const support = String(req.body?.supportContact ?? cur.supportContact).slice(0, 160);
@@ -235,12 +236,12 @@ export async function adminUpdateOrgBranding(req: Request, res: Response): Promi
 
   await query(
     `INSERT INTO org_branding
-       (org_id, display_name, logo_letter, primary_color, accent_color, support_contact, whatsapp_greeting, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+       (org_id, display_name, logo_letter, logo_url, primary_color, accent_color, support_contact, whatsapp_greeting, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
      ON CONFLICT (org_id) DO UPDATE SET
-       display_name = $2, logo_letter = $3, primary_color = $4, accent_color = $5,
-       support_contact = $6, whatsapp_greeting = $7, updated_at = NOW()`,
-    [id, displayName, logoLetter, primary, accent, support, greeting]
+       display_name = $2, logo_letter = $3, logo_url = $4, primary_color = $5, accent_color = $6,
+       support_contact = $7, whatsapp_greeting = $8, updated_at = NOW()`,
+    [id, displayName, logoLetter, logoUrl, primary, accent, support, greeting]
   );
   await recordAudit(req, { action: 'branding.update', targetType: 'organisation', targetId: id, targetLabel: org.rows[0].name, orgId: id });
   res.json(await getOrgBranding(id));

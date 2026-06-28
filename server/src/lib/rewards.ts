@@ -194,14 +194,15 @@ async function checkChallenges(memberId: string, orgId: string | null): Promise<
 }
 
 // Member-facing list of active challenges with live progress (global + own-org).
+// `sponsored` = funded by the member's own organisation (vs a MobiCova default).
 export async function getMemberChallenges(memberId: string, orgId: string | null): Promise<{
   id: string; title: string; description: string; target: number; window: string;
-  bonusPoints: number; current: number; completed: boolean;
+  bonusPoints: number; current: number; completed: boolean; sponsored: boolean;
 }[]> {
   let rows: any[];
   try {
     rows = (await query(
-      `SELECT id, title, description, action, target, window_kind, bonus_points
+      `SELECT id, title, description, action, target, window_kind, bonus_points, org_id
          FROM reward_challenges WHERE is_active = true AND (org_id IS NULL OR org_id = $1)
         ORDER BY created_at`,
       [orgId]
@@ -213,6 +214,7 @@ export async function getMemberChallenges(memberId: string, orgId: string | null
     out.push({
       id: ch.id, title: ch.title, description: ch.description, target: ch.target, window: ch.window_kind,
       bonusPoints: ch.bonus_points, current: Math.min(current, ch.target), completed: current >= ch.target,
+      sponsored: ch.org_id != null,
     });
   }
   return out;
@@ -345,13 +347,16 @@ export async function availablePoints(memberId: string): Promise<number> {
 export interface CatalogueItem {
   id: string; title: string; description: string; kind: string;
   cost_points: number; value_label: string; stock: number | null; is_active: boolean;
+  sponsored?: boolean;
 }
 
 // Member-visible catalogue = global (org_id IS NULL) + own-org items.
+// `sponsored` flags an item funded by the member's own organisation.
 export async function getCatalogue(orgId: string | null, activeOnly = true): Promise<CatalogueItem[]> {
   try {
     const r = await query(
-      `SELECT id, title, description, kind, cost_points, value_label, stock, is_active
+      `SELECT id, title, description, kind, cost_points, value_label, stock, is_active,
+              (org_id IS NOT NULL) AS sponsored
          FROM reward_catalogue
         WHERE (org_id IS NULL OR org_id = $1) ${activeOnly ? 'AND is_active = true' : ''}
         ORDER BY cost_points`,

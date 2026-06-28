@@ -5,6 +5,7 @@ import { query } from '../config/database';
 export interface OrgBranding {
   displayName: string;
   logoLetter: string;
+  logoUrl: string;
   primaryColor: string;
   accentColor: string;
   supportContact: string;
@@ -21,6 +22,7 @@ export async function getOrgBranding(orgId: string): Promise<OrgBranding> {
   return {
     displayName: row?.display_name || orgName,
     logoLetter: row?.logo_letter || orgName.charAt(0).toUpperCase(),
+    logoUrl: row?.logo_url || '',
     primaryColor: row?.primary_color || '#0a7b7b',
     accentColor: row?.accent_color || '#12a3a3',
     supportContact: row?.support_contact || '',

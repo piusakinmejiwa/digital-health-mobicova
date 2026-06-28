@@ -20,6 +20,7 @@ export async function getPublicOrgBranding(req: Request, res: Response): Promise
     slug,
     displayName: b.displayName,
     logoLetter: b.logoLetter,
+    logoUrl: b.logoUrl,
     primaryColor: b.primaryColor,
     accentColor: b.accentColor,
   });

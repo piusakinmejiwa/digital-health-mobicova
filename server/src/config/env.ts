@@ -11,6 +11,14 @@ const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173')
 
 export const env = {
   port: parseInt(process.env.PORT || '4000', 10),
+  // Error tracking (Sentry). Absent ⇒ disabled (errors log to the console only),
+  // same graceful-degradation pattern as every other integration here. Set
+  // SENTRY_DSN in the environment to switch on reporting — no code change.
+  sentryDsn: process.env.SENTRY_DSN || '',
+  appEnv: process.env.APP_ENV || process.env.NODE_ENV || 'development',
+  // 0 = capture errors only (no performance traces — cheapest). Raise toward 1.0
+  // to sample a fraction of requests for latency tracing.
+  sentryTracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || '0'),
   databaseUrl: process.env.DATABASE_URL || '',
   // Optional PEM-encoded CA certificate for the database. When set, the server
   // verifies the DB's TLS certificate against it (defence against MITM) instead

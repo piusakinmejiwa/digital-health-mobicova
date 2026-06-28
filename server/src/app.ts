@@ -1,8 +1,11 @@
 import express from 'express';
+import * as Sentry from '@sentry/node';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
+import { sentryEnabled } from './instrument';
+import { query } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import routes from './routes';
 import publicApiRoutes from './routes/publicApi.routes';
@@ -90,11 +93,32 @@ app.get('/health', (_req, res) => {
       documents: storageEnabled,
       email: !!env.resendApiKey,
       reportsCron: !!env.reportsCronSecret,
+      errorTracking: sentryEnabled,
       otpDevMode: env.otpDevMode,
     },
   });
 });
 
+// Liveness — the process is up and serving. Cheap and dependency-free; point an
+// uptime monitor (UptimeRobot / Better Stack) and the platform health check here.
+app.get('/healthz', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Readiness — verifies the database is actually reachable. Returns 503 when it
+// isn't, so a monitor distinguishes "process alive but DB down" from healthy.
+app.get('/readyz', async (_req, res) => {
+  try {
+    await query('SELECT 1');
+    res.json({ status: 'ok', db: true });
+  } catch {
+    res.status(503).json({ status: 'unavailable', db: false });
+  }
+});
+
+// Sentry's Express error handler must sit after the routes and before our own —
+// it captures the error, then passes it on so errorHandler still sends the 500.
+if (sentryEnabled) Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 export default app;

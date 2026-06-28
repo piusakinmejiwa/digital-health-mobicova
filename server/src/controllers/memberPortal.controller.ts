@@ -233,7 +233,7 @@ export async function getMemberRewardsHandler(req: Request, res: Response): Prom
 
 // GET /member/challenges — active challenges with this member's live progress.
 export async function getMemberChallengesHandler(req: Request, res: Response): Promise<void> {
-  res.json({ challenges: await getMemberChallenges(req.member!.memberId) });
+  res.json({ challenges: await getMemberChallenges(req.member!.memberId, req.member!.orgId) });
 }
 
 // GET /member/leaderboard — anonymised, opt-in ranking within the member's org.
@@ -250,7 +250,7 @@ export async function setMemberLeaderboardOptIn(req: Request, res: Response): Pr
 // GET /member/rewards/catalogue — active rewards + the member's spendable balance.
 export async function getMemberCatalogue(req: Request, res: Response): Promise<void> {
   const [items, balance] = await Promise.all([
-    getCatalogue(true),
+    getCatalogue(req.member!.orgId, true),
     availablePoints(req.member!.memberId),
   ]);
   res.json({ items, balance });

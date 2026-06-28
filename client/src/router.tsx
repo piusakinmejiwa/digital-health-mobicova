@@ -11,6 +11,7 @@ import SecuritySettingsPage from './pages/settings/SecuritySettingsPage';
 import CompliancePage from './pages/settings/CompliancePage';
 import NotificationPrefsPage from './pages/settings/NotificationPrefsPage';
 import NotificationsPage from './pages/notifications/NotificationsPage';
+import RewardsAdminPage from './pages/rewards/RewardsAdminPage';
 import ChangelogPage from './pages/changelog/ChangelogPage';
 import WhatsNewPage from './pages/changelog/WhatsNewPage';
 import StatusPage from './pages/status/StatusPage';
@@ -176,6 +177,7 @@ export const router = createBrowserRouter([
       { path: 'settings/notifications', element: <NotificationPrefsPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'whats-new', element: <WhatsNewPage /> },
+      { path: 'rewards', element: <RewardsAdminPage /> },
       { path: 'settings/developer', element: <DeveloperSettingsPage /> },
       { path: 'settings/billing', element: <BillingPage /> },
       { path: 'settings/branding', element: <BrandingPage /> },

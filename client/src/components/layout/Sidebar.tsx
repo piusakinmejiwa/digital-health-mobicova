@@ -48,6 +48,8 @@ const ssoNavItem = { to: '/settings/sso', label: 'Single sign-on', icon: '⚷' }
 const developerNavItem = { to: '/settings/developer', label: 'API & webhooks', icon: '⧉' };
 // Shown only to org admins — white-label branding.
 const brandingNavItem = { to: '/settings/branding', label: 'Branding', icon: '◑' };
+// Shown only to demand-org admins — their own rewards programme (challenges/catalogue).
+const rewardsNavItem = { to: '/rewards', label: 'Rewards', icon: '★' };
 // Shown only to org admins — their own organisation's activity/audit trail.
 const activityNavItem = { to: '/activity', label: 'Activity log', icon: '◷' };
 // Shown only to platform admins (see AuthContext user.isPlatformAdmin).
@@ -109,7 +111,7 @@ export default function Sidebar() {
         docsNavItem,
         securityNavItem,
         notificationsNavItem,
-        ...(isAdmin ? [brandingNavItem, complianceNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem])] : []),
+        ...(isAdmin ? [brandingNavItem, complianceNavItem, ...(isSupply ? [] : [billingNavItem, ssoNavItem, developerNavItem, rewardsNavItem])] : []),
       ];
   const adminItems: NavItem[] = isPlatform ? [] : (isAdmin ? [activityNavItem] : []);
 

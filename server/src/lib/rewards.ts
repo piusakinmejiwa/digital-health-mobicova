@@ -176,7 +176,12 @@ async function challengeProgress(memberId: string, action: string, win: string):
 async function checkChallenges(memberId: string, orgId: string | null): Promise<void> {
   let challenges: { id: string; action: string; target: number; window_kind: string; bonus_points: number }[];
   try {
-    const r = await query(`SELECT id, action, target, window_kind, bonus_points FROM reward_challenges WHERE is_active = true`);
+    // Global (org_id IS NULL) + this member's own-org challenges.
+    const r = await query(
+      `SELECT id, action, target, window_kind, bonus_points FROM reward_challenges
+        WHERE is_active = true AND (org_id IS NULL OR org_id = $1)`,
+      [orgId]
+    );
     challenges = r.rows;
   } catch { return; } // table not present yet — skip
   for (const ch of challenges) {
@@ -188,8 +193,8 @@ async function checkChallenges(memberId: string, orgId: string | null): Promise<
   }
 }
 
-// Member-facing list of active challenges with live progress.
-export async function getMemberChallenges(memberId: string): Promise<{
+// Member-facing list of active challenges with live progress (global + own-org).
+export async function getMemberChallenges(memberId: string, orgId: string | null): Promise<{
   id: string; title: string; description: string; target: number; window: string;
   bonusPoints: number; current: number; completed: boolean;
 }[]> {
@@ -197,7 +202,9 @@ export async function getMemberChallenges(memberId: string): Promise<{
   try {
     rows = (await query(
       `SELECT id, title, description, action, target, window_kind, bonus_points
-         FROM reward_challenges WHERE is_active = true ORDER BY created_at`,
+         FROM reward_challenges WHERE is_active = true AND (org_id IS NULL OR org_id = $1)
+        ORDER BY created_at`,
+      [orgId]
     )).rows;
   } catch { return []; }
   const out = [];
@@ -340,12 +347,15 @@ export interface CatalogueItem {
   cost_points: number; value_label: string; stock: number | null; is_active: boolean;
 }
 
-export async function getCatalogue(activeOnly = true): Promise<CatalogueItem[]> {
+// Member-visible catalogue = global (org_id IS NULL) + own-org items.
+export async function getCatalogue(orgId: string | null, activeOnly = true): Promise<CatalogueItem[]> {
   try {
     const r = await query(
       `SELECT id, title, description, kind, cost_points, value_label, stock, is_active
-         FROM reward_catalogue ${activeOnly ? 'WHERE is_active = true' : ''}
+         FROM reward_catalogue
+        WHERE (org_id IS NULL OR org_id = $1) ${activeOnly ? 'AND is_active = true' : ''}
         ORDER BY cost_points`,
+      [orgId]
     );
     return r.rows;
   } catch { return []; } // table not present yet
@@ -372,11 +382,14 @@ export async function redeem(memberId: string, orgId: string | null, catalogueId
   try {
     await client.query('BEGIN');
     const itemRes = await client.query(
-      'SELECT id, title, cost_points, stock, is_active FROM reward_catalogue WHERE id = $1 FOR UPDATE',
+      'SELECT id, title, cost_points, stock, is_active, org_id FROM reward_catalogue WHERE id = $1 FOR UPDATE',
       [catalogueId]
     );
     const item = itemRes.rows[0];
-    if (!item || !item.is_active) { await client.query('ROLLBACK'); return { ok: false, error: 'That reward is not available.' }; }
+    // Must be active and visible to this member (a global reward or their own org's).
+    if (!item || !item.is_active || (item.org_id && item.org_id !== orgId)) {
+      await client.query('ROLLBACK'); return { ok: false, error: 'That reward is not available.' };
+    }
     if (item.stock !== null && item.stock <= 0) { await client.query('ROLLBACK'); return { ok: false, error: 'That reward is out of stock.' }; }
 
     const balRes = await client.query(

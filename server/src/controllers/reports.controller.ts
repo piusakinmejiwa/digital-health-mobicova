@@ -7,6 +7,7 @@ import {
   CADENCES, isCadence, periodFor, computeReportSnapshot,
   renderReportHtml, renderReportText, type Cadence,
 } from '../lib/reports';
+import { generateReportInsight } from '../lib/reportInsights';
 import { notify } from '../lib/notify';
 
 const CADENCE_SUBJECT: Record<Cadence, string> = {
@@ -36,6 +37,8 @@ async function buildReport(
 ): Promise<{ sent: number; failed: number; snapshot: unknown; html: string; periodKey: string; periodLabel: string }> {
   const period = periodFor(cadence, now);
   const snapshot = await computeReportSnapshot(orgId, period, now);
+  // AI executive takeaway — best-effort; the report still renders if it's null.
+  snapshot.aiInsights = (await generateReportInsight(snapshot)) ?? undefined;
   const branding = await getOrgBranding(orgId);
   const html = renderReportHtml(snapshot, branding);
   const text = renderReportText(snapshot);

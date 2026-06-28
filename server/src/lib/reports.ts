@@ -101,6 +101,9 @@ export interface ReportSnapshot {
   channels: { channel: string; count: number }[];
   // Monthly executive extras.
   executive?: { lossRatioPct: number; telemedicineConsults: number };
+  // AI-written executive takeaway (added by the controller before rendering;
+  // absent when AI is off or generation failed).
+  aiInsights?: { headline: string; bullets: string[] };
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -251,6 +254,12 @@ const CADENCE_TITLE: Record<Cadence, string> = {
   monthly: 'Monthly executive report',
 };
 
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+  ));
+}
+
 function statCard(label: string, value: string, sub?: string): string {
   return `<td style="padding:6px" width="33%" valign="top">
     <div style="border:1px solid #e3eded;border-radius:10px;padding:12px 14px">
@@ -313,6 +322,15 @@ export function renderReportHtml(snap: ReportSnapshot, branding: OrgBranding): s
         <td style="border-bottom:1px solid #eef3f3;text-align:right">${num.format(pl.enrolments)}</td></tr>`).join('')}
     </table>` : '';
 
+  const ai = snap.aiInsights;
+  const aiBlock = (ai && (ai.headline || ai.bullets.length)) ? `
+    <div style="background:#f3f7fe;border:1px solid #d8e3f7;border-radius:10px;padding:14px 16px;margin:0 0 18px;font:13px/1.6 Arial,sans-serif;color:#1f2d2b">
+      <div style="font:700 12px Arial,sans-serif;color:#2f5fb0;letter-spacing:.04em;margin-bottom:6px">✨ AI INSIGHTS</div>
+      ${ai.headline ? `<div style="font-weight:700;margin-bottom:6px">${escapeHtml(ai.headline)}</div>` : ''}
+      ${ai.bullets.length ? `<ul style="margin:0;padding-left:18px">${ai.bullets.map((b) => `<li style="margin:2px 0">${escapeHtml(b)}</li>`).join('')}</ul>` : ''}
+      <div style="font:11px Arial,sans-serif;color:#8a9a98;margin-top:8px">AI-generated from this period's figures. Review before acting on it.</div>
+    </div>` : '';
+
   const execBlock = (isMonthly && snap.executive) ? `
     <h3 style="font:700 15px Arial,sans-serif;color:#11302e;margin:22px 0 8px">Commercial &amp; value</h3>
     <table width="100%" cellpadding="0" cellspacing="0">${statRow([
@@ -336,6 +354,7 @@ export function renderReportHtml(snap: ReportSnapshot, branding: OrgBranding): s
       <p style="font:14px/1.6 Arial,sans-serif;color:#1f2d2b;margin:0 0 16px">
         Here is your ${snap.cadence} summary for <strong>${snap.orgName}</strong>, covering <strong>${snap.periodLabel}</strong>.
       </p>
+      ${aiBlock}
       <table width="100%" cellpadding="0" cellspacing="0">${statRow(cards)}</table>
       ${utilBlock}
       ${plansBlock}
@@ -355,6 +374,14 @@ export function renderReportText(snap: ReportSnapshot): string {
   const lines = [
     `${CADENCE_TITLE[snap.cadence]} — ${snap.orgName}`,
     snap.periodLabel,
+  ];
+  if (snap.aiInsights && (snap.aiInsights.headline || snap.aiInsights.bullets.length)) {
+    lines.push('', 'AI INSIGHTS');
+    if (snap.aiInsights.headline) lines.push(snap.aiInsights.headline);
+    for (const b of snap.aiInsights.bullets) lines.push(`  - ${b}`);
+    lines.push('(AI-generated from this period’s figures. Review before acting on it.)');
+  }
+  lines.push(
     '',
     `New members:        ${w.newMembers}`,
     `Consultations:      ${w.consultations} (${w.completedConsultations} completed)`,
@@ -362,7 +389,7 @@ export function renderReportText(snap: ReportSnapshot): string {
     `New enrolments:     ${w.newEnrolments} (${w.paidEnrolments} paid)`,
     `Prescriptions:      ${w.prescriptions}`,
     `Claims submitted:   ${w.claims}`,
-  ];
+  );
   if (snap.cadence !== 'daily') {
     lines.push('', `Active members:     ${snap.totals.activeMembers}`,
       `Consults/active:    ${snap.utilization.consultsPerActiveMember}`);

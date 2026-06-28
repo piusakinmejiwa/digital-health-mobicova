@@ -109,6 +109,7 @@ export default function OrgReportsModal({ org, onClose }: { org: Organisation; o
               <p className="muted small ob-intro">
                 Automatically email branded reports to this client on a schedule — the SaaS touch that keeps them engaged without logging in.
                 Tick a cadence, add recipient emails, and Save. You can preview or send one immediately.
+                Each report opens with an <strong>✨ AI insights</strong> box — a short, factual takeaway written from that period’s figures.
               </p>
               {!emailConfigured && (
                 <div className="notice notice-error" style={{ marginBottom: 10 }}>

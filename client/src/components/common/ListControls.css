@@ -1,0 +1,22 @@
+.list-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--gray-200, #e2ebf0);
+}
+.list-search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 340px;
+  border: 1px solid var(--gray-200, #e2ebf0);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--gray-800, #1e2f30);
+  background: #fff;
+}
+.list-search:focus { outline: none; border-color: var(--primary, #0a7b7b); }
+.list-result { margin-left: auto; white-space: nowrap; }

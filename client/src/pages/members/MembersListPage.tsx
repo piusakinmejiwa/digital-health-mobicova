@@ -5,6 +5,7 @@ import { listMembers } from '../../api/resources';
 import { age, formatDate } from '../../lib/format';
 import { useAuth } from '../../context/AuthContext';
 import MemberImportModal from './MemberImportModal';
+import ListControls from '../../components/common/ListControls';
 import './Members.css';
 
 const channelBadge: Record<string, string> = {
@@ -16,7 +17,16 @@ export default function MembersListPage() {
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
   const [importing, setImporting] = useState(false);
+  const [search, setSearch] = useState('');
+  const [channel, setChannel] = useState('');
   const { data: members, isLoading } = useQuery({ queryKey: ['members'], queryFn: listMembers });
+
+  const q = search.trim().toLowerCase();
+  const filtered = (members ?? []).filter((m) => {
+    if (channel && m.channel !== channel) return false;
+    if (!q) return true;
+    return [m.full_name, m.email, m.phone, m.membership_id].some((v) => (v || '').toLowerCase().includes(q));
+  });
 
   return (
     <div className="page">
@@ -42,6 +52,19 @@ export default function MembersListPage() {
             {canWrite && <Link to="/members/new" className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }}>Add your first member</Link>}
           </div>
         ) : (
+          <>
+          <ListControls
+            search={search} onSearch={setSearch}
+            placeholder="Search name, phone, email or member ID…"
+            filters={[{
+              label: 'Channel', value: channel, onChange: setChannel,
+              options: [{ value: '', label: 'All channels' }, ...['app', 'whatsapp', 'ussd', 'web'].map((c) => ({ value: c, label: c }))],
+            }]}
+            result={`${filtered.length} of ${members.length}`}
+          />
+          {filtered.length === 0 ? (
+            <p className="empty-state">No members match your search.</p>
+          ) : (
           <table className="table">
             <thead>
               <tr>
@@ -50,7 +73,7 @@ export default function MembersListPage() {
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => (
+              {filtered.map((m) => (
                 <tr key={m.id} className="row-link" onClick={() => navigate(`/members/${m.id}`)}>
                   <td><strong>{m.full_name}</strong><div className="muted small">{m.email || m.phone}</div></td>
                   <td>{age(m.date_of_birth)}</td>
@@ -67,6 +90,8 @@ export default function MembersListPage() {
               ))}
             </tbody>
           </table>
+          )}
+          </>
         )}
       </div>
 

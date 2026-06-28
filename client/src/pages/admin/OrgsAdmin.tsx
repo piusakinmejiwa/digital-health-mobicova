@@ -68,9 +68,15 @@ export default function OrgsAdmin() {
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | { org: Organisation; admin?: AdminUser }>(null);
   const [typeFilter, setTypeFilter] = useState('');
+  const [search, setSearch] = useState('');
 
   const allOrgs = orgs ?? [];
-  const filtered = typeFilter ? allOrgs.filter((o) => o.type === typeFilter) : allOrgs;
+  const orgQuery = search.trim().toLowerCase();
+  const filtered = allOrgs.filter((o) => {
+    if (typeFilter && o.type !== typeFilter) return false;
+    if (!orgQuery) return true;
+    return [o.name, o.slug].some((v) => (v || '').toLowerCase().includes(orgQuery));
+  });
   // Count organisations per type, for the filter dropdown + summary.
   const countsByType = allOrgs.reduce<Record<string, number>>((acc, o) => {
     acc[o.type] = (acc[o.type] || 0) + 1;
@@ -146,7 +152,15 @@ export default function OrgsAdmin() {
   return (
     <div className="card">
       <div className="admin-toolbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <input
+            className="list-search"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name or slug…"
+            aria-label="Search organisations"
+          />
           <span className="muted small">
             {filtered.length} of {allOrgs.length} organisation{allOrgs.length === 1 ? '' : 's'}
           </span>

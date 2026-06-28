@@ -9,6 +9,7 @@ import {
 } from '../../api/admin';
 import RewardsManager from '../../components/rewards/RewardsManager';
 import { platformRewardsApi } from '../../api/rewards';
+import ListControls from '../../components/common/ListControls';
 import {
   adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, uploadBlogImage, type AdminBlogPost,
 } from '../../api/blog';
@@ -846,6 +847,17 @@ function PartnersAdmin() {
   const [doctorsPartner, setDoctorsPartner] = useState<null | Partner>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const q = search.trim().toLowerCase();
+  const filtered = (partners ?? []).filter((p) => {
+    if (categoryFilter && p.category !== categoryFilter) return false;
+    if (statusFilter && p.status !== statusFilter) return false;
+    if (!q) return true;
+    return [p.name, p.category, p.coverage, p.licence].some((v) => (v || '').toLowerCase().includes(q));
+  });
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['admin-partners'] });
@@ -894,15 +906,25 @@ function PartnersAdmin() {
   return (
     <div className="card">
       <div className="admin-toolbar">
-        <span className="muted small">{partners?.length ?? 0} partners</span>
+        <span className="muted small">{filtered.length} of {partners?.length ?? 0} partners</span>
         <button className="btn btn-primary btn-sm" onClick={openNew}>+ New partner</button>
       </div>
+      <ListControls
+        search={search} onSearch={setSearch}
+        placeholder="Search name, coverage or licence…"
+        filters={[
+          { label: 'Category', value: categoryFilter, onChange: setCategoryFilter,
+            options: [{ value: '', label: 'All categories' }, ...PARTNER_CATEGORIES.map((c) => ({ value: c, label: c }))] },
+          { label: 'Status', value: statusFilter, onChange: setStatusFilter,
+            options: [{ value: '', label: 'All statuses' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] },
+        ]}
+      />
       <table className="table">
         <thead>
           <tr><th>Name</th><th>Category</th><th>Coverage</th><th>Licence</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
-          {partners?.map((p) => (
+          {filtered.map((p) => (
             <tr key={p.id} className={p.status === 'active' ? '' : 'row-inactive'}>
               <td><strong>{p.name}</strong></td>
               <td className="muted small">{p.category}</td>
@@ -921,6 +943,7 @@ function PartnersAdmin() {
           ))}
         </tbody>
       </table>
+      {partners && partners.length > 0 && filtered.length === 0 && <p className="empty-state">No partners match your search.</p>}
       {(!partners || partners.length === 0) && <p className="empty-state">No partners yet. Add one to get started.</p>}
 
       {doctorsPartner && (

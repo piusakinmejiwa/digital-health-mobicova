@@ -7,6 +7,7 @@ import {
   adminResetProviderPassword, adminDeleteProvider, adminListPartners,
 } from '../../api/admin';
 import { uploadBlogImage } from '../../api/blog';
+import ListControls from '../../components/common/ListControls';
 
 const ROLES = ['doctor', 'pharmacist'] as const;
 const ROLE_LABEL: Record<string, string> = { doctor: 'Doctor', pharmacist: 'Pharmacist' };
@@ -43,6 +44,18 @@ export default function ProvidersAdmin() {
   const [resetPw, setResetPw] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const q = search.trim().toLowerCase();
+  const filtered = (providers ?? []).filter((p) => {
+    if (roleFilter && p.role !== roleFilter) return false;
+    if (statusFilter === 'active' && !p.is_active) return false;
+    if (statusFilter === 'inactive' && p.is_active) return false;
+    if (!q) return true;
+    return [p.full_name, p.email, p.specialty, p.partner_name, p.mdcn_number].some((v) => (v || '').toLowerCase().includes(q));
+  });
 
   const clinicalPartners = (partners as Partner[] | undefined)?.filter(
     (p) => p.category === 'telemedicine' || p.category === 'pharmacy') ?? [];
@@ -125,15 +138,25 @@ export default function ProvidersAdmin() {
   return (
     <div className="card">
       <div className="admin-toolbar">
-        <span className="muted small">{providers?.length ?? 0} providers</span>
+        <span className="muted small">{filtered.length} of {providers?.length ?? 0} providers</span>
         <button className="btn btn-primary btn-sm" onClick={openNew} disabled={clinicalPartners.length === 0}>+ Add a provider</button>
       </div>
+      <ListControls
+        search={search} onSearch={setSearch}
+        placeholder="Search name, email, specialty, MDCN or partner…"
+        filters={[
+          { label: 'Role', value: roleFilter, onChange: setRoleFilter,
+            options: [{ value: '', label: 'All roles' }, ...ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }))] },
+          { label: 'Status', value: statusFilter, onChange: setStatusFilter,
+            options: [{ value: '', label: 'All statuses' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] },
+        ]}
+      />
       <table className="table">
         <thead>
           <tr><th>Name</th><th>Email</th><th>Role</th><th>Specialty</th><th>Partner</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
-          {providers?.map((p) => (
+          {filtered.map((p) => (
             <tr key={p.id} className={p.is_active ? '' : 'row-inactive'}>
               <td><strong>{p.full_name}</strong></td>
               <td className="muted small">{p.email}</td>
@@ -151,6 +174,7 @@ export default function ProvidersAdmin() {
           ))}
         </tbody>
       </table>
+      {providers && providers.length > 0 && filtered.length === 0 && <p className="empty-state">No providers match your search.</p>}
       {(!providers || providers.length === 0) && <p className="empty-state">No providers yet. Add a doctor or pharmacist to get started.</p>}
       {clinicalPartners.length === 0 && (
         <p className="empty-state">Add a telemedicine or pharmacy partner first (Partners tab) — providers belong to one.</p>

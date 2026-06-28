@@ -7,6 +7,7 @@ import {
   adminResetUserPassword, adminDeleteUser, adminListOrgs,
 } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
+import ListControls from '../../components/common/ListControls';
 
 // Per-tenant roles (independent of platform-admin). Order = most → least privilege.
 const ROLES = ['admin', 'manager', 'analyst'] as const;
@@ -34,8 +35,17 @@ export default function UsersAdmin() {
   const [editing, setEditing] = useState<null | AdminUser>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['admin-users'] });
+
+  const q = search.trim().toLowerCase();
+  const filtered = (users ?? []).filter((u) => {
+    if (roleFilter === 'platform' ? !u.is_platform_admin : roleFilter && u.role !== roleFilter) return false;
+    if (!q) return true;
+    return [u.full_name, u.email, u.org_name].some((v) => (v || '').toLowerCase().includes(q));
+  });
 
   const openNew = () => {
     setError('');
@@ -106,15 +116,27 @@ export default function UsersAdmin() {
   return (
     <div className="card">
       <div className="admin-toolbar">
-        <span className="muted small">{users?.length ?? 0} users</span>
+        <span className="muted small">{filtered.length} of {users?.length ?? 0} users</span>
         <button className="btn btn-primary btn-sm" onClick={openNew} disabled={!orgs || orgs.length === 0}>+ New user</button>
       </div>
+      <ListControls
+        search={search} onSearch={setSearch}
+        placeholder="Search name, email or organisation…"
+        filters={[{
+          label: 'Role', value: roleFilter, onChange: setRoleFilter,
+          options: [
+            { value: '', label: 'All roles' },
+            ...ROLES.map((r) => ({ value: r, label: r })),
+            { value: 'platform', label: 'Platform admins' },
+          ],
+        }]}
+      />
       <table className="table">
         <thead>
           <tr><th>Name</th><th>Email</th><th>Organisation</th><th>Role</th><th>Platform admin</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
-          {users?.map((u) => (
+          {filtered.map((u) => (
             <tr key={u.id} className={u.is_active ? '' : 'row-inactive'}>
               <td><strong>{u.full_name}</strong>{u.id === user?.id && <span className="badge badge-blue" style={{ marginLeft: 6 }}>you</span>}</td>
               <td className="muted small">{u.email}</td>
@@ -146,6 +168,7 @@ export default function UsersAdmin() {
           ))}
         </tbody>
       </table>
+      {users && users.length > 0 && filtered.length === 0 && <p className="empty-state">No users match your search.</p>}
       {(!users || users.length === 0) && <p className="empty-state">No users yet.</p>}
 
       {/* ---- Create modal ---- */}

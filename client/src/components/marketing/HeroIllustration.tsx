@@ -89,6 +89,18 @@ const ICONS: Record<string, ReactElement> = {
       <circle cx="240" cy="200" r="3" fill="#F0A93C" stroke="#F0A93C" />
     </g>
   ),
+  pulse: ( // status — heartbeat line
+    <g fill="none" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M140 180h44l22-54 34 108 26-82 16 28h58" />
+      <circle cx="340" cy="180" r="7" fill="#F0A93C" stroke="#F0A93C" />
+    </g>
+  ),
+  sparkle: ( // what's new — sparkles
+    <g fill="none" stroke="#fff" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M228 108c10 44 24 58 68 68-44 10-58 24-68 68-10-44-24-58-68-68 44-10 58-24 68-68z" />
+      <path d="M322 150c4 16 9 21 25 25-16 4-21 9-25 25-4-16-9-21-25-25 16-4 21-9 25-25z" stroke="#F0A93C" />
+    </g>
+  ),
 };
 
 export default function HeroIllustration({ kind = 'care' }: { kind?: string }) {

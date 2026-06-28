@@ -1,5 +1,6 @@
 import SiteHeader from '../../components/marketing/SiteHeader';
 import SiteFooter from '../../components/marketing/SiteFooter';
+import HeroIllustration from '../../components/marketing/HeroIllustration';
 import { INTEGRATIONS, AVAILABLE_COUNT, type Integration } from '../../lib/integrations';
 import './Integrations.css';
 
@@ -13,6 +14,7 @@ export default function IntegrationsPage() {
       <div className="mk">
         <div className="ig">
           <header className="ig-hero">
+            <div className="page-hero-art"><HeroIllustration kind="network" /></div>
             <span className="ig-eyebrow">Integrations</span>
             <h1>Connect MobiCova to the tools you already use</h1>
             <p>

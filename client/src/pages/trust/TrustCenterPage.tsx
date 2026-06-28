@@ -1,5 +1,6 @@
 import SiteHeader from '../../components/marketing/SiteHeader';
 import SiteFooter from '../../components/marketing/SiteFooter';
+import HeroIllustration from '../../components/marketing/HeroIllustration';
 import {
   SUBPROCESSORS, SECURITY_MEASURES, COMPLIANCE, COMPLIANCE_BADGE, SECURITY_CONTACT,
 } from '../../lib/trust';
@@ -14,6 +15,7 @@ export default function TrustCenterPage() {
       <div className="mk">
         <div className="trust">
           <header className="trust-hero">
+            <div className="page-hero-art"><HeroIllustration kind="lock" /></div>
             <span className="trust-eyebrow">Trust &amp; Security</span>
             <h1>Security and data protection at MobiCova</h1>
             <p>

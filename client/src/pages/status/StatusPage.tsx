@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import SiteHeader from '../../components/marketing/SiteHeader';
 import SiteFooter from '../../components/marketing/SiteFooter';
 import { getPlatformStatus } from '../../api/status';
+import HeroIllustration from '../../components/marketing/HeroIllustration';
 import './Status.css';
 
 const SERVICE_LABELS: { key: string; label: string }[] = [
@@ -30,6 +31,7 @@ export default function StatusPage() {
       <SiteHeader />
       <div className="mk">
         <div className="status">
+          <div className="page-hero-art"><HeroIllustration kind="pulse" /></div>
           <header className={`status-hero ${overall}`}>
             <span className="status-dot" />
             <h1>

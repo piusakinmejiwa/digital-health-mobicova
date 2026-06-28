@@ -15,7 +15,7 @@ import { voiceConfigured, originateCall, maskingNumber } from '../lib/voice';
 import { geocode } from '../lib/geo';
 import { sendSms, smsConfigured } from '../lib/messaging';
 import { sendEmail } from '../lib/email';
-import { award, getMemberRewards } from '../lib/rewards';
+import { award, getMemberRewards, getMemberChallenges, getLeaderboard, setLeaderboardOptIn } from '../lib/rewards';
 import { notify } from '../lib/notify';
 
 // ── Identity resolution ─────────────────────────────────────────────────
@@ -226,6 +226,22 @@ export async function getMemberMe(req: Request, res: Response): Promise<void> {
 export async function getMemberRewardsHandler(req: Request, res: Response): Promise<void> {
   const data = await getMemberRewards(req.member!.memberId);
   res.json(data);
+}
+
+// GET /member/challenges — active challenges with this member's live progress.
+export async function getMemberChallengesHandler(req: Request, res: Response): Promise<void> {
+  res.json({ challenges: await getMemberChallenges(req.member!.memberId) });
+}
+
+// GET /member/leaderboard — anonymised, opt-in ranking within the member's org.
+export async function getMemberLeaderboardHandler(req: Request, res: Response): Promise<void> {
+  res.json(await getLeaderboard(req.member!.orgId, req.member!.memberId));
+}
+
+// POST /member/leaderboard/opt-in { optIn } — join/leave the leaderboard.
+export async function setMemberLeaderboardOptIn(req: Request, res: Response): Promise<void> {
+  await setLeaderboardOptIn(req.member!.memberId, req.member!.orgId, Boolean(req.body?.optIn));
+  res.json(await getLeaderboard(req.member!.orgId, req.member!.memberId));
 }
 
 // POST /member/prescriptions/:id/fulfilment — the member chooses pickup or

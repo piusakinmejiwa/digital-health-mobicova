@@ -6,6 +6,7 @@ import {
   adminListPartners, adminCreatePartner, adminUpdatePartner, adminDeletePartner,
   adminListPlans, adminCreatePlan, adminUpdatePlan, adminDeletePlan,
   adminAiStatus, adminBuddySafety,
+  adminListChallenges, adminCreateChallenge, adminUpdateChallenge, adminDeleteChallenge,
 } from '../../api/admin';
 import {
   adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, uploadBlogImage, type AdminBlogPost,
@@ -30,7 +31,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'newsletter' | 'healthtips' | 'audit' | 'safety' | 'system';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'newsletter' | 'healthtips' | 'challenges' | 'audit' | 'safety' | 'system';
 
 // Tabs grouped into categories so the bar stays short: pick a category, then a
 // sub-tab within it.
@@ -48,6 +49,7 @@ const TAB_GROUPS: { label: string; tabs: { key: AdminTab; label: string }[] }[] 
     { key: 'blog', label: 'Blog' },
     { key: 'images', label: 'Page Images' },
     { key: 'healthtips', label: 'Health Tips' },
+    { key: 'challenges', label: 'Rewards' },
   ] },
   { label: 'Contacts', tabs: [
     { key: 'messages', label: 'Messages' },
@@ -108,6 +110,7 @@ export default function AdminPage() {
       {tab === 'messages' && <MessagesAdmin />}
       {tab === 'newsletter' && <NewsletterAdmin />}
       {tab === 'healthtips' && <HealthTipsAdmin />}
+      {tab === 'challenges' && <ChallengesAdmin />}
       {tab === 'audit' && <AuditAdmin />}
       {tab === 'safety' && <SafetyAdmin />}
       {tab === 'system' && <SystemAdmin />}
@@ -957,6 +960,118 @@ function PartnersAdmin() {
               <button className="btn btn-primary" onClick={save} disabled={busy || !editing.name}>
                 {busy ? 'Saving…' : 'Save partner'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Rewards challenges (Phase 2) ---
+const CH_BLANK = { title: '', description: '', action: 'any', target: 1, window: 'weekly', bonusPoints: 25, isActive: true };
+
+function ChallengesAdmin() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['admin-challenges'], queryFn: adminListChallenges });
+  const [form, setForm] = useState<typeof CH_BLANK | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const refresh = () => qc.invalidateQueries({ queryKey: ['admin-challenges'] });
+
+  const actions = data?.actions ?? ['any'];
+  const windows = data?.windows ?? ['weekly', 'monthly', 'once'];
+
+  const openNew = () => { setEditId(null); setForm({ ...CH_BLANK }); };
+  const openEdit = (c: import('../../api/admin').RewardChallenge) => {
+    setEditId(c.id);
+    setForm({ title: c.title, description: c.description, action: c.action, target: c.target, window: c.window, bonusPoints: c.bonus_points, isActive: c.is_active });
+  };
+  const save = async () => {
+    if (!form) return;
+    setBusy(true);
+    try {
+      if (editId) await adminUpdateChallenge(editId, form);
+      else await adminCreateChallenge(form);
+      setForm(null); refresh();
+    } finally { setBusy(false); }
+  };
+  const remove = async (c: import('../../api/admin').RewardChallenge) => {
+    if (!confirm(`Delete challenge "${c.title}"?`)) return;
+    await adminDeleteChallenge(c.id); refresh();
+  };
+  const toggle = async (c: import('../../api/admin').RewardChallenge) => { await adminUpdateChallenge(c.id, { isActive: !c.is_active }); refresh(); };
+
+  const challenges = data?.challenges ?? [];
+
+  return (
+    <div className="card">
+      <div className="admin-toolbar">
+        <span className="muted small">{challenges.length} challenge{challenges.length === 1 ? '' : 's'} · members earn the bonus when they hit the target in the window</span>
+        <button className="btn btn-primary btn-sm" onClick={openNew}>+ New challenge</button>
+      </div>
+      <table className="table">
+        <thead><tr><th>Title</th><th>Goal</th><th>Window</th><th>Bonus</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {challenges.map((c) => (
+            <tr key={c.id} className={c.is_active ? '' : 'row-inactive'}>
+              <td><strong>{c.title}</strong><div className="muted small">{c.description}</div></td>
+              <td className="muted small">{c.target}× {c.action}</td>
+              <td className="muted small">{c.window}</td>
+              <td className="muted small">+{c.bonus_points}</td>
+              <td><span className={`badge ${c.is_active ? 'badge-green' : 'badge-gray'}`}>{c.is_active ? 'active' : 'off'}</span></td>
+              <td className="admin-actions">
+                <button className="btn btn-secondary btn-sm" onClick={() => openEdit(c)}>Edit</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => toggle(c)}>{c.is_active ? 'Disable' : 'Enable'}</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => remove(c)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {challenges.length === 0 && <p className="empty-state">No challenges yet. Create one to start nudging members.</p>}
+
+      {form && (
+        <div className="drawer-overlay" onClick={() => setForm(null)}>
+          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+            <h3>{editId ? 'Edit challenge' : 'New challenge'}</h3>
+            <div className="form-grid">
+              <div className="form-group form-span-2">
+                <label>Title</label>
+                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Check in 5 days this week" />
+              </div>
+              <div className="form-group form-span-2">
+                <label>Description</label>
+                <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Shown to members" />
+              </div>
+              <div className="form-group">
+                <label>Counts which action</label>
+                <select value={form.action} onChange={(e) => setForm({ ...form, action: e.target.value })}>
+                  {actions.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Window</label>
+                <select value={form.window} onChange={(e) => setForm({ ...form, window: e.target.value })}>
+                  {windows.map((w) => <option key={w} value={w}>{w}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Target count</label>
+                <input type="number" min={1} value={form.target} onChange={(e) => setForm({ ...form, target: Number(e.target.value) })} />
+              </div>
+              <div className="form-group">
+                <label>Bonus points</label>
+                <input type="number" min={0} value={form.bonusPoints} onChange={(e) => setForm({ ...form, bonusPoints: Number(e.target.value) })} />
+              </div>
+              <label className="checkbox-row form-span-2">
+                <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
+                <span>Active</span>
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setForm(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={save} disabled={busy || !form.title.trim()}>{busy ? 'Saving…' : 'Save challenge'}</button>
             </div>
           </div>
         </div>

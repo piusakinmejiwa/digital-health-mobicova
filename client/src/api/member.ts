@@ -149,3 +149,22 @@ export async function getMemberRewards(): Promise<MemberRewards> {
   const res = await memberApi.get('/member/rewards');
   return res.data;
 }
+
+// --- Phase 2: challenges + leaderboard ---
+export interface MemberChallenge {
+  id: string; title: string; description: string; target: number;
+  window: string; bonusPoints: number; current: number; completed: boolean;
+}
+export async function getMemberChallenges(): Promise<{ challenges: MemberChallenge[] }> {
+  return (await memberApi.get('/member/challenges')).data;
+}
+export interface Leaderboard {
+  optedIn: boolean; rank: number | null; total: number;
+  top: { rank: number; points: number; isYou: boolean }[];
+}
+export async function getMemberLeaderboard(): Promise<Leaderboard> {
+  return (await memberApi.get('/member/leaderboard')).data;
+}
+export async function setMemberLeaderboardOptIn(optIn: boolean): Promise<Leaderboard> {
+  return (await memberApi.post('/member/leaderboard/opt-in', { optIn })).data;
+}

@@ -53,3 +53,17 @@
 .rw-badge.locked { grid-column: span 1; }
 
 .rw-foot { margin: 1rem 0 0; text-align: center; }
+
+/* Challenges */
+.rw-challenge { padding: 10px 0; border-bottom: 1px solid #eef3f3; }
+.rw-challenge:last-child { border-bottom: none; }
+.rw-challenge-head { display: flex; justify-content: space-between; align-items: baseline; }
+.rw-done { color: #0a7b3b; font-size: .8rem; font-weight: 600; }
+.rw-prog { height: 7px; background: #eef3f3; border-radius: 5px; overflow: hidden; margin: 6px 0 4px; }
+.rw-prog-fill { height: 100%; background: #0a7b7b; border-radius: 5px; transition: width .3s; }
+
+/* Leaderboard */
+.rw-lb { margin: 8px 0; }
+.rw-lb-row { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: 8px; font-size: .9rem; }
+.rw-lb-row:nth-child(odd) { background: #f6faf9; }
+.rw-lb-row.you { background: #e6f4f2; font-weight: 700; color: #0a5f5f; }

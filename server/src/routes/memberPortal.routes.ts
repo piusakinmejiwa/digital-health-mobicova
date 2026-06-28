@@ -6,7 +6,8 @@ import {
   listMemberClaims, getMemberClaim, createMemberClaim, memberTriage, createMemberConsultation,
   startMemberConsultation, completeMemberConsultation, startMemberPhoneCall,
   updateMemberLocation, getMemberDoctors, setPrescriptionFulfilment,
-  getMemberRewardsHandler,
+  getMemberRewardsHandler, getMemberChallengesHandler,
+  getMemberLeaderboardHandler, setMemberLeaderboardOptIn,
 } from '../controllers/memberPortal.controller';
 import { authenticateMember } from '../middleware/memberAuth';
 import { validate } from '../middleware/validate';
@@ -33,6 +34,9 @@ router.get('/me', authenticateMember, asyncHandler(getMemberMe));
 router.get('/overview', authenticateMember, asyncHandler(getMemberOverview));
 router.get('/doctors', authenticateMember, asyncHandler(getMemberDoctors));
 router.get('/rewards', authenticateMember, asyncHandler(getMemberRewardsHandler));
+router.get('/challenges', authenticateMember, asyncHandler(getMemberChallengesHandler));
+router.get('/leaderboard', authenticateMember, asyncHandler(getMemberLeaderboardHandler));
+router.post('/leaderboard/opt-in', authenticateMember, asyncHandler(setMemberLeaderboardOptIn));
 router.get('/claims', authenticateMember, asyncHandler(listMemberClaims));
 router.get('/claims/:id', authenticateMember, asyncHandler(getMemberClaim));
 router.post('/claims', authenticateMember, [body('amount').notEmpty()], validate, asyncHandler(createMemberClaim));

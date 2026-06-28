@@ -111,9 +111,138 @@ export async function award(
     );
 
     await grantBadges(memberId);
+    await checkChallenges(memberId, orgId);
   } catch (err) {
     console.error('[rewards] award failed (non-fatal):', (err as Error).message);
   }
+}
+
+// ── Phase 2: challenges ──────────────────────────────────────────────────────
+// Period key + SQL lower-bound for a challenge window. periodKey makes the
+// completion bonus idempotent per member per period.
+function isoWeekKey(d: Date): string {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = (t.getUTCDay() + 6) % 7;
+  t.setUTCDate(t.getUTCDate() - day + 3);
+  const firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  const fDay = (firstThu.getUTCDay() + 6) % 7;
+  firstThu.setUTCDate(firstThu.getUTCDate() - fDay + 3);
+  const week = 1 + Math.round((t.getTime() - firstThu.getTime()) / (7 * 86_400_000));
+  return `${t.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+function windowInfo(win: string): { since: string; key: string } {
+  const now = new Date();
+  if (win === 'monthly') {
+    return { since: "date_trunc('month', now())", key: `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}` };
+  }
+  if (win === 'weekly') {
+    return { since: "date_trunc('week', now())", key: isoWeekKey(now) };
+  }
+  return { since: '', key: 'all' }; // once
+}
+
+// Credit arbitrary bonus points with a custom dedupe key (no streak bump).
+async function creditBonus(memberId: string, orgId: string | null, points: number, key: string): Promise<boolean> {
+  const ins = await query(
+    `INSERT INTO reward_events (member_id, org_id, action, points, dedupe_key)
+     VALUES ($1, $2, 'challenge', $3, $4) ON CONFLICT (dedupe_key) DO NOTHING RETURNING id`,
+    [memberId, orgId, points, key]
+  );
+  if (ins.rows.length === 0) return false;
+  await query(
+    `INSERT INTO member_points (member_id, org_id, total_points, last_activity_date, updated_at)
+     VALUES ($1, $2, $3, CURRENT_DATE, now())
+     ON CONFLICT (member_id) DO UPDATE SET
+       total_points = member_points.total_points + EXCLUDED.total_points,
+       org_id = COALESCE(member_points.org_id, EXCLUDED.org_id), updated_at = now()`,
+    [memberId, orgId, points]
+  );
+  return true;
+}
+
+async function challengeProgress(memberId: string, action: string, win: string): Promise<number> {
+  const { since } = windowInfo(win);
+  const clause = since ? `AND created_at >= ${since}` : '';
+  const actionClause = action === 'any' ? '' : 'AND action = $2';
+  const params = action === 'any' ? [memberId] : [memberId, action];
+  const r = await query(
+    `SELECT COUNT(*)::int AS n FROM reward_events WHERE member_id = $1 ${actionClause} ${clause}`,
+    params
+  );
+  return r.rows[0].n;
+}
+
+// After an action is awarded, credit any challenge the member has just completed.
+async function checkChallenges(memberId: string, orgId: string | null): Promise<void> {
+  let challenges: { id: string; action: string; target: number; window: string; bonus_points: number }[];
+  try {
+    const r = await query(`SELECT id, action, target, window, bonus_points FROM reward_challenges WHERE is_active = true`);
+    challenges = r.rows;
+  } catch { return; } // table not present yet — skip
+  for (const ch of challenges) {
+    const progress = await challengeProgress(memberId, ch.action, ch.window);
+    if (progress >= ch.target && ch.bonus_points > 0) {
+      const { key } = windowInfo(ch.window);
+      await creditBonus(memberId, orgId, ch.bonus_points, `challenge:${ch.id}:${memberId}:${key}`);
+    }
+  }
+}
+
+// Member-facing list of active challenges with live progress.
+export async function getMemberChallenges(memberId: string): Promise<{
+  id: string; title: string; description: string; target: number; window: string;
+  bonusPoints: number; current: number; completed: boolean;
+}[]> {
+  let rows: any[];
+  try {
+    rows = (await query(
+      `SELECT id, title, description, action, target, window, bonus_points
+         FROM reward_challenges WHERE is_active = true ORDER BY created_at`,
+    )).rows;
+  } catch { return []; }
+  const out = [];
+  for (const ch of rows) {
+    const current = await challengeProgress(memberId, ch.action, ch.window);
+    out.push({
+      id: ch.id, title: ch.title, description: ch.description, target: ch.target, window: ch.window,
+      bonusPoints: ch.bonus_points, current: Math.min(current, ch.target), completed: current >= ch.target,
+    });
+  }
+  return out;
+}
+
+// ── Phase 2: anonymised, opt-in leaderboard (within the member's org) ────────
+export async function setLeaderboardOptIn(memberId: string, orgId: string | null, optIn: boolean): Promise<void> {
+  await query(
+    `INSERT INTO member_points (member_id, org_id, leaderboard_opt_in, updated_at)
+     VALUES ($1, $2, $3, now())
+     ON CONFLICT (member_id) DO UPDATE SET leaderboard_opt_in = $3, updated_at = now()`,
+    [memberId, orgId, optIn]
+  );
+}
+
+export async function getLeaderboard(orgId: string, memberId: string): Promise<{
+  optedIn: boolean; rank: number | null; total: number;
+  top: { rank: number; points: number; isYou: boolean }[];
+}> {
+  const meRes = await query('SELECT leaderboard_opt_in FROM member_points WHERE member_id = $1', [memberId]);
+  const optedIn = Boolean(meRes.rows[0]?.leaderboard_opt_in);
+  if (!optedIn) return { optedIn: false, rank: null, total: 0, top: [] };
+
+  const rows = (await query(
+    `SELECT mp.member_id, mp.total_points
+       FROM member_points mp JOIN members m ON m.id = mp.member_id
+      WHERE m.org_id = $1 AND mp.leaderboard_opt_in = true
+      ORDER BY mp.total_points DESC, mp.member_id`,
+    [orgId]
+  )).rows;
+  const idx = rows.findIndex((r) => r.member_id === memberId);
+  return {
+    optedIn: true,
+    rank: idx >= 0 ? idx + 1 : null,
+    total: rows.length,
+    top: rows.slice(0, 10).map((r, i) => ({ rank: i + 1, points: r.total_points, isYou: r.member_id === memberId })),
+  };
 }
 
 // Grant any newly-qualified badges. Idempotent via the PK on (member, badge).

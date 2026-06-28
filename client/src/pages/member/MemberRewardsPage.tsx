@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { getMemberRewards } from '../../api/member';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  getMemberRewards, getMemberChallenges, getMemberLeaderboard, setMemberLeaderboardOptIn,
+} from '../../api/member';
 import './Member.css';
 import './MemberRewards.css';
 
@@ -9,9 +11,11 @@ import './MemberRewards.css';
 // check-ins, on-time prescription collection, completing their profile.
 export default function MemberRewardsPage() {
   const { data, isLoading } = useQuery({ queryKey: ['member-rewards'], queryFn: getMemberRewards });
+  const { data: ch } = useQuery({ queryKey: ['member-challenges'], queryFn: getMemberChallenges });
 
   const earned = data?.badges.filter((b) => b.earned) ?? [];
   const locked = data?.badges.filter((b) => !b.earned) ?? [];
+  const challenges = ch?.challenges ?? [];
 
   return (
     <div className="member-page">
@@ -41,6 +45,24 @@ export default function MemberRewardsPage() {
               <span className="rw-stat-label">best streak</span>
             </div>
           </section>
+
+          {/* Challenges */}
+          {challenges.length > 0 && (
+            <section className="member-card">
+              <h2 className="rw-h2">Challenges</h2>
+              {challenges.map((c) => (
+                <div key={c.id} className="rw-challenge">
+                  <div className="rw-challenge-head">
+                    <span><strong>{c.title}</strong>{c.completed && <span className="rw-done"> ✓ done</span>}</span>
+                    <span className="muted small">+{c.bonusPoints} pts</span>
+                  </div>
+                  {c.description && <div className="muted small">{c.description}</div>}
+                  <div className="rw-prog"><div className="rw-prog-fill" style={{ width: `${Math.round((c.current / c.target) * 100)}%` }} /></div>
+                  <div className="muted small">{c.current} / {c.target} · {c.window}</div>
+                </div>
+              ))}
+            </section>
+          )}
 
           {/* Earned badges */}
           <section className="member-card">
@@ -75,11 +97,49 @@ export default function MemberRewardsPage() {
             </section>
           )}
 
+          <LeaderboardSection />
+
           <p className="rw-foot muted small">
-            Points and badges are a wellbeing nudge, not medical advice. Your health data is never shared on a leaderboard.
+            Points and badges are a wellbeing nudge, not medical advice. The leaderboard is opt-in and shows points only — never your name or any health information.
           </p>
         </>
       )}
     </div>
+  );
+}
+
+// Opt-in, anonymised leaderboard within the member's organisation.
+function LeaderboardSection() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['member-leaderboard'], queryFn: getMemberLeaderboard });
+  const toggle = async (optIn: boolean) => {
+    await setMemberLeaderboardOptIn(optIn);
+    qc.invalidateQueries({ queryKey: ['member-leaderboard'] });
+  };
+  if (!data) return null;
+
+  return (
+    <section className="member-card">
+      <h2 className="rw-h2">Leaderboard</h2>
+      {!data.optedIn ? (
+        <>
+          <p className="muted small">See how you rank against others in your organisation — anonymously. Points only, no names.</p>
+          <button className="btn btn-primary btn-sm" onClick={() => toggle(true)}>Join the leaderboard</button>
+        </>
+      ) : (
+        <>
+          <p className="muted small">You’re ranked <strong>#{data.rank ?? '—'}</strong> of {data.total}. Others are anonymous.</p>
+          <div className="rw-lb">
+            {data.top.map((r) => (
+              <div key={r.rank} className={`rw-lb-row ${r.isYou ? 'you' : ''}`}>
+                <span>#{r.rank} {r.isYou ? 'You' : `Member ${r.rank}`}</span>
+                <span>{r.points} pts</span>
+              </div>
+            ))}
+          </div>
+          <button className="btn btn-link btn-sm" onClick={() => toggle(false)}>Leave leaderboard</button>
+        </>
+      )}
+    </section>
   );
 }

@@ -53,6 +53,9 @@ import {
 import {
   adminGetOrgReports, adminSaveOrgReports, adminPreviewOrgReport, adminSendOrgReportNow,
 } from '../controllers/reports.controller';
+import {
+  adminListChallenges, adminCreateChallenge, adminUpdateChallenge, adminDeleteChallenge,
+} from '../controllers/adminRewards.controller';
 
 const router = Router();
 
@@ -94,6 +97,12 @@ router.get('/organisations/:id/reports', asyncHandler(adminGetOrgReports));
 router.put('/organisations/:id/reports', asyncHandler(adminSaveOrgReports));
 router.post('/organisations/:id/reports/preview', asyncHandler(adminPreviewOrgReport));
 router.post('/organisations/:id/reports/send-now', asyncHandler(adminSendOrgReportNow));
+
+// Rewards — challenges (Phase 2)
+router.get('/rewards/challenges', asyncHandler(adminListChallenges));
+router.post('/rewards/challenges', asyncHandler(adminCreateChallenge));
+router.patch('/rewards/challenges/:id', asyncHandler(adminUpdateChallenge));
+router.delete('/rewards/challenges/:id', asyncHandler(adminDeleteChallenge));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

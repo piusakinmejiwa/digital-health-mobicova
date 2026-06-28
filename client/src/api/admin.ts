@@ -206,6 +206,24 @@ export async function adminSendOrgReportNow(id: string, cadence: ReportCadence, 
   return (await api.post(`/admin/organisations/${id}/reports/send-now`, { cadence, recipients })).data;
 }
 
+// Rewards — challenges (Phase 2).
+export interface RewardChallenge {
+  id: string; title: string; description: string; action: string; target: number;
+  window: string; bonus_points: number; is_active: boolean; created_at: string;
+}
+export async function adminListChallenges(): Promise<{ challenges: RewardChallenge[]; actions: string[]; windows: string[] }> {
+  return (await api.get('/admin/rewards/challenges')).data;
+}
+export async function adminCreateChallenge(data: Record<string, unknown>): Promise<RewardChallenge> {
+  return (await api.post('/admin/rewards/challenges', data)).data;
+}
+export async function adminUpdateChallenge(id: string, data: Record<string, unknown>): Promise<RewardChallenge> {
+  return (await api.patch(`/admin/rewards/challenges/${id}`, data)).data;
+}
+export async function adminDeleteChallenge(id: string): Promise<void> {
+  await api.delete(`/admin/rewards/challenges/${id}`);
+}
+
 // "View as org" — get a tenant-scoped token to act inside that org.
 export async function adminImpersonateOrg(id: string): Promise<{ token: string; org: { id: string; name: string } }> {
   return (await api.post(`/admin/organisations/${id}/impersonate`, {})).data;

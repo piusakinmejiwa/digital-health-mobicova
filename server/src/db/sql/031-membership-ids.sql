@@ -35,5 +35,9 @@ BEGIN
   END LOOP;
 END $$;
 
--- 3) Verify
+-- 3) Record the migration so the go-live completeness check sees it as applied.
+INSERT INTO _migrations (name) VALUES ('031_member_membership_id.sql')
+ON CONFLICT (name) DO NOTHING;
+
+-- 4) Verify
 SELECT membership_id, full_name FROM members ORDER BY membership_id LIMIT 10;

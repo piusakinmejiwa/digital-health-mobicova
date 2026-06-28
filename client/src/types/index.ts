@@ -63,11 +63,30 @@ export interface Member {
   enrolment_count?: number;
 }
 
+// PHI-safe shape returned by the members LIST endpoint. Deliberately carries no
+// date of birth, phone, email or raw conditions — conditions are reduced to a
+// flag, and clinical detail lives only in the (role-gated) profile.
+export interface MemberListItem {
+  id: string;
+  full_name: string;
+  membership_id?: string;
+  channel: string;
+  status: string;
+  created_at: string;
+  plan_name: string | null;
+  last_consult_at: string | null;
+  consultation_count: number;
+  has_conditions: boolean;
+}
+
 export interface MemberDetail extends Member {
   consultations: Consultation[];
   enrolments: Enrolment[];
   triageSessions: TriageSummary[];
   prescriptions: Prescription[];
+  // True when the viewer's org type (e.g. an employer) is not permitted to see
+  // clinical PHI; the server has already withheld it from this payload.
+  phiRestricted?: boolean;
 }
 
 export interface Partner {

@@ -1,6 +1,6 @@
 import api from './client';
 import type {
-  Member, MemberDetail, Partner, Consultation, InsurancePlan, Enrolment,
+  Member, MemberDetail, MemberListItem, Partner, Consultation, InsurancePlan, Enrolment,
   TriageSession, TriageSummary, DashboardData, AnalyticsReport,
   Claim, ClaimDetail, ClaimDocument, ClaimsResponse,
   AnalyticsQueryResult, AnalyticsMeasureOption,
@@ -29,7 +29,7 @@ export async function getAnalytics(months = 6): Promise<AnalyticsReport> {
 }
 
 // Members
-export async function listMembers(): Promise<Member[]> {
+export async function listMembers(): Promise<MemberListItem[]> {
   return (await api.get('/members')).data;
 }
 export async function getMember(id: string): Promise<MemberDetail> {

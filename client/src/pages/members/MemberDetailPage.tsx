@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getMember, listPlans, bookConsultation, enrolMember, checkoutPremium, updateMember,
@@ -28,9 +28,18 @@ export default function MemberDetailPage() {
   const [locBusy, setLocBusy] = useState(false);
   const [locSaved, setLocSaved] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     if (member) setLoc({ address: (member as { address?: string }).address || '', city: (member as { city?: string }).city || '' });
   }, [member]);
+  // Deep-link: the members list "Edit" action navigates with ?edit=1.
+  useEffect(() => {
+    if (canWrite && searchParams.get('edit') === '1') {
+      setEditing(true);
+      searchParams.delete('edit');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [canWrite, searchParams, setSearchParams]);
 
   if (isLoading || !member) {
     return <div className="page"><p className="muted">Loading member…</p></div>;
@@ -87,7 +96,7 @@ export default function MemberDetailPage() {
           <Link to="/members" className="back-link">← Members</Link>
           <h1>{member.full_name}</h1>
           <p>
-            {age(member.date_of_birth)} · {member.gender || 'n/a'} ·{' '}
+            {!member.phiRestricted && <>{age(member.date_of_birth)} · {member.gender || 'n/a'} · </>}
             <span className={`badge ${badgeClass(member.status)}`}>{member.status}</span>{' '}
             <span className="badge badge-teal">{member.channel}</span>
           </p>
@@ -244,15 +253,25 @@ export default function MemberDetailPage() {
         <aside className="detail-aside">
           <div className="card card-pad">
             <h3 className="card-title">Health profile</h3>
-            <dl className="profile-list">
-              <ProfileItem label="Date of birth" value={formatDate(member.date_of_birth)} />
-              <ProfileItem label="Blood group" value={member.blood_group || '—'} />
-              <ProfileItem label="Phone" value={member.phone || '—'} />
-              <ProfileItem label="Email" value={member.email || '—'} />
-            </dl>
-            <ProfileTags label="Allergies" items={member.allergies} empty="None recorded" />
-            <ProfileTags label="Chronic conditions" items={member.chronic_conditions} empty="None recorded" />
-            <ProfileTags label="Current medications" items={member.current_medications} empty="None recorded" />
+            {member.phiRestricted ? (
+              <p className="muted small" style={{ margin: 0 }}>
+                Clinical details — date of birth, contact details and conditions — are
+                not visible to your organisation type. Members manage these in their
+                own app; your medical partner can access them when delivering care.
+              </p>
+            ) : (
+              <>
+                <dl className="profile-list">
+                  <ProfileItem label="Date of birth" value={formatDate(member.date_of_birth)} />
+                  <ProfileItem label="Blood group" value={member.blood_group || '—'} />
+                  <ProfileItem label="Phone" value={member.phone || '—'} />
+                  <ProfileItem label="Email" value={member.email || '—'} />
+                </dl>
+                <ProfileTags label="Allergies" items={member.allergies} empty="None recorded" />
+                <ProfileTags label="Chronic conditions" items={member.chronic_conditions} empty="None recorded" />
+                <ProfileTags label="Current medications" items={member.current_medications} empty="None recorded" />
+              </>
+            )}
           </div>
 
           {canWrite && (

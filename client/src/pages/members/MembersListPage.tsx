@@ -1,32 +1,28 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import { listMembers } from '../../api/resources';
-import { age, formatDate } from '../../lib/format';
+import { Link } from 'react-router-dom';
+import { listMembers, deleteMember } from '../../api/resources';
+import type { MemberListItem } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import MemberImportModal from './MemberImportModal';
-import ListControls from '../../components/common/ListControls';
+import MembersTable from './MembersTable';
 import './Members.css';
 
-const channelBadge: Record<string, string> = {
-  app: 'badge-teal', whatsapp: 'badge-green', ussd: 'badge-amber', web: 'badge-blue',
-};
-
 export default function MembersListPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
   const [importing, setImporting] = useState(false);
-  const [search, setSearch] = useState('');
-  const [channel, setChannel] = useState('');
   const { data: members, isLoading } = useQuery({ queryKey: ['members'], queryFn: listMembers });
 
-  const q = search.trim().toLowerCase();
-  const filtered = (members ?? []).filter((m) => {
-    if (channel && m.channel !== channel) return false;
-    if (!q) return true;
-    return [m.full_name, m.email, m.phone, m.membership_id].some((v) => (v || '').toLowerCase().includes(q));
-  });
+  const remove = async (m: MemberListItem) => {
+    if (!confirm(`Remove ${m.full_name} from this organisation? This cannot be undone.`)) return;
+    try {
+      await deleteMember(m.id);
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+    } catch {
+      alert('Could not remove the member. Please try again.');
+    }
+  };
 
   return (
     <div className="page">
@@ -43,7 +39,7 @@ export default function MembersListPage() {
         )}
       </div>
 
-      <div className="card">
+      <div className="card card-pad">
         {isLoading ? (
           <p className="empty-state">Loading members…</p>
         ) : !members || members.length === 0 ? (
@@ -52,46 +48,7 @@ export default function MembersListPage() {
             {canWrite && <Link to="/members/new" className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }}>Add your first member</Link>}
           </div>
         ) : (
-          <>
-          <ListControls
-            search={search} onSearch={setSearch}
-            placeholder="Search name, phone, email or member ID…"
-            filters={[{
-              label: 'Channel', value: channel, onChange: setChannel,
-              options: [{ value: '', label: 'All channels' }, ...['app', 'whatsapp', 'ussd', 'web'].map((c) => ({ value: c, label: c }))],
-            }]}
-            result={`${filtered.length} of ${members.length}`}
-          />
-          {filtered.length === 0 ? (
-            <p className="empty-state">No members match your search.</p>
-          ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th><th>Age</th><th>Channel</th><th>Conditions</th>
-                <th>Consults</th><th>Plans</th><th>Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((m) => (
-                <tr key={m.id} className="row-link" onClick={() => navigate(`/members/${m.id}`)}>
-                  <td><strong>{m.full_name}</strong><div className="muted small">{m.email || m.phone}</div></td>
-                  <td>{age(m.date_of_birth)}</td>
-                  <td><span className={`badge ${channelBadge[m.channel] || 'badge-gray'}`}>{m.channel}</span></td>
-                  <td>
-                    {m.chronic_conditions.length === 0
-                      ? <span className="muted small">—</span>
-                      : <span className="tag">{m.chronic_conditions[0]}{m.chronic_conditions.length > 1 ? ` +${m.chronic_conditions.length - 1}` : ''}</span>}
-                  </td>
-                  <td>{m.consultation_count ?? 0}</td>
-                  <td>{m.enrolment_count ?? 0}</td>
-                  <td className="muted small">{formatDate(m.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          )}
-          </>
+          <MembersTable members={members} canWrite={canWrite} onRemove={remove} />
         )}
       </div>
 

@@ -6,6 +6,8 @@ import { recordAudit } from '../lib/audit';
 import { geocode } from '../lib/geo';
 import { checkMemberSeats, seatLimitError } from '../lib/plans';
 import { notify } from '../lib/notify';
+import { isPlatformAdmin } from '../middleware/platformAdmin';
+import { ownerCanViewPhi, redactMemberPhi, redactConsultationsPhi } from '../lib/memberProjection';
 
 // Platform admins "viewing as" a tenant (actingAs set) bypass plan limits so
 // support work is never blocked by the tenant's own cap.
@@ -15,10 +17,18 @@ function bypassLimits(req: Request): boolean {
 
 export async function listMembers(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
+  // PHI-safe list projection. A members LIST never carries date of birth, phone,
+  // email or the raw condition list — that data only belongs in the (role-gated)
+  // member profile. Conditions surface here only as a yes/no flag; clinical
+  // utilisation surfaces as a count + last-consult date the org legitimately needs.
   const result = await query(
-    `SELECT m.*,
+    `SELECT m.id, m.full_name, m.membership_id, m.channel, m.status, m.created_at,
+            (SELECT pl.name FROM enrolments e
+               JOIN insurance_plans pl ON e.plan_id = pl.id
+              WHERE e.member_id = m.id ORDER BY e.enrolled_at DESC LIMIT 1) AS plan_name,
+            (SELECT MAX(c.created_at) FROM consultations c WHERE c.member_id = m.id) AS last_consult_at,
             (SELECT COUNT(*)::int FROM consultations c WHERE c.member_id = m.id) AS consultation_count,
-            (SELECT COUNT(*)::int FROM enrolments e WHERE e.member_id = m.id) AS enrolment_count
+            (COALESCE(array_length(m.chronic_conditions, 1), 0) > 0) AS has_conditions
      FROM members m WHERE m.org_id = $1 ORDER BY m.created_at DESC`,
     [orgId]
   );
@@ -34,6 +44,14 @@ export async function getMember(req: Request, res: Response): Promise<void> {
     res.status(404).json({ error: 'Member not found' });
     return;
   }
+
+  // Role-based PHI visibility. Employers (company/telco/fintech/cooperative)
+  // administer membership but must not see clinical PHI — conditions, DOB,
+  // phone, or the clinical history that reveals them. HMOs/underwriters (who
+  // carry the clinical risk) and platform admins may, inside this profile only.
+  const orgRow = await query(`SELECT type FROM organisations WHERE id = $1`, [orgId]);
+  const platformAdmin = await isPlatformAdmin(req.user!.userId);
+  const canViewPhi = ownerCanViewPhi(orgRow.rows[0]?.type, platformAdmin);
 
   const consultations = await query(
     `SELECT c.*, p.name AS partner_name
@@ -57,12 +75,16 @@ export async function getMember(req: Request, res: Response): Promise<void> {
     [id]
   );
 
+  const member = canViewPhi ? result.rows[0] : redactMemberPhi(result.rows[0]);
   res.json({
-    ...result.rows[0],
-    consultations: consultations.rows,
+    ...member,
+    phiRestricted: !canViewPhi,
+    // Utilisation context (dates, mode, status) is always allowed; the clinical
+    // free-text on each consult, and the triage/prescription history, are not.
+    consultations: canViewPhi ? consultations.rows : redactConsultationsPhi(consultations.rows),
     enrolments: enrolments.rows,
-    triageSessions: triage.rows,
-    prescriptions: prescriptions.rows,
+    triageSessions: canViewPhi ? triage.rows : [],
+    prescriptions: canViewPhi ? prescriptions.rows : [],
   });
 }
 

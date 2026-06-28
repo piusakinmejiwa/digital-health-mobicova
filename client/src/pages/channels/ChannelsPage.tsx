@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { simulateUssd, simulateWhatsapp } from '../../api/channels';
-import { listMembers } from '../../api/resources';
 import './Channels.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
@@ -14,10 +12,6 @@ function randomNgPhone(): string {
 export default function ChannelsPage() {
   const { user } = useAuth();
   const joinCode = user?.joinCode || '——————';
-  // Pull a real member's number so the simulators can demo member self-service
-  // (a known number) vs enrolment (a new number) in one click.
-  const { data: members } = useQuery({ queryKey: ['members'], queryFn: listMembers });
-  const demo = (members || []).find((m) => m.phone);
 
   return (
     <div className="page">
@@ -37,8 +31,8 @@ export default function ChannelsPage() {
       </div>
 
       <div className="channels-grid">
-        <UssdSimulator joinCode={joinCode} memberPhone={demo?.phone} memberName={demo?.full_name} />
-        <WhatsappSimulator joinCode={joinCode} memberPhone={demo?.phone} memberName={demo?.full_name} />
+        <UssdSimulator joinCode={joinCode} />
+        <WhatsappSimulator joinCode={joinCode} />
       </div>
 
       <div className="card card-pad connect-card">

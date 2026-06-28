@@ -122,3 +122,36 @@ variable "acm_certificate_arn" {
   type        = string
   default     = ""
 }
+
+# ---- Cross-region disaster recovery (DR) ----
+# All DR resources are gated on enable_dr, so the primary stack is unchanged when
+# it's off. See DR-RUNBOOK.md for the strategy, RTO/RPO and the failover procedure.
+variable "enable_dr" {
+  description = "Provision the cross-region DR data tier (replica DB, S3 replication, secret replica). Off by default."
+  type        = bool
+  default     = false
+}
+
+variable "dr_region" {
+  description = "DR region. af-south-1 is AWS's ONLY African region, so DR is necessarily off-continent — this replicates PHI cross-border (NDPR sign-off needed; see DR-RUNBOOK.md). eu-west-1 (Ireland) is the usual pairing; me-south-1 (Bahrain) is the nearest alternative."
+  type        = string
+  default     = "eu-west-1"
+}
+
+variable "dr_vpc_cidr" {
+  description = "DR VPC CIDR — distinct from the primary (10.0.0.0/16) so the two can be peered later."
+  type        = string
+  default     = "10.1.0.0/16"
+}
+
+variable "dr_replica_instance_class" {
+  description = "Instance class for the cross-region read replica. Can be smaller than primary; size up on promotion."
+  type        = string
+  default     = "db.t4g.medium"
+}
+
+variable "dr_replica_multi_az" {
+  description = "Run the DR replica itself Multi-AZ. Off by default (it's a DR copy); enable for immediate HA after promotion."
+  type        = bool
+  default     = false
+}

@@ -36,3 +36,18 @@ output "ecs_service_name" {
 output "ecs_task_family" {
   value = aws_ecs_task_definition.api.family
 }
+
+# ---- DR (null unless enable_dr = true) ----
+output "dr_rds_replica_endpoint" {
+  description = "Cross-region read replica endpoint. Promote this on a region-loss event (see DR-RUNBOOK.md)."
+  value       = var.enable_dr ? aws_db_instance.replica[0].address : null
+}
+
+output "dr_storage_bucket" {
+  description = "DR-region replica of the object-storage bucket."
+  value       = var.enable_dr ? aws_s3_bucket.storage_dr[0].bucket : null
+}
+
+output "dr_region" {
+  value = var.enable_dr ? var.dr_region : null
+}

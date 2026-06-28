@@ -55,3 +55,12 @@ terraform apply        # creates ALB + ECS service
 `ecr_repository_url`, `alb_dns_name`, `rds_endpoint`, `redis_primary_endpoint`,
 `s3_storage_bucket`, `app_secret_arn`, `ecs_cluster_name`, `ecs_service_name`,
 `ecs_task_family` — feed these into Cloudflare DNS and the production workflow secrets.
+
+## Cross-region DR (optional)
+The primary stack already does **AZ-level** failover automatically (RDS/Redis
+Multi-AZ + ECS across AZs). For **region-level** DR, set `enable_dr = true` to add
+a cross-region read replica, S3 replication, and a secret replica (`dr.tf`,
+`dr-storage.tf`, the `replica` block in `registry.tf`). Off by default — read
+**`DR-RUNBOOK.md`** first (it covers the Pilot Light strategy, RTO/RPO, the NDPR
+cross-border data note, and the failover/failback procedure). DR compute (ALB +
+ECS + Redis mirror) and DNS failover are the documented Phase B.

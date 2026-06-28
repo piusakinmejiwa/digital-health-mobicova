@@ -37,6 +37,15 @@ resource "aws_secretsmanager_secret" "app" {
   name        = "${local.name}/app"
   description = "${local.name} application environment (live values set out-of-band)"
   kms_key_id  = aws_kms_key.secrets.arn
+
+  # Replicate the secret to the DR region so DR compute can read config on
+  # failover. Encrypted there with the AWS-managed key. Only when DR is enabled.
+  dynamic "replica" {
+    for_each = var.enable_dr ? [var.dr_region] : []
+    content {
+      region = replica.value
+    }
+  }
 }
 
 resource "aws_secretsmanager_secret_version" "app" {

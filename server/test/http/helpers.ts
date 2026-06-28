@@ -24,6 +24,8 @@ export interface Fixtures {
   platformAdmin?: boolean;
   userEmail?: string;
   failSelect1?: boolean; // make the readiness probe's "SELECT 1" throw
+  claim?: Record<string, unknown> | null;       // existing claim row (status/reference)
+  updatedClaim?: Record<string, unknown> | null; // row returned by UPDATE ... RETURNING *
 }
 
 const wrap = (rows: unknown[]) => ({ rows, rowCount: rows.length });
@@ -33,7 +35,9 @@ const wrap = (rows: unknown[]) => ({ rows, rowCount: rows.length });
 export function buildQueryImpl(fx: Fixtures) {
   return async (sql: string) => {
     const s = String(sql);
-    if (/\bSELECT 1\b/.test(s)) {
+    // The readiness probe is a bare "SELECT 1" — must not catch existence checks
+    // like "SELECT 1 FROM members/claims WHERE id …".
+    if (/\bSELECT 1\b/.test(s) && !/\bFROM\b/i.test(s)) {
       if (fx.failSelect1) throw new Error('database unavailable');
       return wrap([{ ok: 1 }]);
     }
@@ -41,6 +45,8 @@ export function buildQueryImpl(fx: Fixtures) {
     if (/FROM members m WHERE/.test(s)) return wrap(fx.memberList ?? []);
     if (/FROM organisations WHERE id/.test(s)) return wrap([{ type: fx.orgType ?? 'company' }]);
     if (/FROM users WHERE id/.test(s)) return wrap([{ email: fx.userEmail ?? 'staff@x.com', is_platform_admin: fx.platformAdmin ?? false }]);
+    if (/UPDATE claims/.test(s)) return wrap(fx.updatedClaim ? [fx.updatedClaim] : []);
+    if (/FROM claims WHERE id/.test(s)) return wrap(fx.claim ? [fx.claim] : []);
     // Member-profile related reads — empty is fine for these tests.
     if (/FROM consultations|FROM enrolments|FROM triage_sessions|FROM prescriptions|member_care_summaries/.test(s)) {
       return wrap([]);

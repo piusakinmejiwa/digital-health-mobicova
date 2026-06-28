@@ -48,12 +48,32 @@ jobs:
         env:
           HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_PROD_WEB }}
         run: curl -fsS -X POST "$HOOK"
-      - name: Smoke test
+      - name: Smoke test & migration-sync gate
         run: |
-          for i in $(seq 1 10); do
-            code=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.PROD_API_URL }}/health" || true)
-            echo "attempt $i: $code"
-            [ "$code" = "200" ] && exit 0
+          API="${{ vars.PROD_API_URL }}"
+          EXPECTED="${{ github.sha }}"
+          echo "Waiting for $API to come up on commit ${EXPECTED:0:12}…"
+          for i in $(seq 1 30); do
+            body=$(curl -s "$API/health" || true)
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$API/health" || true)
+            ver=$(echo "$body" | jq -r '.version // ""' 2>/dev/null || echo "")
+            echo "attempt $i: http=$code version=${ver:0:12}"
+            if [ "$code" = "200" ]; then
+              # If the app reports its commit, wait until it's the one we deployed
+              # (skips the old version still serving during the zero-downtime swap).
+              if [ -z "$ver" ] || [ "$ver" = "$EXPECTED" ]; then
+                ok=$(echo "$body" | jq -r '.migrations.ok // "unknown"')
+                pending=$(echo "$body" | jq -r '(.migrations.pending // []) | join(", ")')
+                echo "migrations.ok=$ok pending=[$pending]"
+                if [ "$ok" = "false" ]; then
+                  echo "::error::Pending migration(s) not applied to the database: $pending"
+                  echo "Apply the matching paste editions in Supabase (server/src/db/sql/), then re-run."
+                  exit 1
+                fi
+                echo "✓ Live on the deployed commit and database schema in sync."
+                exit 0
+              fi
+            fi
             sleep 10
           done
-          echo "health check did not return 200"; exit 1
+          echo "::error::Service did not come up on the expected commit in time."; exit 1

@@ -23,6 +23,10 @@ export const env = {
   // applied to the database — an opt-in hard guard against serving traffic on a
   // schema the code doesn't match. Default off: boot logs + /health still warn.
   migrationsStrict: process.env.MIGRATIONS_STRICT === 'true',
+  // The deployed git commit. Render injects RENDER_GIT_COMMIT automatically; it's
+  // surfaced on /health so a post-deploy check can confirm it's hitting the NEW
+  // version (not the old one still serving during a zero-downtime swap).
+  gitCommit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || '',
   databaseUrl: process.env.DATABASE_URL || '',
   // Optional PEM-encoded CA certificate for the database. When set, the server
   // verifies the DB's TLS certificate against it (defence against MITM) instead

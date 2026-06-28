@@ -86,6 +86,7 @@ app.get('/health', async (_req, res) => {
   const mig = await getMigrationStatus().catch(() => null);
   res.json({
     status: 'ok',
+    version: env.gitCommit,
     integrations: {
       sms: smsConfigured(),
       smsSandbox: env.atSandbox,

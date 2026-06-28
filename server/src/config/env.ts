@@ -19,6 +19,10 @@ export const env = {
   // 0 = capture errors only (no performance traces — cheapest). Raise toward 1.0
   // to sample a fraction of requests for latency tracing.
   sentryTracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE || '0'),
+  // When true, /readyz returns 503 while any migration in the repo hasn't been
+  // applied to the database — an opt-in hard guard against serving traffic on a
+  // schema the code doesn't match. Default off: boot logs + /health still warn.
+  migrationsStrict: process.env.MIGRATIONS_STRICT === 'true',
   databaseUrl: process.env.DATABASE_URL || '',
   // Optional PEM-encoded CA certificate for the database. When set, the server
   // verifies the DB's TLS certificate against it (defence against MITM) instead

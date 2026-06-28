@@ -11,7 +11,8 @@
     "backfill:membership-ids": "tsx src/db/backfillMembershipIds.ts",
     "seed": "tsx src/db/seed.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "migrate:status": "tsx src/db/migrateStatus.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",

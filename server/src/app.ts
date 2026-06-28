@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { env } from './config/env';
 import { sentryEnabled } from './instrument';
 import { query } from './config/database';
+import { getMigrationStatus } from './lib/migrationStatus';
 import { errorHandler } from './middleware/errorHandler';
 import routes from './routes';
 import publicApiRoutes from './routes/publicApi.routes';
@@ -78,9 +79,11 @@ app.use('/api/v1', routes);
 // baseline throttle as the rest of the API.
 app.use('/api/public/v1', apiLimiter, publicApiRoutes);
 
-app.get('/health', (_req, res) => {
+app.get('/health', async (_req, res) => {
   // Booleans only — confirms which integrations the running service can see,
   // without ever exposing a secret value. Handy for go-live ("is SMS wired?").
+  // Also reports migration drift: applied vs total + any pending file names.
+  const mig = await getMigrationStatus().catch(() => null);
   res.json({
     status: 'ok',
     integrations: {
@@ -96,6 +99,9 @@ app.get('/health', (_req, res) => {
       errorTracking: sentryEnabled,
       otpDevMode: env.otpDevMode,
     },
+    migrations: mig && mig.available
+      ? { applied: mig.applied, total: mig.total, ok: mig.ok, pending: mig.pending, unknown: mig.unknown }
+      : { available: false },
   });
 });
 
@@ -105,15 +111,23 @@ app.get('/healthz', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Readiness — verifies the database is actually reachable. Returns 503 when it
-// isn't, so a monitor distinguishes "process alive but DB down" from healthy.
+// Readiness — the database is reachable, and (in strict mode) the schema matches
+// the code. 503 lets a monitor distinguish "process alive but not ready" from healthy.
 app.get('/readyz', async (_req, res) => {
   try {
     await query('SELECT 1');
-    res.json({ status: 'ok', db: true });
   } catch {
     res.status(503).json({ status: 'unavailable', db: false });
+    return;
   }
+  if (env.migrationsStrict) {
+    const mig = await getMigrationStatus().catch(() => null);
+    if (mig && mig.available && mig.pending.length > 0) {
+      res.status(503).json({ status: 'unavailable', db: true, pendingMigrations: mig.pending });
+      return;
+    }
+  }
+  res.json({ status: 'ok', db: true });
 });
 
 // Sentry's Express error handler must sit after the routes and before our own —

@@ -55,6 +55,8 @@ import {
 } from '../controllers/reports.controller';
 import {
   adminListChallenges, adminCreateChallenge, adminUpdateChallenge, adminDeleteChallenge,
+  adminListCatalogue, adminCreateCatalogueItem, adminUpdateCatalogueItem, adminDeleteCatalogueItem,
+  adminListRedemptions, adminUpdateRedemption,
 } from '../controllers/adminRewards.controller';
 
 const router = Router();
@@ -103,6 +105,13 @@ router.get('/rewards/challenges', asyncHandler(adminListChallenges));
 router.post('/rewards/challenges', asyncHandler(adminCreateChallenge));
 router.patch('/rewards/challenges/:id', asyncHandler(adminUpdateChallenge));
 router.delete('/rewards/challenges/:id', asyncHandler(adminDeleteChallenge));
+// Rewards — redemption catalogue + queue (Phase 3)
+router.get('/rewards/catalogue', asyncHandler(adminListCatalogue));
+router.post('/rewards/catalogue', asyncHandler(adminCreateCatalogueItem));
+router.patch('/rewards/catalogue/:id', asyncHandler(adminUpdateCatalogueItem));
+router.delete('/rewards/catalogue/:id', asyncHandler(adminDeleteCatalogueItem));
+router.get('/rewards/redemptions', asyncHandler(adminListRedemptions));
+router.patch('/rewards/redemptions/:id', asyncHandler(adminUpdateRedemption));
 
 // Dashboard users
 router.get('/users', asyncHandler(adminListUsers));

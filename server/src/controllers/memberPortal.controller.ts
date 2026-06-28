@@ -15,7 +15,10 @@ import { voiceConfigured, originateCall, maskingNumber } from '../lib/voice';
 import { geocode } from '../lib/geo';
 import { sendSms, smsConfigured } from '../lib/messaging';
 import { sendEmail } from '../lib/email';
-import { award, getMemberRewards, getMemberChallenges, getLeaderboard, setLeaderboardOptIn } from '../lib/rewards';
+import {
+  award, getMemberRewards, getMemberChallenges, getLeaderboard, setLeaderboardOptIn,
+  getCatalogue, availablePoints, redeem, getMemberRedemptions,
+} from '../lib/rewards';
 import { notify } from '../lib/notify';
 
 // ── Identity resolution ─────────────────────────────────────────────────
@@ -242,6 +245,29 @@ export async function getMemberLeaderboardHandler(req: Request, res: Response): 
 export async function setMemberLeaderboardOptIn(req: Request, res: Response): Promise<void> {
   await setLeaderboardOptIn(req.member!.memberId, req.member!.orgId, Boolean(req.body?.optIn));
   res.json(await getLeaderboard(req.member!.orgId, req.member!.memberId));
+}
+
+// GET /member/rewards/catalogue — active rewards + the member's spendable balance.
+export async function getMemberCatalogue(req: Request, res: Response): Promise<void> {
+  const [items, balance] = await Promise.all([
+    getCatalogue(true),
+    availablePoints(req.member!.memberId),
+  ]);
+  res.json({ items, balance });
+}
+
+// POST /member/rewards/redeem { catalogueId } — redeem a reward (logs a request).
+export async function redeemReward(req: Request, res: Response): Promise<void> {
+  const catalogueId = String(req.body?.catalogueId || '');
+  if (!catalogueId) { res.status(400).json({ error: 'No reward selected.' }); return; }
+  const result = await redeem(req.member!.memberId, req.member!.orgId, catalogueId);
+  if (!result.ok) { res.status(400).json({ error: result.error }); return; }
+  res.status(201).json({ redemption: result.redemption, balance: await availablePoints(req.member!.memberId) });
+}
+
+// GET /member/rewards/redemptions — the member's redemption history.
+export async function getMemberRedemptionsHandler(req: Request, res: Response): Promise<void> {
+  res.json({ redemptions: await getMemberRedemptions(req.member!.memberId) });
 }
 
 // POST /member/prescriptions/:id/fulfilment — the member chooses pickup or

@@ -8,6 +8,7 @@ import {
   adminAiStatus, adminBuddySafety,
   adminListChallenges, adminCreateChallenge, adminUpdateChallenge, adminDeleteChallenge,
 } from '../../api/admin';
+import { CatalogueAdmin, RedemptionsAdmin } from './RewardsCatalogueAdmin';
 import {
   adminListBlog, adminCreateBlog, adminUpdateBlog, adminDeleteBlog, uploadBlogImage, type AdminBlogPost,
 } from '../../api/blog';
@@ -110,7 +111,7 @@ export default function AdminPage() {
       {tab === 'messages' && <MessagesAdmin />}
       {tab === 'newsletter' && <NewsletterAdmin />}
       {tab === 'healthtips' && <HealthTipsAdmin />}
-      {tab === 'challenges' && <ChallengesAdmin />}
+      {tab === 'challenges' && <RewardsAdmin />}
       {tab === 'audit' && <AuditAdmin />}
       {tab === 'safety' && <SafetyAdmin />}
       {tab === 'system' && <SystemAdmin />}
@@ -964,6 +965,23 @@ function PartnersAdmin() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// --- Rewards admin: Challenges | Catalogue | Redemptions ---
+function RewardsAdmin() {
+  const [sub, setSub] = useState<'challenges' | 'catalogue' | 'redemptions'>('challenges');
+  return (
+    <div>
+      <div className="tabs tabs-sub" style={{ marginTop: 0 }}>
+        <button className={`tab ${sub === 'challenges' ? 'active' : ''}`} onClick={() => setSub('challenges')}>Challenges</button>
+        <button className={`tab ${sub === 'catalogue' ? 'active' : ''}`} onClick={() => setSub('catalogue')}>Catalogue</button>
+        <button className={`tab ${sub === 'redemptions' ? 'active' : ''}`} onClick={() => setSub('redemptions')}>Redemptions</button>
+      </div>
+      {sub === 'challenges' && <ChallengesAdmin />}
+      {sub === 'catalogue' && <CatalogueAdmin />}
+      {sub === 'redemptions' && <RedemptionsAdmin />}
     </div>
   );
 }

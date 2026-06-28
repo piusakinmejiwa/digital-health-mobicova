@@ -8,6 +8,7 @@ import {
   updateMemberLocation, getMemberDoctors, setPrescriptionFulfilment,
   getMemberRewardsHandler, getMemberChallengesHandler,
   getMemberLeaderboardHandler, setMemberLeaderboardOptIn,
+  getMemberCatalogue, redeemReward, getMemberRedemptionsHandler,
 } from '../controllers/memberPortal.controller';
 import { authenticateMember } from '../middleware/memberAuth';
 import { validate } from '../middleware/validate';
@@ -37,6 +38,9 @@ router.get('/rewards', authenticateMember, asyncHandler(getMemberRewardsHandler)
 router.get('/challenges', authenticateMember, asyncHandler(getMemberChallengesHandler));
 router.get('/leaderboard', authenticateMember, asyncHandler(getMemberLeaderboardHandler));
 router.post('/leaderboard/opt-in', authenticateMember, asyncHandler(setMemberLeaderboardOptIn));
+router.get('/rewards/catalogue', authenticateMember, asyncHandler(getMemberCatalogue));
+router.post('/rewards/redeem', authenticateMember, asyncHandler(redeemReward));
+router.get('/rewards/redemptions', authenticateMember, asyncHandler(getMemberRedemptionsHandler));
 router.get('/claims', authenticateMember, asyncHandler(listMemberClaims));
 router.get('/claims/:id', authenticateMember, asyncHandler(getMemberClaim));
 router.post('/claims', authenticateMember, [body('amount').notEmpty()], validate, asyncHandler(createMemberClaim));

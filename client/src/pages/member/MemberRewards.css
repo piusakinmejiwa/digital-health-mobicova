@@ -67,3 +67,10 @@
 .rw-lb-row { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: 8px; font-size: .9rem; }
 .rw-lb-row:nth-child(odd) { background: #f6faf9; }
 .rw-lb-row.you { background: #e6f4f2; font-weight: 700; color: #0a5f5f; }
+
+/* Redemption */
+.rw-reward { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eef3f3; }
+.rw-reward:last-of-type { border-bottom: none; }
+.rw-h3 { font-size: .95rem; margin: 12px 0 6px; color: #11302e; }
+.rw-redemptions { margin-top: 10px; border-top: 1px solid #eef3f3; padding-top: 8px; }
+.rw-redemption-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: .88rem; }

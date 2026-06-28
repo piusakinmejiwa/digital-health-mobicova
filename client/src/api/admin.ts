@@ -224,6 +224,34 @@ export async function adminDeleteChallenge(id: string): Promise<void> {
   await api.delete(`/admin/rewards/challenges/${id}`);
 }
 
+// Rewards — catalogue + redemptions (Phase 3).
+export interface CatalogueItemAdmin {
+  id: string; title: string; description: string; kind: string;
+  cost_points: number; value_label: string; stock: number | null; is_active: boolean; created_at: string;
+}
+export interface RedemptionAdmin {
+  id: string; title: string; cost_points: number; status: string; note: string;
+  created_at: string; member_name: string; member_phone: string;
+}
+export async function adminListCatalogue(): Promise<{ items: CatalogueItemAdmin[]; kinds: string[] }> {
+  return (await api.get('/admin/rewards/catalogue')).data;
+}
+export async function adminCreateCatalogueItem(data: Record<string, unknown>): Promise<CatalogueItemAdmin> {
+  return (await api.post('/admin/rewards/catalogue', data)).data;
+}
+export async function adminUpdateCatalogueItem(id: string, data: Record<string, unknown>): Promise<CatalogueItemAdmin> {
+  return (await api.patch(`/admin/rewards/catalogue/${id}`, data)).data;
+}
+export async function adminDeleteCatalogueItem(id: string): Promise<void> {
+  await api.delete(`/admin/rewards/catalogue/${id}`);
+}
+export async function adminListRedemptions(status = ''): Promise<{ redemptions: RedemptionAdmin[] }> {
+  return (await api.get('/admin/rewards/redemptions', { params: status ? { status } : {} })).data;
+}
+export async function adminUpdateRedemption(id: string, status: string, note = ''): Promise<void> {
+  await api.patch(`/admin/rewards/redemptions/${id}`, { status, note });
+}
+
 // "View as org" — get a tenant-scoped token to act inside that org.
 export async function adminImpersonateOrg(id: string): Promise<{ token: string; org: { id: string; name: string } }> {
   return (await api.post(`/admin/organisations/${id}/impersonate`, {})).data;

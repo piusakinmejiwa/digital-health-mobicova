@@ -1,4 +1,4 @@
-import { query } from '../config/database';
+import { query, pool } from '../config/database';
 
 // MobiCova Rewards — Phase 0 (engine) + Phase 1 (streaks, points, badges).
 //
@@ -319,4 +319,90 @@ export async function getMemberRewards(memberId: string): Promise<{
     longestStreak: pts.longest_streak,
     badges,
   };
+}
+
+// ── Phase 3: redemption catalogue + requests ─────────────────────────────────
+
+// Spendable balance = lifetime points earned − points tied up in redemptions
+// that haven't been rejected (requested/approved/fulfilled all count as spent).
+export async function availablePoints(memberId: string): Promise<number> {
+  const r = await query(
+    `SELECT COALESCE((SELECT total_points FROM member_points WHERE member_id = $1), 0)
+            - COALESCE((SELECT SUM(cost_points) FROM reward_redemptions
+                         WHERE member_id = $1 AND status <> 'rejected'), 0) AS available`,
+    [memberId]
+  );
+  return Math.max(0, Number(r.rows[0].available));
+}
+
+export interface CatalogueItem {
+  id: string; title: string; description: string; kind: string;
+  cost_points: number; value_label: string; stock: number | null; is_active: boolean;
+}
+
+export async function getCatalogue(activeOnly = true): Promise<CatalogueItem[]> {
+  try {
+    const r = await query(
+      `SELECT id, title, description, kind, cost_points, value_label, stock, is_active
+         FROM reward_catalogue ${activeOnly ? 'WHERE is_active = true' : ''}
+        ORDER BY cost_points`,
+    );
+    return r.rows;
+  } catch { return []; } // table not present yet
+}
+
+export interface Redemption {
+  id: string; title: string; cost_points: number; status: string; note: string; created_at: string;
+}
+export async function getMemberRedemptions(memberId: string): Promise<Redemption[]> {
+  try {
+    const r = await query(
+      `SELECT id, title, cost_points, status, note, created_at
+         FROM reward_redemptions WHERE member_id = $1 ORDER BY created_at DESC LIMIT 50`,
+      [memberId]
+    );
+    return r.rows;
+  } catch { return []; }
+}
+
+// Redeem an item: validates balance + stock atomically, logs the request, and
+// decrements stock. Returns { ok } or { error } — never throws to the caller.
+export async function redeem(memberId: string, orgId: string | null, catalogueId: string): Promise<{ ok: true; redemption: Redemption } | { ok: false; error: string }> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const itemRes = await client.query(
+      'SELECT id, title, cost_points, stock, is_active FROM reward_catalogue WHERE id = $1 FOR UPDATE',
+      [catalogueId]
+    );
+    const item = itemRes.rows[0];
+    if (!item || !item.is_active) { await client.query('ROLLBACK'); return { ok: false, error: 'That reward is not available.' }; }
+    if (item.stock !== null && item.stock <= 0) { await client.query('ROLLBACK'); return { ok: false, error: 'That reward is out of stock.' }; }
+
+    const balRes = await client.query(
+      `SELECT COALESCE((SELECT total_points FROM member_points WHERE member_id = $1), 0)
+              - COALESCE((SELECT SUM(cost_points) FROM reward_redemptions WHERE member_id = $1 AND status <> 'rejected'), 0) AS available`,
+      [memberId]
+    );
+    const available = Math.max(0, Number(balRes.rows[0].available));
+    if (available < item.cost_points) { await client.query('ROLLBACK'); return { ok: false, error: `Not enough points — you have ${available}, this costs ${item.cost_points}.` }; }
+
+    const red = await client.query(
+      `INSERT INTO reward_redemptions (member_id, org_id, catalogue_id, title, cost_points)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, title, cost_points, status, note, created_at`,
+      [memberId, orgId, item.id, item.title, item.cost_points]
+    );
+    if (item.stock !== null) {
+      await client.query('UPDATE reward_catalogue SET stock = stock - 1, updated_at = now() WHERE id = $1', [item.id]);
+    }
+    await client.query('COMMIT');
+    return { ok: true, redemption: red.rows[0] };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[rewards] redeem failed:', (err as Error).message);
+    return { ok: false, error: 'Could not process that redemption. Please try again.' };
+  } finally {
+    client.release();
+  }
 }

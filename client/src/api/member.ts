@@ -168,3 +168,21 @@ export async function getMemberLeaderboard(): Promise<Leaderboard> {
 export async function setMemberLeaderboardOptIn(optIn: boolean): Promise<Leaderboard> {
   return (await memberApi.post('/member/leaderboard/opt-in', { optIn })).data;
 }
+
+// --- Phase 3: redemption ---
+export interface CatalogueItem {
+  id: string; title: string; description: string; kind: string;
+  cost_points: number; value_label: string; stock: number | null;
+}
+export interface Redemption {
+  id: string; title: string; cost_points: number; status: string; note: string; created_at: string;
+}
+export async function getMemberCatalogue(): Promise<{ items: CatalogueItem[]; balance: number }> {
+  return (await memberApi.get('/member/rewards/catalogue')).data;
+}
+export async function redeemReward(catalogueId: string): Promise<{ redemption: Redemption; balance: number }> {
+  return (await memberApi.post('/member/rewards/redeem', { catalogueId })).data;
+}
+export async function getMemberRedemptions(): Promise<{ redemptions: Redemption[] }> {
+  return (await memberApi.get('/member/rewards/redemptions')).data;
+}

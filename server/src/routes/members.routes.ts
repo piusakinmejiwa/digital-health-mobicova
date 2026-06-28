@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate';
 import { asyncHandler } from '../middleware/asyncHandler';
 import {
   listMembers, getMember, createMember, importMembers, updateMember, deleteMember,
+  createCareSummary,
 } from '../controllers/members.controller';
 
 const router = Router();
@@ -19,5 +20,6 @@ router.post('/', requireWrite, [body('fullName').trim().notEmpty().withMessage('
 router.post('/import', requireWrite, asyncHandler(importMembers));
 router.put('/:id', requireWrite, asyncHandler(updateMember));
 router.delete('/:id', requireWrite, asyncHandler(deleteMember));
+router.post('/:id/care-summary', requireWrite, asyncHandler(createCareSummary));
 
 export default router;

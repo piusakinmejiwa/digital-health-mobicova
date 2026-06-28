@@ -3,8 +3,11 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getMember, listPlans, bookConsultation, enrolMember, checkoutPremium, updateMember,
+  generateCareSummary,
 } from '../../api/resources';
+import type { CareSummary } from '../../types';
 import { naira, formatDate, formatDateTime, age, triageLabel, badgeClass } from '../../lib/format';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import MemberEditModal from './MemberEditModal';
 import './Members.css';
@@ -28,6 +31,9 @@ export default function MemberDetailPage() {
   const [locBusy, setLocBusy] = useState(false);
   const [locSaved, setLocSaved] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [summary, setSummary] = useState<CareSummary | null>(null);
+  const [summaryBusy, setSummaryBusy] = useState(false);
+  const [summaryErr, setSummaryErr] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     if (member) setLoc({ address: (member as { address?: string }).address || '', city: (member as { city?: string }).city || '' });
@@ -55,6 +61,19 @@ export default function MemberDetailPage() {
   };
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['member', id] });
+
+  const handleGenerateSummary = async () => {
+    setSummaryBusy(true); setSummaryErr('');
+    try {
+      const result = await generateCareSummary(member.id);
+      setSummary(result);
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.error || 'Could not generate the summary.'
+        : 'Could not generate the summary.';
+      setSummaryErr(msg);
+    } finally { setSummaryBusy(false); }
+  };
 
   const handleBook = async () => {
     setBusy('book');
@@ -123,6 +142,46 @@ export default function MemberDetailPage() {
 
       <div className="detail-grid">
         <div className="detail-main">
+          {/* AI care summary — clinical hand-off note (PHI-permitted roles only) */}
+          {!member.phiRestricted && (() => {
+            const current = summary ?? member.careSummary ?? null;
+            return (
+              <div className="card card-pad ai-summary-card">
+                <div className="ai-summary-head">
+                  <span className="ai-spark" aria-hidden="true">✨</span>
+                  <h3 className="card-title">AI care summary</h3>
+                  <span className="ai-tag">AI</span>
+                  {canWrite && (
+                    <button
+                      className="btn btn-secondary btn-sm ai-summary-btn"
+                      onClick={handleGenerateSummary}
+                      disabled={summaryBusy}
+                    >
+                      {summaryBusy ? 'Generating…' : current ? 'Regenerate' : 'Generate summary'}
+                    </button>
+                  )}
+                </div>
+                {summaryErr && <div className="notice notice-error">{summaryErr}</div>}
+                {current ? (
+                  <>
+                    <p className="ai-summary-body">{current.summary}</p>
+                    <p className="muted small ai-summary-foot">
+                      AI-generated reference only — verify against the record before any clinical
+                      decision. Generated {formatDateTime(current.created_at)}.
+                    </p>
+                  </>
+                ) : (
+                  !summaryBusy && (
+                    <p className="muted small">
+                      No summary yet. Generate a concise, factual hand-off note from this member’s
+                      conditions, medications, triage and recent consultations.
+                    </p>
+                  )
+                )}
+              </div>
+            );
+          })()}
+
           {/* Consultations */}
           <div className="card">
             <div className="card-pad card-title-row">

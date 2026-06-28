@@ -8,6 +8,7 @@ import { checkMemberSeats, seatLimitError } from '../lib/plans';
 import { notify } from '../lib/notify';
 import { isPlatformAdmin } from '../middleware/platformAdmin';
 import { ownerCanViewPhi, redactMemberPhi, redactConsultationsPhi } from '../lib/memberProjection';
+import { generateCareSummary, getLatestCareSummary, CareSummaryUnavailable } from '../lib/careSummary';
 
 // Platform admins "viewing as" a tenant (actingAs set) bypass plan limits so
 // support work is never blocked by the tenant's own cap.
@@ -76,9 +77,12 @@ export async function getMember(req: Request, res: Response): Promise<void> {
   );
 
   const member = canViewPhi ? result.rows[0] : redactMemberPhi(result.rows[0]);
+  // AI care summary is PHI (conditions/meds in prose) — only for permitted roles.
+  const careSummary = canViewPhi ? await getLatestCareSummary(orgId, String(id)) : null;
   res.json({
     ...member,
     phiRestricted: !canViewPhi,
+    careSummary,
     // Utilisation context (dates, mode, status) is always allowed; the clinical
     // free-text on each consult, and the triage/prescription history, are not.
     consultations: canViewPhi ? consultations.rows : redactConsultationsPhi(consultations.rows),
@@ -86,6 +90,35 @@ export async function getMember(req: Request, res: Response): Promise<void> {
     triageSessions: canViewPhi ? triage.rows : [],
     prescriptions: canViewPhi ? prescriptions.rows : [],
   });
+}
+
+// POST /members/:id/care-summary — generate a fresh AI care summary. Gated to
+// PHI-permitted roles (HMO/underwriter/platform admin); employers cannot.
+export async function createCareSummary(req: Request, res: Response): Promise<void> {
+  const orgId = req.user!.orgId;
+  const { id } = req.params;
+
+  const exists = await query(`SELECT 1 FROM members WHERE id = $1 AND org_id = $2`, [id, orgId]);
+  if (exists.rows.length === 0) { res.status(404).json({ error: 'Member not found' }); return; }
+
+  const orgRow = await query(`SELECT type FROM organisations WHERE id = $1`, [orgId]);
+  const platformAdmin = await isPlatformAdmin(req.user!.userId);
+  if (!ownerCanViewPhi(orgRow.rows[0]?.type, platformAdmin)) {
+    res.status(403).json({ error: 'Your organisation type cannot generate clinical summaries.' });
+    return;
+  }
+
+  try {
+    const summary = await generateCareSummary(orgId, String(id), req.user!.userId);
+    res.json(summary);
+  } catch (err) {
+    if (err instanceof CareSummaryUnavailable) {
+      res.status(503).json({ error: err.message });
+      return;
+    }
+    console.error('Care summary generation failed:', err);
+    res.status(500).json({ error: 'Could not generate the summary. Please try again.' });
+  }
 }
 
 export async function createMember(req: Request, res: Response): Promise<void> {

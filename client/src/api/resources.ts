@@ -1,6 +1,6 @@
 import api from './client';
 import type {
-  Member, MemberDetail, MemberListItem, Partner, Consultation, InsurancePlan, Enrolment,
+  Member, MemberDetail, MemberListItem, CareSummary, Partner, Consultation, InsurancePlan, Enrolment,
   TriageSession, TriageSummary, DashboardData, AnalyticsReport,
   Claim, ClaimDetail, ClaimDocument, ClaimsResponse,
   AnalyticsQueryResult, AnalyticsMeasureOption,
@@ -37,6 +37,9 @@ export async function getMember(id: string): Promise<MemberDetail> {
 }
 export async function createMember(data: Record<string, unknown>): Promise<Member> {
   return (await api.post('/members', data)).data;
+}
+export async function generateCareSummary(id: string): Promise<CareSummary> {
+  return (await api.post(`/members/${id}/care-summary`)).data;
 }
 export interface MemberImportResult {
   inserted: number;

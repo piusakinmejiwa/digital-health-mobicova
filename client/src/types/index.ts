@@ -79,6 +79,12 @@ export interface MemberListItem {
   has_conditions: boolean;
 }
 
+export interface CareSummary {
+  summary: string;
+  model: string;
+  created_at: string;
+}
+
 export interface MemberDetail extends Member {
   consultations: Consultation[];
   enrolments: Enrolment[];
@@ -87,6 +93,8 @@ export interface MemberDetail extends Member {
   // True when the viewer's org type (e.g. an employer) is not permitted to see
   // clinical PHI; the server has already withheld it from this payload.
   phiRestricted?: boolean;
+  // Latest AI-generated clinical summary (PHI-permitted viewers only), or null.
+  careSummary?: CareSummary | null;
 }
 
 export interface Partner {

@@ -45,6 +45,15 @@ export async function getAiActivity(orgId: string, days = 7): Promise<AiActivity
   const totalSessions = triage.rows[0]?.total_sessions ?? 0;
   const aiShare = totalSessions > 0 ? Math.round((aiSessions / totalSessions) * 100) : 0;
 
+  // AI care summaries — clinical hand-off notes Claude generated for members.
+  const summaries = await query(
+    `SELECT COUNT(*)::int AS generated
+       FROM member_care_summaries
+      WHERE org_id = $1 AND created_at >= NOW() - $2::interval`,
+    [orgId, window],
+  );
+  const summariesGenerated = summaries.rows[0]?.generated ?? 0;
+
   const metrics: AiMetric[] = [
     {
       key: 'triage_sessions',
@@ -59,6 +68,12 @@ export async function getAiActivity(orgId: string, days = 7): Promise<AiActivity
       hint: 'Distinct members whose triage was AI-assisted',
     },
     {
+      key: 'care_summaries',
+      label: 'Care summaries generated',
+      value: summariesGenerated,
+      hint: 'AI clinical hand-off notes generated for members',
+    },
+    {
       key: 'triage_share',
       label: 'Triage handled by AI',
       value: aiShare,
@@ -71,6 +86,6 @@ export async function getAiActivity(orgId: string, days = 7): Promise<AiActivity
     enabled: anthropicEnabled,
     days,
     metrics,
-    hasActivity: aiSessions > 0,
+    hasActivity: aiSessions > 0 || summariesGenerated > 0,
   };
 }

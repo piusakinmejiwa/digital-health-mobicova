@@ -100,3 +100,27 @@
   padding: 0.08rem 0.4rem;
   white-space: nowrap;
 }
+
+/* ---- AI care summary card ---- */
+.ai-summary-card {
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0) 60%),
+    #fff;
+  border: 1px solid #e4ebf5;
+}
+.ai-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.6rem;
+}
+.ai-summary-head .card-title { margin: 0; }
+.ai-summary-head .ai-spark { font-size: 0.95rem; line-height: 1; }
+.ai-summary-btn { margin-left: auto; }
+.ai-summary-body {
+  margin: 0.4rem 0 0.6rem;
+  line-height: 1.6;
+  color: #1c2b2b;
+  white-space: pre-wrap;
+}
+.ai-summary-foot { margin: 0; }

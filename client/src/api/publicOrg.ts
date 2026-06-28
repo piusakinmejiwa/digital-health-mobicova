@@ -5,6 +5,7 @@ export interface OrgBrandingPublic {
   slug: string;
   displayName: string;
   logoLetter: string;
+  logoUrl: string;
   primaryColor: string;
   accentColor: string;
 }

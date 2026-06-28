@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { loginUser, mfaChallenge } from '../../api/auth';
 import { ssoStatus, beginSso } from '../../api/sso';
 import { getOrgBrandingBySlug, type OrgBrandingPublic } from '../../api/publicOrg';
+import OrgLogo from '../../components/common/OrgLogo';
 import { useAuth } from '../../context/AuthContext';
 import BrandLogo from '../../components/common/BrandLogo';
 import './Auth.css';
@@ -148,6 +149,11 @@ export default function LoginPage() {
 
       <div className="auth-form-side">
         <div className="auth-card">
+          {branding && (
+            <div style={{ marginBottom: 12 }}>
+              <OrgLogo url={branding.logoUrl} letter={branding.logoLetter} name={branding.displayName} color={branding.primaryColor} size={52} />
+            </div>
+          )}
           <h2>{branding ? `${branding.displayName} sign in` : 'Partner sign in'}</h2>
           <p className="sub">
             {branding ? `Sign in to ${branding.displayName} on MobiCova.` : 'Access your MobiCova health platform.'}

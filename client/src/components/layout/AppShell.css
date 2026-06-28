@@ -8,7 +8,9 @@
   margin-left: 250px;
   min-height: 100vh;
   background: var(--gray-50);
+  transition: margin-left 0.16s ease;
 }
+.app-main.sidebar-collapsed { margin-left: 72px; }
 
 /* Platform-admin "View as org" banner — sits above the page content. */
 .impersonation-banner {
@@ -23,5 +25,5 @@
 .impersonation-banner button:hover { background: rgba(255,255,255,0.22); }
 
 @media (max-width: 820px) {
-  .app-main { margin-left: 0; }
+  .app-main, .app-main.sidebar-collapsed { margin-left: 0; }
 }

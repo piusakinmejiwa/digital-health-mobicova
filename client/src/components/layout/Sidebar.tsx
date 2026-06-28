@@ -57,13 +57,18 @@ const adminNavItem = { to: '/admin', label: 'Admin Console', icon: '⚙' };
 // Shown only to platform admins — prospect discovery / feature-priority results.
 const feedbackAdminNavItem = { to: '/admin/feedback', label: 'Prospect feedback', icon: '✎' };
 
-function SidebarLink({ item, unread, whatsNew = 0 }: { item: NavItem; unread: number; whatsNew?: number }) {
+function SidebarLink({ item, unread, whatsNew = 0, collapsed = false }: { item: NavItem; unread: number; whatsNew?: number; collapsed?: boolean }) {
+  const badge = item.to === '/inbox' ? unread : item.to === '/whats-new' ? whatsNew : 0;
   return (
-    <NavLink to={item.to} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+    <NavLink
+      to={item.to}
+      title={collapsed ? item.label : undefined}
+      className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${collapsed ? 'is-collapsed' : ''}`}
+    >
       <span className="sidebar-icon">{item.icon}</span>
-      {item.label}
-      {item.to === '/inbox' && unread > 0 && <span className="sidebar-badge">{unread}</span>}
-      {item.to === '/whats-new' && whatsNew > 0 && <span className="sidebar-badge">{whatsNew}</span>}
+      {!collapsed && item.label}
+      {!collapsed && badge > 0 && <span className="sidebar-badge">{badge}</span>}
+      {collapsed && badge > 0 && <span className="sidebar-badge-dot" />}
     </NavLink>
   );
 }
@@ -87,7 +92,7 @@ function SidebarGroup({ label, items, unread }: { label: string; items: NavItem[
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed = false, onToggle }: { collapsed?: boolean; onToggle?: () => void }) {
   const { user, logout } = useAuth();
   // Lightweight poll for the unread action-centre count (shared cache with /inbox).
   const { data: inbox } = useQuery({ queryKey: ['inbox'], queryFn: getInbox, refetchInterval: 60000 });
@@ -115,28 +120,50 @@ export default function Sidebar() {
       ];
   const adminItems: NavItem[] = isPlatform ? [] : (isAdmin ? [activityNavItem] : []);
 
+  // Collapsed mode flattens the groups into a single icon rail so everything
+  // stays one click away.
+  const flatItems: NavItem[] = [...workspace, whatsNewNavItem, ...settingsItems, ...adminItems];
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
       <div className="sidebar-logo">
-        <BrandLogo />
+        {!collapsed && <BrandLogo />}
+        <button
+          className="sidebar-collapse"
+          onClick={onToggle}
+          title={collapsed ? 'Expand menu' : 'Collapse menu'}
+          aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
+        >
+          {collapsed ? '»' : '«'}
+        </button>
       </div>
 
       <nav className="sidebar-nav">
-        {workspace.map((item) => <SidebarLink key={item.to} item={item} unread={unread} />)}
-        <SidebarLink item={whatsNewNavItem} unread={0} whatsNew={whatsNew} />
-        {settingsItems.length > 0 && <SidebarGroup label="Settings" items={settingsItems} unread={unread} />}
-        {adminItems.length > 0 && <SidebarGroup label="Admin" items={adminItems} unread={unread} />}
+        {collapsed ? (
+          flatItems.map((item) => <SidebarLink key={item.to} item={item} unread={unread} whatsNew={whatsNew} collapsed />)
+        ) : (
+          <>
+            {workspace.map((item) => <SidebarLink key={item.to} item={item} unread={unread} />)}
+            <SidebarLink item={whatsNewNavItem} unread={0} whatsNew={whatsNew} />
+            {settingsItems.length > 0 && <SidebarGroup label="Settings" items={settingsItems} unread={unread} />}
+            {adminItems.length > 0 && <SidebarGroup label="Admin" items={adminItems} unread={unread} />}
+          </>
+        )}
       </nav>
 
       <div className="sidebar-footer">
         <div className="sidebar-user">
           <div className="sidebar-avatar">{user?.fullName?.charAt(0) || 'U'}</div>
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{user?.orgName}</span>
-            <span className="sidebar-user-tier">{user?.partnerType || 'partner'}</span>
-          </div>
+          {!collapsed && (
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">{user?.orgName}</span>
+              <span className="sidebar-user-tier">{user?.partnerType || 'partner'}</span>
+            </div>
+          )}
         </div>
-        <button className="sidebar-logout" onClick={logout}>Sign out</button>
+        <button className="sidebar-logout" onClick={logout} title="Sign out">
+          {collapsed ? '⎋' : 'Sign out'}
+        </button>
       </div>
     </aside>
   );

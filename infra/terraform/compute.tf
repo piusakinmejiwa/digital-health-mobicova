@@ -88,8 +88,11 @@ resource "aws_lb_target_group" "api" {
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
+  # Liveness only — /healthz is dependency-free, so a transient DB blip (e.g. an
+  # RDS Multi-AZ failover) never culls otherwise-healthy tasks. DB availability is
+  # handled by RDS failover, not by pulling the whole fleet out of the ALB.
   health_check {
-    path                = "/health"
+    path                = "/healthz"
     matcher             = "200"
     interval            = 30
     timeout             = 5

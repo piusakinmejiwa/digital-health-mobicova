@@ -174,15 +174,15 @@ async function challengeProgress(memberId: string, action: string, win: string):
 
 // After an action is awarded, credit any challenge the member has just completed.
 async function checkChallenges(memberId: string, orgId: string | null): Promise<void> {
-  let challenges: { id: string; action: string; target: number; window: string; bonus_points: number }[];
+  let challenges: { id: string; action: string; target: number; window_kind: string; bonus_points: number }[];
   try {
-    const r = await query(`SELECT id, action, target, window, bonus_points FROM reward_challenges WHERE is_active = true`);
+    const r = await query(`SELECT id, action, target, window_kind, bonus_points FROM reward_challenges WHERE is_active = true`);
     challenges = r.rows;
   } catch { return; } // table not present yet — skip
   for (const ch of challenges) {
-    const progress = await challengeProgress(memberId, ch.action, ch.window);
+    const progress = await challengeProgress(memberId, ch.action, ch.window_kind);
     if (progress >= ch.target && ch.bonus_points > 0) {
-      const { key } = windowInfo(ch.window);
+      const { key } = windowInfo(ch.window_kind);
       await creditBonus(memberId, orgId, ch.bonus_points, `challenge:${ch.id}:${memberId}:${key}`);
     }
   }
@@ -196,15 +196,15 @@ export async function getMemberChallenges(memberId: string): Promise<{
   let rows: any[];
   try {
     rows = (await query(
-      `SELECT id, title, description, action, target, window, bonus_points
+      `SELECT id, title, description, action, target, window_kind, bonus_points
          FROM reward_challenges WHERE is_active = true ORDER BY created_at`,
     )).rows;
   } catch { return []; }
   const out = [];
   for (const ch of rows) {
-    const current = await challengeProgress(memberId, ch.action, ch.window);
+    const current = await challengeProgress(memberId, ch.action, ch.window_kind);
     out.push({
-      id: ch.id, title: ch.title, description: ch.description, target: ch.target, window: ch.window,
+      id: ch.id, title: ch.title, description: ch.description, target: ch.target, window: ch.window_kind,
       bonusPoints: ch.bonus_points, current: Math.min(current, ch.target), completed: current >= ch.target,
     });
   }

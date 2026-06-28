@@ -11,7 +11,7 @@ const WINDOWS = ['weekly', 'monthly', 'once'];
 
 export async function adminListChallenges(_req: Request, res: Response): Promise<void> {
   const r = await query(
-    `SELECT id, title, description, action, target, window, bonus_points, is_active, created_at
+    `SELECT id, title, description, action, target, window_kind AS "window", bonus_points, is_active, created_at
        FROM reward_challenges ORDER BY created_at DESC`
   );
   res.json({ challenges: r.rows, actions: ACTIONS, windows: WINDOWS });
@@ -26,7 +26,7 @@ export async function adminCreateChallenge(req: Request, res: Response): Promise
   const target = Math.max(1, Math.floor(Number(b.target) || 1));
   const bonus = Math.max(0, Math.floor(Number(b.bonusPoints) || 0));
   const r = await query(
-    `INSERT INTO reward_challenges (title, description, action, target, window, bonus_points, is_active)
+    `INSERT INTO reward_challenges (title, description, action, target, window_kind, bonus_points, is_active)
      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
     [title, String(b.description || '').slice(0, 500), action, target, window, bonus, b.isActive !== false]
   );
@@ -41,7 +41,7 @@ export async function adminUpdateChallenge(req: Request, res: Response): Promise
     `UPDATE reward_challenges SET
        title = COALESCE($2, title), description = COALESCE($3, description),
        action = COALESCE($4, action), target = COALESCE($5, target),
-       window = COALESCE($6, window), bonus_points = COALESCE($7, bonus_points),
+       window_kind = COALESCE($6, window_kind), bonus_points = COALESCE($7, bonus_points),
        is_active = COALESCE($8, is_active), updated_at = now()
      WHERE id = $1 RETURNING *`,
     [

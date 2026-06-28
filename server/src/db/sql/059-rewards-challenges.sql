@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS reward_challenges (
     description  TEXT        NOT NULL DEFAULT '',
     action       VARCHAR(40) NOT NULL,
     target       INTEGER     NOT NULL DEFAULT 1,
-    window       VARCHAR(10) NOT NULL DEFAULT 'weekly',
+    window_kind  VARCHAR(10) NOT NULL DEFAULT 'weekly',
     bonus_points INTEGER     NOT NULL DEFAULT 0,
     is_active    BOOLEAN     NOT NULL DEFAULT true,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),

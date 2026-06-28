@@ -28,9 +28,9 @@ jobs:
           cache-dependency-path: |
             server/package-lock.json
             client/package-lock.json
-      - name: Build & type-check server
+      - name: Install, smoke-test & build server
         working-directory: server
-        run: npm ci && npm run build
+        run: npm ci && npm test && npm run build
       - name: Build & type-check client
         working-directory: client
         run: npm ci && npm run build

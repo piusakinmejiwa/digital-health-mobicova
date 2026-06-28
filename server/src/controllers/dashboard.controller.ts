@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
+import { getAiActivity } from '../lib/aiActivity';
 
 export async function getDashboard(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
@@ -111,7 +112,10 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
   const completed = steps.filter((s) => s.done).length;
   const activeIndex = steps.findIndex((s) => !s.done);
 
+  const aiActivity = await getAiActivity(orgId, 7);
+
   res.json({
+    aiActivity,
     onboarding: {
       dismissed: me.rows[0]?.onboarding_dismissed ?? false,
       completed,

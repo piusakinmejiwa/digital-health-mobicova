@@ -86,3 +86,17 @@
 .import-preview .table { margin: 0; }
 
 .import-skipped { max-height: 220px; overflow: auto; margin-top: 0.5rem; }
+
+/* Subtle inline "AI" tag — marks rows an AI model produced (e.g. triage). */
+.ai-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #2f5fb0;
+  background: #e7eefb;
+  border-radius: 5px;
+  padding: 0.08rem 0.4rem;
+  white-space: nowrap;
+}

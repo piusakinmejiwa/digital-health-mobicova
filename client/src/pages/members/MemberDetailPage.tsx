@@ -239,7 +239,11 @@ export default function MemberDetailPage() {
                     <tr key={t.id}>
                       <td><span className={`badge triage-${t.triage_level}`}>{triageLabel(t.triage_level)}</span></td>
                       <td className="small">{t.recommendation || <span className="muted">—</span>}</td>
-                      <td className="muted small">{t.engine}</td>
+                      <td className="muted small">
+                        {t.engine === 'claude'
+                          ? <span className="ai-tag" title="Assessed using AI (Claude)">✨ AI</span>
+                          : t.engine}
+                      </td>
                       <td className="muted small">{formatDateTime(t.created_at)}</td>
                     </tr>
                   ))}

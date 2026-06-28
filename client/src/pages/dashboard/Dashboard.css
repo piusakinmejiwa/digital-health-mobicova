@@ -148,3 +148,63 @@
   .ob-grid { grid-template-columns: 1fr; }
   .ob-banner { flex-wrap: wrap; }
 }
+
+/* ---- AI activity card (subtle, never gimmicky) ---- */
+.ai-activity {
+  padding: 1.1rem 1.25rem 1rem;
+  margin-bottom: 1.25rem;
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0) 60%),
+    #fff;
+  border: 1px solid #e4ebf5;
+}
+.ai-activity-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+}
+.ai-activity-head .card-title { margin: 0; }
+.ai-spark { font-size: 0.95rem; line-height: 1; }
+.ai-pill {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: #2f5fb0;
+  background: #e7eefb;
+  border-radius: 5px;
+  padding: 0.1rem 0.34rem;
+}
+.ai-window { margin-left: auto; }
+
+.ai-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.ai-metric {
+  border: 1px solid #eef1f6;
+  border-radius: 10px;
+  padding: 0.8rem 0.9rem;
+  background: #fbfcfe;
+  cursor: default;
+}
+.ai-metric-value {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1c2b2b;
+  line-height: 1.1;
+}
+.ai-metric-label {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: #6b7c7c;
+}
+.ai-note { margin: 0.2rem 0 0; }
+.ai-foot { margin: 0.85rem 0 0; }
+
+@media (max-width: 640px) {
+  .ai-metrics { grid-template-columns: 1fr; }
+}

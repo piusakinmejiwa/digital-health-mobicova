@@ -643,8 +643,23 @@ export interface Onboarding {
   steps: OnboardingStep[];
 }
 
+export interface AiMetric {
+  key: string;
+  label: string;
+  value: number;
+  suffix?: string;
+  hint?: string;
+}
+export interface AiActivity {
+  enabled: boolean;
+  days: number;
+  metrics: AiMetric[];
+  hasActivity: boolean;
+}
+
 export interface DashboardData {
   onboarding: Onboarding;
+  aiActivity?: AiActivity;
   metrics: {
     members: number;
     consultations: number;

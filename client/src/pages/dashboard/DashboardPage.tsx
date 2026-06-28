@@ -22,7 +22,7 @@ export default function DashboardPage() {
     return <div className="page"><p className="muted">Loading dashboard…</p></div>;
   }
 
-  const { onboarding, metrics, milestones, channelBreakdown, triageBreakdown, recentConsultations, recentEnrolments } = data;
+  const { onboarding, aiActivity, metrics, milestones, channelBreakdown, triageBreakdown, recentConsultations, recentEnrolments } = data;
 
   const channelData = channelBreakdown.map((c) => ({ name: c.channel, value: c.count }));
   const pct = (cur: number, target: number) => Math.min(100, (cur / target) * 100);
@@ -52,6 +52,8 @@ export default function DashboardPage() {
         <MetricCard label="Monthly premium" value={naira(metrics.monthlyPremium)} sub="distributed" accent="teal" />
         <MetricCard label="Platform commission" value={naira(metrics.monthlyCommission)} sub="monthly" accent="green" />
       </div>
+
+      {aiActivity && <AiActivityCard ai={aiActivity} />}
 
       <div className="dash-grid">
         <div className="card card-pad">
@@ -250,6 +252,44 @@ function OnboardingPanel({ onboarding }: { onboarding: Onboarding }) {
         </div>
       </div>
     </>
+  );
+}
+
+function AiActivityCard({ ai }: { ai: import('../../types').AiActivity }) {
+  return (
+    <div className="ai-activity card">
+      <div className="ai-activity-head">
+        <span className="ai-spark" aria-hidden="true">✨</span>
+        <h3 className="card-title">AI activity</h3>
+        <span className="ai-pill">AI</span>
+        <span className="ai-window muted small">Last {ai.days} days</span>
+      </div>
+
+      {!ai.enabled ? (
+        <p className="muted small ai-note">
+          The AI triage assistant isn’t switched on for this workspace yet. Once enabled,
+          AI-assisted symptom checks will be summarised here.
+        </p>
+      ) : !ai.hasActivity ? (
+        <p className="muted small ai-note">
+          No AI-assisted triage in the last {ai.days} days yet. As members use the symptom
+          checker, Claude’s assessments will appear here.
+        </p>
+      ) : (
+        <div className="ai-metrics">
+          {ai.metrics.map((m) => (
+            <div className="ai-metric" key={m.key} title={m.hint || 'Generated using AI'}>
+              <span className="ai-metric-value">{m.value.toLocaleString()}{m.suffix || ''}</span>
+              <span className="ai-metric-label">{m.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="ai-foot muted small">
+        Powered by Claude. More AI insights — care summaries, anomaly detection — are on the way.
+      </p>
+    </div>
   );
 }
 

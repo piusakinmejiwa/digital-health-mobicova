@@ -252,8 +252,24 @@ export interface Claim {
   decided_at: string | null;
   submitted_via: string;
   document_count?: number;
+  // AI integrity review (decision support — flags for a human, never adjudicates).
+  ai_status?: 'unreviewed' | 'ok' | 'flagged';
+  ai_risk?: '' | 'low' | 'medium' | 'high';
+  ai_reasons?: string[];
+  ai_rationale?: string;
+  ai_model?: string;
+  ai_reviewed_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ClaimAiReview {
+  ai_status: 'ok' | 'flagged';
+  ai_risk: 'low' | 'medium' | 'high';
+  ai_reasons: string[];
+  ai_rationale: string;
+  ai_model: string;
+  ai_reviewed_at: string;
 }
 
 export interface ClaimDocument {

@@ -54,6 +54,18 @@ export async function getAiActivity(orgId: string, days = 7): Promise<AiActivity
   );
   const summariesGenerated = summaries.rows[0]?.generated ?? 0;
 
+  // AI claims review — claims Claude assessed for anomalies (flags for a human).
+  const claims = await query(
+    `SELECT
+        COUNT(*) FILTER (WHERE ai_reviewed_at >= NOW() - $2::interval)::int AS reviewed,
+        COUNT(*) FILTER (WHERE ai_status = 'flagged' AND ai_reviewed_at >= NOW() - $2::interval)::int AS flagged
+       FROM claims
+      WHERE org_id = $1`,
+    [orgId, window],
+  );
+  const claimsReviewed = claims.rows[0]?.reviewed ?? 0;
+  const claimsFlagged = claims.rows[0]?.flagged ?? 0;
+
   const metrics: AiMetric[] = [
     {
       key: 'triage_sessions',
@@ -74,6 +86,12 @@ export async function getAiActivity(orgId: string, days = 7): Promise<AiActivity
       hint: 'AI clinical hand-off notes generated for members',
     },
     {
+      key: 'claims_reviewed',
+      label: 'Claims reviewed by AI',
+      value: claimsReviewed,
+      hint: `${claimsFlagged} flagged for human review`,
+    },
+    {
       key: 'triage_share',
       label: 'Triage handled by AI',
       value: aiShare,
@@ -86,6 +104,6 @@ export async function getAiActivity(orgId: string, days = 7): Promise<AiActivity
     enabled: anthropicEnabled,
     days,
     metrics,
-    hasActivity: aiSessions > 0 || summariesGenerated > 0,
+    hasActivity: aiSessions > 0 || summariesGenerated > 0 || claimsReviewed > 0,
   };
 }

@@ -93,3 +93,52 @@
 @media (max-width: 640px) {
   .claim-grid { grid-template-columns: 1fr; }
 }
+
+/* ---- AI integrity indicators ---- */
+.ai-claim-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.12rem 0.45rem;
+  white-space: nowrap;
+}
+.ai-claim-badge.ok { color: #1f8a4c; background: #e7f5ec; }
+.ai-claim-badge.flagged { color: #b4373a; background: #fdeeee; }
+.ai-claim-badge.flagged.risk-high { color: #fff; background: #c2403f; }
+.ai-claim-badge.flagged.risk-low { color: #99710c; background: #fdf6e3; }
+.ai-claim-badge.none { color: #9aa8a8; background: transparent; font-weight: 400; }
+
+.tab-flagged { color: #b4373a; }
+.tab-flagged.active { background: #fdeeee; border-color: #f3c8c8; }
+
+/* ---- AI review panel (claim drawer) ---- */
+.ai-review-panel {
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0) 70%),
+    #fff;
+  border: 1px solid #e4ebf5;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+.ai-review-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.ai-review-head .ai-spark { font-size: 0.95rem; line-height: 1; }
+.ai-review-btn { margin-left: auto; }
+.ai-review-verdict { margin: 0.2rem 0 0.5rem; }
+.ai-review-reasons {
+  margin: 0.3rem 0 0.5rem;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.ai-review-reasons li { font-size: 0.86rem; color: #1c2b2b; }
+.ai-review-rationale { margin: 0.2rem 0 0.5rem; line-height: 1.55; color: #1c2b2b; }
+.ai-review-foot { margin: 0; }

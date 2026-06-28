@@ -2,7 +2,7 @@ import api from './client';
 import type {
   Member, MemberDetail, MemberListItem, CareSummary, Partner, Consultation, InsurancePlan, Enrolment,
   TriageSession, TriageSummary, DashboardData, AnalyticsReport,
-  Claim, ClaimDetail, ClaimDocument, ClaimsResponse,
+  Claim, ClaimDetail, ClaimDocument, ClaimsResponse, ClaimAiReview,
   AnalyticsQueryResult, AnalyticsMeasureOption,
 } from '../types';
 
@@ -116,6 +116,9 @@ export async function createClaim(data: Record<string, unknown>): Promise<Claim>
 }
 export async function decideClaim(id: string, status: string, note?: string): Promise<Claim> {
   return (await api.patch(`/claims/${id}/decision`, { status, note })).data;
+}
+export async function aiReviewClaim(id: string): Promise<ClaimAiReview> {
+  return (await api.post(`/claims/${id}/ai-review`)).data;
 }
 export async function uploadClaimDocument(id: string, file: File, label?: string): Promise<ClaimDocument> {
   const form = new FormData();

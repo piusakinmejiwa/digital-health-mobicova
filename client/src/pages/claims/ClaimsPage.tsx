@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import type { Claim, ClaimDetail, Enrolment } from '../../types';
+import type { Claim, ClaimDetail, Enrolment, ClaimAiReview } from '../../types';
 import {
   listClaims, getClaim, createClaim, decideClaim, uploadClaimDocument,
-  listMembers, listEnrolments,
+  aiReviewClaim, listMembers, listEnrolments,
 } from '../../api/resources';
 import { naira, formatDate, formatDateTime, badgeClass, claimStatusLabel, fileSize } from '../../lib/format';
 import { useAuth } from '../../context/AuthContext';
@@ -15,6 +15,17 @@ const CLAIM_TYPES = [
   'maternity', 'emergency', 'diagnostics', 'other',
 ];
 const typeLabel = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+// AI integrity indicator. Decision support only — it flags for a human reviewer.
+function AiClaimBadge({ status, risk }: { status?: string; risk?: string }) {
+  if (status === 'flagged') {
+    return <span className={`ai-claim-badge flagged risk-${risk || 'medium'}`} title="AI flagged this claim for human review">⚑ AI review</span>;
+  }
+  if (status === 'ok') {
+    return <span className="ai-claim-badge ok" title="AI checked — no anomalies found">✓ AI verified</span>;
+  }
+  return <span className="ai-claim-badge none" title="Not yet reviewed by AI">—</span>;
+}
 
 // Adjudication actions available from each status, mirroring the server's state
 // machine (lib/claims.ts). Terminal statuses (rejected/paid) offer none.
@@ -52,6 +63,7 @@ export default function ClaimsPage() {
   const qc = useQueryClient();
   const { canWrite } = useAuth();
   const [tab, setTab] = useState('all');
+  const [flaggedOnly, setFlaggedOnly] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState<null | typeof emptyClaim>(null);
 
@@ -63,6 +75,9 @@ export default function ClaimsPage() {
   const counts = (status: string) =>
     data?.counts.find((c) => c.status === status)?.count ?? 0;
   const totalCount = data?.counts.reduce((sum, c) => sum + c.count, 0) ?? 0;
+
+  const visibleClaims = (data?.claims ?? []).filter((c) => !flaggedOnly || c.ai_status === 'flagged');
+  const flaggedCount = (data?.claims ?? []).filter((c) => c.ai_status === 'flagged').length;
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['claims'] });
 
@@ -87,23 +102,34 @@ export default function ClaimsPage() {
             <span className="tab-count">{s === 'all' ? totalCount : counts(s)}</span>
           </button>
         ))}
+        {flaggedCount > 0 && (
+          <button
+            className={`tab tab-flagged ${flaggedOnly ? 'active' : ''}`}
+            onClick={() => setFlaggedOnly((v) => !v)}
+            title="Show only claims the AI flagged for review"
+          >
+            ⚑ AI-flagged<span className="tab-count">{flaggedCount}</span>
+          </button>
+        )}
       </div>
 
       <div className="card">
-        {!data || data.claims.length === 0 ? (
+        {visibleClaims.length === 0 ? (
           <p className="empty-state">
-            {tab === 'all' ? 'No claims yet. Log one to start the workflow.' : `No ${claimStatusLabel(tab).toLowerCase()} claims.`}
+            {flaggedOnly
+              ? 'No AI-flagged claims in this view.'
+              : tab === 'all' ? 'No claims yet. Log one to start the workflow.' : `No ${claimStatusLabel(tab).toLowerCase()} claims.`}
           </p>
         ) : (
           <table className="table">
             <thead>
               <tr>
                 <th>Reference</th><th>Member</th><th>Type</th><th>Provider</th>
-                <th>Amount</th><th>Status</th><th>Submitted</th><th></th>
+                <th>Amount</th><th>Status</th><th>AI</th><th>Submitted</th><th></th>
               </tr>
             </thead>
             <tbody>
-              {data.claims.map((c: Claim) => (
+              {visibleClaims.map((c: Claim) => (
                 <tr key={c.id}>
                   <td><code>{c.reference}</code></td>
                   <td><strong>{c.member_name}</strong></td>
@@ -111,6 +137,7 @@ export default function ClaimsPage() {
                   <td className="muted small">{c.provider_name || '—'}</td>
                   <td>{naira(c.amount, c.currency)}</td>
                   <td><span className={`badge ${badgeClass(c.status)}`}>{claimStatusLabel(c.status)}</span></td>
+                  <td><AiClaimBadge status={c.ai_status} risk={c.ai_risk} /></td>
                   <td className="muted small">{formatDate(c.created_at)}</td>
                   <td>
                     <button className="btn btn-secondary btn-sm" onClick={() => setOpenId(c.id)}>View</button>
@@ -228,6 +255,8 @@ function ClaimDrawer({ id, storageEnabled, onClose, onChanged }: {
               <div className="notice">{`Decision note: ${claim.decision_note}`}</div>
             )}
 
+            <ClaimAiPanel claim={claim} canWrite={canWrite} onReviewed={reload} />
+
             {/* Documents */}
             <div className="claim-section">
               <span className="claim-label">Documents ({claim.documents.length})</span>
@@ -289,6 +318,81 @@ function Field({ label, value }: { label: string; value: string }) {
     <div className="claim-field">
       <span className="claim-label">{label}</span>
       <span>{value}</span>
+    </div>
+  );
+}
+
+// ---- AI integrity review: flags a claim for a human; never adjudicates ----
+function ClaimAiPanel({ claim, canWrite, onReviewed }: {
+  claim: ClaimDetail; canWrite: boolean; onReviewed: () => void;
+}) {
+  const [review, setReview] = useState<ClaimAiReview | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  // Show a freshly-run review if we have one, else whatever the claim already carries.
+  const current: ClaimAiReview | null = review
+    ?? (claim.ai_status && claim.ai_status !== 'unreviewed'
+      ? {
+        ai_status: claim.ai_status,
+        ai_risk: (claim.ai_risk || 'low') as ClaimAiReview['ai_risk'],
+        ai_reasons: claim.ai_reasons || [],
+        ai_rationale: claim.ai_rationale || '',
+        ai_model: claim.ai_model || '',
+        ai_reviewed_at: claim.ai_reviewed_at || '',
+      }
+      : null);
+
+  const run = async () => {
+    setBusy(true); setErr('');
+    try {
+      setReview(await aiReviewClaim(claim.id));
+      onReviewed();
+    } catch (e) {
+      setErr(errMessage(e, 'Could not run the AI review.'));
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="claim-section ai-review-panel">
+      <div className="ai-review-head">
+        <span className="ai-spark" aria-hidden="true">✨</span>
+        <span className="claim-label">AI integrity review</span>
+        {canWrite && (
+          <button className="btn btn-secondary btn-sm ai-review-btn" onClick={run} disabled={busy}>
+            {busy ? 'Reviewing…' : current ? 'Re-run' : 'Run AI review'}
+          </button>
+        )}
+      </div>
+
+      {err && <div className="notice notice-error">{err}</div>}
+
+      {current ? (
+        <>
+          <div className="ai-review-verdict">
+            {current.ai_status === 'flagged'
+              ? <span className={`ai-claim-badge flagged risk-${current.ai_risk}`}>⚑ Flagged for review · {current.ai_risk} risk</span>
+              : <span className="ai-claim-badge ok">✓ AI verified · no anomalies</span>}
+          </div>
+          {current.ai_reasons.length > 0 && (
+            <ul className="ai-review-reasons">
+              {current.ai_reasons.map((r, i) => <li key={i}>{r}</li>)}
+            </ul>
+          )}
+          {current.ai_rationale && <p className="ai-review-rationale">{current.ai_rationale}</p>}
+          <p className="muted small ai-review-foot">
+            AI decision support only — it flags for a human and never approves, rejects or pays a claim.
+            {current.ai_reviewed_at && ` Reviewed ${formatDateTime(current.ai_reviewed_at)}.`}
+          </p>
+        </>
+      ) : (
+        !busy && (
+          <p className="muted small">
+            Not yet reviewed. Run an AI check for anomalies — unusual amount, possible duplicate,
+            high frequency, or a type/description mismatch.
+          </p>
+        )
+      )}
     </div>
   );
 }

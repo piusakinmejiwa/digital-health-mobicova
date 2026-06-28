@@ -6,6 +6,7 @@ import {
   CLAIM_STATUSES, CLAIM_TYPES, canTransition, generateClaimReference, isClaimStatus, isClaimType,
 } from '../lib/claims';
 import { emitEvent } from '../lib/webhooks';
+import { reviewClaim, reviewClaimSafe, ClaimReviewUnavailable } from '../lib/claimReview';
 
 // Shared envelope for claim webhook payloads — kept consistent across create and
 // status-change events.
@@ -132,7 +133,37 @@ export async function createClaim(req: Request, res: Response): Promise<void> {
 
   emitEvent(orgId, 'claim.created', claimEventPayload(claim));
 
+  // Best-effort AI integrity review in the background — the claim appears
+  // immediately; its AI verdict lands a moment later (no-op if AI is off).
+  reviewClaimSafe(orgId, claim.id);
+
   res.status(201).json(claim);
+}
+
+// POST /claims/:id/ai-review — run (or re-run) the AI anomaly review. Decision
+// support only: it flags for a human, never adjudicates. Requires write access.
+export async function aiReviewClaim(req: Request, res: Response): Promise<void> {
+  const orgId = req.user!.orgId;
+  const id = String(req.params.id);
+
+  const exists = await query('SELECT 1 FROM claims WHERE id = $1 AND org_id = $2', [id, orgId]);
+  if (exists.rows.length === 0) { res.status(404).json({ error: 'Claim not found' }); return; }
+
+  try {
+    const review = await reviewClaim(orgId, id);
+    await recordAudit(req, {
+      action: 'claim.ai_review', targetType: 'claim', targetId: id,
+      orgId, metadata: { verdict: review.ai_status, risk: review.ai_risk },
+    });
+    res.json(review);
+  } catch (err) {
+    if (err instanceof ClaimReviewUnavailable) {
+      res.status(503).json({ error: err.message });
+      return;
+    }
+    console.error('Claim AI review failed:', err);
+    res.status(500).json({ error: 'Could not review the claim. Please try again.' });
+  }
 }
 
 // PATCH /claims/:id/decision — advance a claim through the adjudication state

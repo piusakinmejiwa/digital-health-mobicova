@@ -5,7 +5,7 @@ import { authenticate, requireWrite } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { asyncHandler } from '../middleware/asyncHandler';
 import {
-  listClaims, getClaim, createClaim, decideClaim, uploadClaimDocument,
+  listClaims, getClaim, createClaim, decideClaim, uploadClaimDocument, aiReviewClaim,
 } from '../controllers/claims.controller';
 
 // Claim documents are received in-memory then streamed to Supabase Storage; cap
@@ -51,5 +51,6 @@ router.patch(
   asyncHandler(decideClaim)
 );
 router.post('/:id/documents', requireWrite, singleFile, asyncHandler(uploadClaimDocument));
+router.post('/:id/ai-review', requireWrite, asyncHandler(aiReviewClaim));
 
 export default router;

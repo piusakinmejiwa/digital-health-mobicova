@@ -13,8 +13,10 @@ type Msg = BuddyMessage & { sources?: BuddySource[]; safety?: 'ok' | 'crisis' | 
 export default function BuddyPage() {
   const navigate = useNavigate();
   const { i18n } = useTranslation();
-  const [active, setActive] = useState<string | null>(null); // selected specialty key
-  const [msgs, setMsgs] = useState<Msg[]>([]);
+  // Land straight in the General Health buddy by default; "← Buddies" reveals the
+  // full grid of specialty buddies.
+  const [active, setActive] = useState<string | null>('general');
+  const [msgs, setMsgs] = useState<Msg[]>([{ role: 'assistant', content: specialtyByKey('general').greeting }]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);

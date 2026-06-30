@@ -56,6 +56,12 @@ terraform apply        # creates ALB + ECS service
 `s3_storage_bucket`, `app_secret_arn`, `ecs_cluster_name`, `ecs_service_name`,
 `ecs_task_family` — feed these into Cloudflare DNS and the production workflow secrets.
 
+## Resilience: HA (within-site) + DR (whole-site)
+Two layers. **`HA-DESIGN.md`** covers staying online through a single component
+failure on the Nobus primary (app node, DB server, cache, LB) — automatic,
+seconds–minutes. **`DR-RUNBOOK.md`** (below) covers losing the whole Nobus site —
+cross-cloud failover to AWS. HA is the day-to-day resilience; DR is the rare event.
+
 ## Hybrid disaster recovery — Nobus primary → AWS DR (optional)
 **Production primary now hosts on Nobus (Nigeria) for data residency.** This AWS
 stack serves as the **DR site only**. Set `enable_dr = true` to provision the

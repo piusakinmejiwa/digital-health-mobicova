@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { askAssistant, type AssistantMessage } from '../../api/assistant';
+import RichText from '../common/RichText';
 
 // Always-visible "Ask Eze" chat launcher for public pages. A floating bubble that
 // opens a compact chat panel grounded on the MobiCova FAQ (product/site Q&A).
@@ -78,7 +79,7 @@ export default function FloatingAssistant() {
               padding: '8px 12px', borderRadius: 10, fontSize: 14, lineHeight: 1.5,
               background: m.role === 'user' ? '#0A7B7B' : '#f1f6f6',
               color: m.role === 'user' ? '#fff' : '#15302f',
-            }}>{m.content}</div>
+            }}>{m.role === 'assistant' ? <RichText text={m.content} onNavigate={(p) => navigate(p)} /> : m.content}</div>
             {m.handoff === 'buddy' && (
               <button onClick={() => navigate('/buddy')} style={{ marginTop: 6, background: '#fff', border: '1px solid #0A7B7B', color: '#0A7B7B', borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}>
                 💬 Open the Health Buddy

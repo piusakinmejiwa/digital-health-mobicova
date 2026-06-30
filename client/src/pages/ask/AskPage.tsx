@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import SiteHeader from '../../components/marketing/SiteHeader';
 import SiteFooter from '../../components/marketing/SiteFooter';
 import { askAssistant, type AssistantMessage } from '../../api/assistant';
+import RichText from '../../components/common/RichText';
 
 type Msg = AssistantMessage & { handoff?: 'buddy' };
 
@@ -55,7 +56,7 @@ export default function AskPage() {
                     padding: '10px 14px', borderRadius: 12, lineHeight: 1.55,
                     background: m.role === 'user' ? '#0A7B7B' : '#f1f6f6',
                     color: m.role === 'user' ? '#fff' : '#15302f',
-                  }}>{m.content}</div>
+                  }}>{m.role === 'assistant' ? <RichText text={m.content} onNavigate={(p) => navigate(p)} /> : m.content}</div>
                   {m.handoff === 'buddy' && (
                     <button className="btn btn-secondary btn-sm" style={{ marginTop: 6 }} onClick={() => navigate('/buddy')}>
                       💬 Open the Health Buddy

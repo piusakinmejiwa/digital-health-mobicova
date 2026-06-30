@@ -82,6 +82,10 @@
   padding: 1.6rem;
   width: 420px;
   max-width: 92vw;
+  /* Bound the height and scroll inside, so a tall form (e.g. Edit member) never
+     pushes its action buttons off-screen when the overlay centres it. */
+  max-height: 90vh;
+  overflow-y: auto;
   margin: auto;
   box-shadow: 0 20px 50px rgba(0,0,0,0.25);
 }

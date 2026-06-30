@@ -158,14 +158,20 @@ export async function createMember(req: Request, res: Response): Promise<void> {
   );
   const member = result.rows[0];
 
-  // Best-effort welcome email with portal access instructions (if they have one).
-  if (member.email) {
-    const org = await query('SELECT name, join_code FROM organisations WHERE id = $1', [orgId]);
+  // Best-effort introductory message: a branded email if they have one, else an
+  // SMS/WhatsApp welcome for phone-only members. And an in-app notification to the org.
+  const org = await query('SELECT name, join_code FROM organisations WHERE id = $1', [orgId]);
+  const orgNameForWelcome = org.rows[0]?.name || 'MobiCova';
+  if (member.email || member.phone) {
     await sendMemberWelcome({
-      email: member.email, fullName: member.full_name,
-      orgName: org.rows[0]?.name || 'MobiCova', joinCode: org.rows[0]?.join_code || '',
+      email: member.email || undefined, phone: member.phone || undefined,
+      fullName: member.full_name, orgName: orgNameForWelcome, joinCode: org.rows[0]?.join_code || '',
     });
   }
+  void notify({
+    orgId, category: 'members', title: 'New member added',
+    body: `${member.full_name} was added to your organisation.`, href: `/members/${member.id}`,
+  });
 
   await recordAudit(req, {
     action: 'member.create', targetType: 'member', targetId: member.id,
@@ -358,8 +364,9 @@ async function runMemberImport(req: Request, res: Response, orgId: string, enfor
   }
 
   // Membership IDs for the batch — prefix from the org name, unique per member.
-  const orgRow = await query('SELECT name FROM organisations WHERE id = $1', [orgId]);
+  const orgRow = await query('SELECT name, join_code FROM organisations WHERE id = $1', [orgId]);
   const orgName = orgRow.rows[0]?.name || 'MobiCova';
+  const joinCode = orgRow.rows[0]?.join_code || '';
   const reserved = new Set<string>();
 
   // All valid rows succeed together or not at all.
@@ -382,6 +389,23 @@ async function runMemberImport(req: Request, res: Response, orgId: string, enfor
   } finally {
     client.release();
   }
+
+  // Per-member introductory message (branded email, else SMS/WhatsApp for
+  // phone-only). Fire-and-forget so a large import isn't blocked on email delivery.
+  for (const v of valid) {
+    const fullName = v[1] as string;
+    const phone = (v[2] as string) || '';
+    const email = (v[3] as string) || '';
+    if (email || phone) {
+      void sendMemberWelcome({ email: email || undefined, phone: phone || undefined, fullName, orgName, joinCode });
+    }
+  }
+  void notify({
+    orgId, category: 'members',
+    title: `${valid.length} member${valid.length === 1 ? '' : 's'} imported`,
+    body: `A CSV import added ${valid.length} member${valid.length === 1 ? '' : 's'} to your organisation.`,
+    href: '/members',
+  });
 
   await recordAudit(req, {
     action: 'member.import', orgId, metadata: { inserted: valid.length, skipped, total: rows.length },

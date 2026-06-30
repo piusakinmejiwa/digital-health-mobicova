@@ -9,6 +9,9 @@ export interface SendResult { sent: boolean; error?: string }
 
 export async function sendEmail(msg: {
   to: string; subject: string; html: string; text?: string;
+  // Optional per-message sender (e.g. "AXA Mansard Health <org@mobicovahealth.com>")
+  // and reply-to. The address must be on a Resend-verified domain.
+  from?: string; replyTo?: string;
 }): Promise<SendResult> {
   if (!env.resendApiKey) {
     console.log(`[email:demo] to=${msg.to} · subject="${msg.subject}" (RESEND_API_KEY not set — not sent)`);
@@ -22,11 +25,12 @@ export async function sendEmail(msg: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: env.emailFrom,
+        from: msg.from || env.emailFrom,
         to: msg.to,
         subject: msg.subject,
         html: msg.html,
         text: msg.text,
+        ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
       }),
     });
     if (!res.ok) {

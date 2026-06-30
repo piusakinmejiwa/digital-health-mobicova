@@ -60,6 +60,10 @@ export const env = {
   // a verified EMAIL_FROM to switch on real delivery via Resend.
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'MobiCova <onboarding@mobicova.com>',
+  // Generic, friendly sender for org-branded member emails: the org NAME is the
+  // display name and this is the address, e.g. "AXA Mansard Health <org@mobicovahealth.com>".
+  // Must be on a Resend-verified domain.
+  orgEmailAlias: process.env.ORG_EMAIL_ALIAS || 'org@mobicovahealth.com',
   // Optional inbox to notify when a "Shape MobiCova" (/shape) feedback form is submitted.
   feedbackNotifyEmail: process.env.FEEDBACK_NOTIFY_EMAIL || '',
   // Comma-separated emails granted platform-admin access to the catalog Admin UI.

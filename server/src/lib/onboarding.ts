@@ -2,6 +2,7 @@ import { env } from '../config/env';
 import { sendEmail } from './email';
 import { issueActivationToken } from './invites';
 import { adminWelcomeEmail, memberWelcomeEmail } from './emailTemplates';
+import { smsConfigured, whatsappConfigured, sendSms, sendWhatsApp } from './messaging';
 
 // Orchestrates onboarding emails. All functions are best-effort: they never throw
 // (so they can't break account creation) — failures are logged.
@@ -24,14 +25,33 @@ export async function sendAdminWelcome(opts: {
   }
 }
 
+// Introductory message to a new member. Email if we have one (branded as the
+// organisation, from the org alias); otherwise SMS + WhatsApp for phone-only
+// members (which only deliver once those channels are live — gated, no-op until
+// then). Best-effort: never throws.
 export async function sendMemberWelcome(opts: {
-  email: string; fullName: string; orgName: string; joinCode: string;
+  email?: string; phone?: string; fullName?: string; orgName: string; joinCode: string;
 }): Promise<void> {
   try {
-    if (!opts.email) return;
     const portalUrl = `${env.clientUrl}/member/login`;
-    const tpl = memberWelcomeEmail({ fullName: opts.fullName, orgName: opts.orgName, portalUrl, joinCode: opts.joinCode });
-    await sendEmail({ to: opts.email, subject: tpl.subject, html: tpl.html, text: tpl.text });
+
+    if (opts.email) {
+      const tpl = memberWelcomeEmail({ fullName: opts.fullName || '', orgName: opts.orgName, portalUrl, joinCode: opts.joinCode });
+      // Branded as the organisation: display name = org, address = the org alias.
+      const safeName = opts.orgName.replace(/["\r\n]/g, '').trim() || 'MobiCova';
+      const from = `${safeName} <${env.orgEmailAlias}>`;
+      await sendEmail({ to: opts.email, subject: tpl.subject, html: tpl.html, text: tpl.text, from });
+      return;
+    }
+
+    // Phone-only member: short welcome over SMS and/or WhatsApp (best-effort,
+    // gated — does nothing until those channels are configured/live).
+    if (opts.phone) {
+      const code = opts.joinCode ? ` Join code: ${opts.joinCode}.` : '';
+      const msg = `Welcome to ${opts.orgName} on MobiCova health cover! Use it on any phone via WhatsApp or USSD.${code}`;
+      if (smsConfigured()) await sendSms(opts.phone, msg);
+      if (whatsappConfigured()) await sendWhatsApp(opts.phone, msg);
+    }
   } catch (err) {
     console.error('[onboarding] member welcome failed:', err);
   }

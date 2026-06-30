@@ -38,16 +38,28 @@ output "ecs_task_family" {
 }
 
 # ---- DR (null unless enable_dr = true) ----
-output "dr_rds_replica_endpoint" {
-  description = "Cross-region read replica endpoint. Promote this on a region-loss event (see DR-RUNBOOK.md)."
-  value       = var.enable_dr ? aws_db_instance.replica[0].address : null
+output "dr_wal_archive_bucket" {
+  description = "S3 bucket the Nobus primary ships PostgreSQL WAL + base backups to (wal-g/pgBackRest)."
+  value       = var.enable_dr ? aws_s3_bucket.dr_wal[0].bucket : null
 }
 
-output "dr_storage_bucket" {
-  description = "DR-region replica of the object-storage bucket."
-  value       = var.enable_dr ? aws_s3_bucket.storage_dr[0].bucket : null
+output "dr_objects_bucket" {
+  description = "S3 bucket the Nobus primary syncs object storage (claim docs/images) to."
+  value       = var.enable_dr ? aws_s3_bucket.dr_objects[0].bucket : null
+}
+
+output "dr_writer_access_key_id" {
+  description = "Access key id for the Nobus push IAM user. Configure into wal-g + rclone on Nobus."
+  value       = var.enable_dr ? aws_iam_access_key.dr_writer[0].id : null
+}
+
+output "dr_writer_secret_access_key" {
+  description = "Secret key for the Nobus push IAM user — sensitive; rotate after setup."
+  value       = var.enable_dr ? aws_iam_access_key.dr_writer[0].secret : null
+  sensitive   = true
 }
 
 output "dr_region" {
-  value = var.enable_dr ? var.dr_region : null
+  description = "AWS DR region (this stack's region)."
+  value       = var.enable_dr ? var.aws_region : null
 }

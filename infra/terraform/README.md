@@ -56,11 +56,20 @@ terraform apply        # creates ALB + ECS service
 `s3_storage_bucket`, `app_secret_arn`, `ecs_cluster_name`, `ecs_service_name`,
 `ecs_task_family` — feed these into Cloudflare DNS and the production workflow secrets.
 
-## Cross-region DR (optional)
-The primary stack already does **AZ-level** failover automatically (RDS/Redis
-Multi-AZ + ECS across AZs). For **region-level** DR, set `enable_dr = true` to add
-a cross-region read replica, S3 replication, and a secret replica (`dr.tf`,
-`dr-storage.tf`, the `replica` block in `registry.tf`). Off by default — read
-**`DR-RUNBOOK.md`** first (it covers the Pilot Light strategy, RTO/RPO, the NDPR
-cross-border data note, and the failover/failback procedure). DR compute (ALB +
-ECS + Redis mirror) and DNS failover are the documented Phase B.
+## Hybrid disaster recovery — Nobus primary → AWS DR (optional)
+**Production primary now hosts on Nobus (Nigeria) for data residency.** This AWS
+stack serves as the **DR site only**. Set `enable_dr = true` to provision the
+always-on, low-cost DR foundation (`dr.tf`, `dr-iam.tf`): encrypted S3 buckets that
+the Nobus primary continuously pushes to — PostgreSQL WAL + base backups (wal-g /
+pgBackRest) and an object-store copy — plus a scoped IAM user for the Nobus side.
+The DR database (Postgres-on-EC2 standby) and app compute are **pilot-light** — stood
+up on a real disaster. Off by default.
+
+Read **`DR-RUNBOOK.md`** first — it covers the strategy, **RTO/RPO**, the **NDPR
+cross-border sign-off** (DR places encrypted PHI abroad), the replication setup from
+Nobus, the failover/failback procedure, and a **full monthly cost breakdown**
+(pilot-light ≈ $10–15/mo; warm-standby add-on ≈ $170/mo).
+
+Note: the AZ-level managed services in this stack (RDS/ElastiCache/ECS) describe the
+earlier AWS-primary reference design; under the Nobus-primary model the AWS DB tier
+is self-managed Postgres-on-EC2 (to receive external WAL) — see the runbook.

@@ -51,6 +51,10 @@ export interface MemberImportResult {
   // Present on a dry run: nothing was written.
   dryRun?: boolean;
   wouldImport?: number;
+  // Dry-run only: how many valid rows have an email (would get the branded
+  // welcome email) vs phone-only (SMS/WhatsApp). Drives the "send welcome" hint.
+  emailable?: number;
+  phoneOnly?: number;
   preview?: { fullName: string; phone: string; email: string }[];
   // Set on a dry run when the import would exceed the plan's member seat cap.
   seatLimit?: { error: string; code: string; limit: number; used: number; remaining: number; upgradeTo: string | null } | null;
@@ -58,8 +62,12 @@ export interface MemberImportResult {
   code?: string;
 }
 // dryRun=true validates against the server and previews without writing anything.
-export async function importMembers(members: Record<string, unknown>[], dryRun = false): Promise<MemberImportResult> {
-  return (await api.post('/members/import', { members, dryRun })).data;
+// sendWelcome=true messages each imported member (branded email, or SMS/WhatsApp
+// for phone-only) — opt-in, only applied on a real (non-dry) import.
+export async function importMembers(
+  members: Record<string, unknown>[], dryRun = false, sendWelcome = false,
+): Promise<MemberImportResult> {
+  return (await api.post('/members/import', { members, dryRun, sendWelcome })).data;
 }
 export async function updateMember(id: string, data: Record<string, unknown>): Promise<Member> {
   return (await api.put(`/members/${id}`, data)).data;

@@ -74,3 +74,10 @@
   padding: .8rem .9rem; margin-bottom: .8rem;
 }
 .rep-actions { display: flex; align-items: center; gap: .5rem; margin-top: .55rem; flex-wrap: wrap; }
+
+/* Opt-in toggle: send a welcome to imported members. */
+.import-welcome-opt {
+  display: flex; align-items: flex-start; gap: .5rem;
+  margin: .9rem 0 .2rem; font-size: .9rem; line-height: 1.4; cursor: pointer;
+}
+.import-welcome-opt input { margin-top: .2rem; flex-shrink: 0; }

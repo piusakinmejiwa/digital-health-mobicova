@@ -235,6 +235,8 @@ function MembersTab({ org }: { org: Organisation }) {
   const [error, setError] = useState('');
   const [dry, setDry] = useState<MemberImportResult | null>(null);
   const [result, setResult] = useState<MemberImportResult | null>(null);
+  // Opt-in welcome to each imported member (email, or SMS/WhatsApp for phone-only).
+  const [sendWelcome, setSendWelcome] = useState(true);
 
   const onFile = async (file: File) => {
     setError(''); setDry(null); setResult(null);
@@ -249,7 +251,7 @@ function MembersTab({ org }: { org: Organisation }) {
   const run = async (dryRun: boolean) => {
     setBusy(true); setError('');
     try {
-      const res = await adminImportOrgMembers(org.id, rows as unknown as Record<string, unknown>[], dryRun);
+      const res = await adminImportOrgMembers(org.id, rows as unknown as Record<string, unknown>[], dryRun, dryRun ? false : sendWelcome);
       if (dryRun) setDry(res); else { setResult(res); setDry(null); }
     } catch (err) { setError(axios.isAxiosError(err) ? (err.response?.data?.error || 'Import failed.') : 'Import failed.'); }
     finally { setBusy(false); }
@@ -281,10 +283,23 @@ function MembersTab({ org }: { org: Organisation }) {
       )}
 
       {rows.length > 0 && !result && (
-        <div className="modal-actions">
-          <button className="btn btn-secondary" disabled={busy} onClick={() => run(true)}>{busy ? 'Checking…' : 'Validate (dry run)'}</button>
-          <button className="btn btn-primary" disabled={busy} onClick={() => run(false)}>{busy ? 'Importing…' : `Import ${rows.length} members`}</button>
-        </div>
+        <>
+          <label className="import-welcome-opt">
+            <input type="checkbox" checked={sendWelcome} onChange={(e) => setSendWelcome(e.target.checked)} />
+            <span>Send a welcome message to imported members
+              <span className="muted small">
+                {' '}— branded email for those with an email; SMS/WhatsApp for phone-only members.
+                {dry && (dry.emailable || dry.phoneOnly)
+                  ? ` Would reach ${dry.emailable || 0} by email${dry.phoneOnly ? `, ${dry.phoneOnly} by SMS/WhatsApp` : ''}.`
+                  : ''}
+              </span>
+            </span>
+          </label>
+          <div className="modal-actions">
+            <button className="btn btn-secondary" disabled={busy} onClick={() => run(true)}>{busy ? 'Checking…' : 'Validate (dry run)'}</button>
+            <button className="btn btn-primary" disabled={busy} onClick={() => run(false)}>{busy ? 'Importing…' : `Import ${rows.length} members`}</button>
+          </div>
+        </>
       )}
     </>
   );

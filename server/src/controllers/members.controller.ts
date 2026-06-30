@@ -286,6 +286,10 @@ async function runMemberImport(req: Request, res: Response, orgId: string, enfor
   // Dry run: validate + preview only, never write. Lets onboarding teams check a
   // partner's CSV (e.g. AXA's pilot cohort) before committing.
   const dryRun = Boolean(req.body?.dryRun);
+  // Introductory messages to imported members are opt-in: the uploader ticks
+  // "send a welcome" in the modal. Default OFF so a re-import or data migration
+  // never silently emails/texts an entire cohort.
+  const sendWelcome = req.body?.sendWelcome === true;
   const rows: unknown[] = Array.isArray(req.body?.members) ? req.body.members : [];
 
   if (rows.length === 0) {
@@ -347,6 +351,11 @@ async function runMemberImport(req: Request, res: Response, orgId: string, enfor
       skipped,
       warnings,
       total: rows.length,
+      // So the modal can tell the uploader exactly who a "send welcome" would
+      // reach: members with an email get the branded email; phone-only members
+      // get SMS/WhatsApp (once those channels are live).
+      emailable: valid.filter((v) => v[3]).length,
+      phoneOnly: valid.filter((v) => !v[3] && v[2]).length,
       preview: valid.slice(0, 8).map((v) => ({ fullName: v[1], phone: v[2], email: v[3] })),
       seatLimit: seats && seats.exceeded ? seatLimitError(seats, valid.length) : null,
     });
@@ -391,24 +400,29 @@ async function runMemberImport(req: Request, res: Response, orgId: string, enfor
   }
 
   // Per-member introductory message (branded email, else SMS/WhatsApp for
-  // phone-only). Fire-and-forget so a large import isn't blocked on email delivery.
-  for (const v of valid) {
-    const fullName = v[1] as string;
-    const phone = (v[2] as string) || '';
-    const email = (v[3] as string) || '';
-    if (email || phone) {
-      void sendMemberWelcome({ email: email || undefined, phone: phone || undefined, fullName, orgName, joinCode });
+  // phone-only) — only when the uploader opted in. Fire-and-forget so a large
+  // import isn't blocked on email delivery.
+  if (sendWelcome) {
+    for (const v of valid) {
+      const fullName = v[1] as string;
+      const phone = (v[2] as string) || '';
+      const email = (v[3] as string) || '';
+      if (email || phone) {
+        void sendMemberWelcome({ email: email || undefined, phone: phone || undefined, fullName, orgName, joinCode });
+      }
     }
   }
+  // The in-app org notification always fires — it's an internal heads-up, not an
+  // outbound blast to members, so it isn't gated by the "send welcome" choice.
   void notify({
     orgId, category: 'members',
     title: `${valid.length} member${valid.length === 1 ? '' : 's'} imported`,
-    body: `A CSV import added ${valid.length} member${valid.length === 1 ? '' : 's'} to your organisation.`,
+    body: `A CSV import added ${valid.length} member${valid.length === 1 ? '' : 's'} to your organisation${sendWelcome ? ' — welcome messages sent' : ''}.`,
     href: '/members',
   });
 
   await recordAudit(req, {
-    action: 'member.import', orgId, metadata: { inserted: valid.length, skipped, total: rows.length },
+    action: 'member.import', orgId, metadata: { inserted: valid.length, skipped, total: rows.length, welcomeSent: sendWelcome },
   });
 
   res.status(201).json({ inserted: valid.length, skipped, warnings, total: rows.length });

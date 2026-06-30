@@ -47,6 +47,10 @@ export default function MemberImportModal({ onClose, onImported }: {
   const [dry, setDry] = useState<MemberImportResult | null>(null);
   // Set when the server blocks the import for exceeding the plan's seat cap.
   const [limitHit, setLimitHit] = useState(false);
+  // Opt-in: email (or SMS/WhatsApp for phone-only) every imported member a
+  // branded welcome. Default on for the common case (onboarding new members);
+  // untick when re-importing or migrating people who already have access.
+  const [sendWelcome, setSendWelcome] = useState(true);
 
   const onFile = async (file: File) => {
     setError(''); setResult(null); setDry(null);
@@ -96,7 +100,7 @@ export default function MemberImportModal({ onClose, onImported }: {
     try {
       // Send every parsed row; the server is the authority on validation and
       // returns which rows it skipped and why.
-      const res = await importMembers(parsed.records as unknown as Record<string, unknown>[]);
+      const res = await importMembers(parsed.records as unknown as Record<string, unknown>[], false, sendWelcome);
       setResult(res);
       if (res.inserted > 0) onImported();
     } catch (err) {
@@ -245,6 +249,25 @@ export default function MemberImportModal({ onClose, onImported }: {
                   </div>
                 )}
               </div>
+            )}
+
+            {parsed && (
+              <label className="import-welcome-opt">
+                <input
+                  type="checkbox"
+                  checked={sendWelcome}
+                  onChange={(e) => setSendWelcome(e.target.checked)}
+                />
+                <span>
+                  Send a welcome message to imported members
+                  <span className="muted small">
+                    {' '}— branded email for those with an email address; SMS/WhatsApp for phone-only members.
+                    {dry && (dry.emailable || dry.phoneOnly)
+                      ? ` Would reach ${dry.emailable || 0} by email${dry.phoneOnly ? `, ${dry.phoneOnly} by SMS/WhatsApp` : ''}.`
+                      : ''}
+                  </span>
+                </span>
+              </label>
             )}
 
             <div className="modal-actions">

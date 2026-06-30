@@ -74,6 +74,21 @@
   margin: 1rem 0;
 }
 
+/* Opt-in toggle: send a welcome to imported members. */
+.import-welcome-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0.2rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.import-welcome-opt input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
 .import-summary {
   display: flex;
   align-items: center;

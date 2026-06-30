@@ -156,10 +156,11 @@ export async function adminSyncOrgHr(id: string): Promise<{ ok: boolean; pulled:
 }
 
 // Import members into a specific org (platform admin onboarding a tenant).
+// sendWelcome=true messages each imported member (opt-in, real imports only).
 export async function adminImportOrgMembers(
-  id: string, members: Record<string, unknown>[], dryRun = false,
+  id: string, members: Record<string, unknown>[], dryRun = false, sendWelcome = false,
 ): Promise<import('./resources').MemberImportResult> {
-  return (await api.post(`/admin/organisations/${id}/members/import`, { members, dryRun })).data;
+  return (await api.post(`/admin/organisations/${id}/members/import`, { members, dryRun, sendWelcome })).data;
 }
 
 // Cross-org member management (platform admin — edit a member in ANY org).

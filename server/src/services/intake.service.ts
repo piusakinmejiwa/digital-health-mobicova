@@ -1,6 +1,8 @@
 import { query } from '../config/database';
 import { newMembershipId } from '../lib/membership';
 import { writeAudit } from '../lib/audit';
+import { sendMemberWelcome } from '../lib/onboarding';
+import { notify } from '../lib/notify';
 
 // A channel-agnostic conversational engine for enrolling a member through a
 // low-bandwidth channel (WhatsApp chat or USSD menu). The same step machine
@@ -144,5 +146,34 @@ export async function createMemberFromIntake(
     targetId: result.rows[0].id, targetLabel: state.fullName || '',
     metadata: { channel: ctx.channel, membershipId, self_service: true },
   });
-  return result.rows[0].id;
+
+  const memberId = result.rows[0].id;
+
+  // Introductory welcome for the self-enrolled member (SMS/WhatsApp — these
+  // members are phone-only) and an in-app notification for the org. Both run in
+  // the background so they add NO latency to the USSD/WhatsApp response, which is
+  // on a tight gateway timeout. Best-effort: failures are logged, never thrown.
+  void (async () => {
+    try {
+      const org = await query('SELECT name, join_code FROM organisations WHERE id = $1', [state.orgId]);
+      const orgName = org.rows[0]?.name || state.orgName || 'MobiCova';
+      await sendMemberWelcome({
+        phone: ctx.phone || undefined,
+        fullName: state.fullName || '',
+        orgName,
+        joinCode: org.rows[0]?.join_code || '',
+      });
+      await notify({
+        orgId: state.orgId!,
+        category: 'members',
+        title: 'New member enrolled',
+        body: `${state.fullName || 'A member'} self-enrolled via ${ctx.channel.toUpperCase()}.`,
+        href: `/members/${memberId}`,
+      });
+    } catch (err) {
+      console.error('[intake] self-enrol welcome/notify failed (non-fatal):', err);
+    }
+  })();
+
+  return memberId;
 }

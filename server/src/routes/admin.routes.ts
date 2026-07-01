@@ -60,6 +60,7 @@ import {
 } from '../controllers/adminRewards.controller';
 import {
   listDistributionPartners, createDistributionPartner, rotateDistributionKey, updateDistributionPartner,
+  distributionPartnerPremiums,
 } from '../controllers/adminDistribution.controller';
 
 const router = Router();
@@ -74,6 +75,7 @@ router.get('/distribution-partners', asyncHandler(listDistributionPartners));
 router.post('/distribution-partners', asyncHandler(createDistributionPartner));
 router.post('/distribution-partners/:id/rotate-key', asyncHandler(rotateDistributionKey));
 router.patch('/distribution-partners/:id', asyncHandler(updateDistributionPartner));
+router.get('/distribution-partners/:id/premiums', asyncHandler(distributionPartnerPremiums));
 
 // Partner organisations (tenants)
 router.get('/organisations', asyncHandler(adminListOrgs));

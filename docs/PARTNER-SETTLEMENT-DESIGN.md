@@ -192,8 +192,10 @@ line taken from either side per the commercial agreement.
 
 ## 10. Phased build
 
-1. **Ledger** — `premium_transactions` + extend `POST /payment` to write it (small,
-   unlocks reporting immediately).
+1. **Ledger** — `premium_transactions` + extend `POST /payment` to write it.
+   ✅ **BUILT** (migration 069): the split (commission / configurable MobiCova
+   platform fee / net) is written on every confirmed payment, idempotent on the
+   partner txn ref; per-period roll-up at `GET /admin/distribution-partners/:id/premiums`.
 2. **Reconciliation** — statement ingest (CSV) + matching + exceptions worklist.
 3. **Statements** — period aggregation + finalise + CSV/PDF export + the admin
    Settlement sub-tab.

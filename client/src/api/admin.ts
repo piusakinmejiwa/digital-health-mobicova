@@ -323,15 +323,19 @@ export async function adminBuddySafety(days = 30): Promise<BuddySafetyFeed> {
 // --- Distribution partners (PalmPay, OPay, …) ---
 export interface DistributionPartner {
   id: string; name: string; slug: string; key_prefix: string | null; webhook_url: string;
-  commission_rate: number; sandbox: boolean; active: boolean;
+  commission_rate: number; platform_fee_rate: number; sandbox: boolean; active: boolean;
   created_at: string; last_used_at: string | null; org_name: string; org_id: string;
+}
+export interface PremiumSummaryRow {
+  period: string; transactions: number; gross: string; commission: string;
+  platform_fee: string; levy: string; net_to_underwriter: string;
 }
 export async function adminListDistributionPartners(): Promise<{ partners: DistributionPartner[] }> {
   return (await api.get('/admin/distribution-partners')).data;
 }
 // apiKey + webhookSecret are returned ONCE at creation.
 export async function adminCreateDistributionPartner(data: {
-  orgId: string; name: string; slug: string; webhookUrl?: string; commissionRate?: number; sandbox?: boolean;
+  orgId: string; name: string; slug: string; webhookUrl?: string; commissionRate?: number; platformFeeRate?: number; sandbox?: boolean;
 }): Promise<{ id: string; name: string; slug: string; sandbox: boolean; apiKey: string; webhookSecret: string; note: string }> {
   return (await api.post('/admin/distribution-partners', data)).data;
 }
@@ -339,7 +343,11 @@ export async function adminRotateDistributionKey(id: string): Promise<{ id: stri
   return (await api.post(`/admin/distribution-partners/${id}/rotate-key`)).data;
 }
 export async function adminUpdateDistributionPartner(id: string, data: {
-  active?: boolean; sandbox?: boolean; webhookUrl?: string; commissionRate?: number;
+  active?: boolean; sandbox?: boolean; webhookUrl?: string; commissionRate?: number; platformFeeRate?: number;
 }): Promise<DistributionPartner> {
   return (await api.patch(`/admin/distribution-partners/${id}`, data)).data;
+}
+// Ledger roll-up per billing period for a partner.
+export async function adminDistributionPremiums(id: string, period?: string): Promise<{ summary: PremiumSummaryRow[] }> {
+  return (await api.get(`/admin/distribution-partners/${id}/premiums`, { params: period ? { period } : {} })).data;
 }

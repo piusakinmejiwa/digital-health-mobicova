@@ -19,7 +19,7 @@ const fmtDate = (s: string | null) => (s ? new Date(s).toLocaleDateString() : 'n
 // One-time credentials returned when a partner is created or its key rotated.
 interface Creds { title: string; name: string; apiKey: string; webhookSecret?: string }
 
-const emptyForm = { orgId: '', name: '', slug: '', webhookUrl: '', commissionRate: 0, sandbox: true };
+const emptyForm = { orgId: '', name: '', slug: '', webhookUrl: '', commissionRate: 0, platformFeeRate: 0, sandbox: true };
 
 export default function DistributionAdmin() {
   const qc = useQueryClient();
@@ -58,6 +58,7 @@ export default function DistributionAdmin() {
         slug: creating.slug.trim() || slugify(creating.name),
         webhookUrl: creating.webhookUrl.trim() || undefined,
         commissionRate: Number(creating.commissionRate) || 0,
+        platformFeeRate: Number(creating.platformFeeRate) || 0,
         sandbox: creating.sandbox,
       });
       setCreating(null);
@@ -86,7 +87,9 @@ export default function DistributionAdmin() {
     setBusy(true); setError('');
     try {
       await adminUpdateDistributionPartner(editing.id, {
-        webhookUrl: editing.webhook_url, commissionRate: Number(editing.commission_rate) || 0,
+        webhookUrl: editing.webhook_url,
+        commissionRate: Number(editing.commission_rate) || 0,
+        platformFeeRate: Number(editing.platform_fee_rate) || 0,
       });
       setEditing(null); refresh();
     } catch (err) { setError(errMessage(err, 'Could not update the partner.')); }
@@ -115,7 +118,7 @@ export default function DistributionAdmin() {
       />
       <table className="table">
         <thead>
-          <tr><th>Partner</th><th>Underwriter</th><th>Key</th><th>Mode</th><th>Commission</th><th>Last used</th><th></th></tr>
+          <tr><th>Partner</th><th>Underwriter</th><th>Key</th><th>Mode</th><th>Comm / MobiCova fee</th><th>Last used</th><th></th></tr>
         </thead>
         <tbody>
           {filtered.map((p) => (
@@ -130,7 +133,7 @@ export default function DistributionAdmin() {
                     ? <span className="badge badge-amber">sandbox</span>
                     : <span className="badge badge-green">live</span>}
               </td>
-              <td className="muted small">{Number(p.commission_rate)}%</td>
+              <td className="muted small">{Number(p.commission_rate)}% / {Number(p.platform_fee_rate)}%</td>
               <td className="muted small">{fmtDate(p.last_used_at)}</td>
               <td className="admin-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => { setError(''); setEditing({ ...p }); }}>Edit</button>
@@ -174,9 +177,14 @@ export default function DistributionAdmin() {
                   onChange={(e) => { setSlugTouched(true); setCreating({ ...creating, slug: slugify(e.target.value) }); }} />
               </div>
               <div className="form-group">
-                <label>Commission (%)</label>
+                <label>Partner commission (%)</label>
                 <input type="number" min={0} max={100} value={creating.commissionRate}
                   onChange={(e) => setCreating({ ...creating, commissionRate: Number(e.target.value) })} />
+              </div>
+              <div className="form-group">
+                <label>MobiCova platform fee (%)</label>
+                <input type="number" min={0} max={100} value={creating.platformFeeRate}
+                  onChange={(e) => setCreating({ ...creating, platformFeeRate: Number(e.target.value) })} />
               </div>
               <div className="form-group form-span-2">
                 <label>Webhook URL (optional)</label>
@@ -213,9 +221,14 @@ export default function DistributionAdmin() {
                 placeholder="https://…" />
             </div>
             <div className="form-group">
-              <label>Commission (%)</label>
+              <label>Partner commission (%)</label>
               <input type="number" min={0} max={100} value={editing.commission_rate}
                 onChange={(e) => setEditing({ ...editing, commission_rate: Number(e.target.value) })} />
+            </div>
+            <div className="form-group">
+              <label>MobiCova platform fee (%)</label>
+              <input type="number" min={0} max={100} value={editing.platform_fee_rate}
+                onChange={(e) => setEditing({ ...editing, platform_fee_rate: Number(e.target.value) })} />
             </div>
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setEditing(null)}>Cancel</button>

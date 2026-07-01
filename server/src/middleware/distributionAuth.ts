@@ -9,6 +9,7 @@ export interface DistributionPartnerCtx {
   name: string;
   sandbox: boolean;
   commissionRate: number;
+  platformFeeRate: number;
   webhookUrl: string;
   webhookSecret: string;
 }
@@ -39,7 +40,7 @@ export async function authenticateDistributionPartner(req: Request, res: Respons
 
   const candidateHash = hashApiKey(key);
   const result = await query(
-    `SELECT id, org_id, name, key_hash, sandbox, commission_rate, webhook_url, webhook_secret
+    `SELECT id, org_id, name, key_hash, sandbox, commission_rate, platform_fee_rate, webhook_url, webhook_secret
        FROM distribution_partners
       WHERE key_prefix = $1 AND active = true`,
     [distKeyPrefix(key)]
@@ -56,6 +57,7 @@ export async function authenticateDistributionPartner(req: Request, res: Respons
     name: match.name,
     sandbox: match.sandbox,
     commissionRate: Number(match.commission_rate),
+    platformFeeRate: Number(match.platform_fee_rate),
     webhookUrl: match.webhook_url || '',
     webhookSecret: match.webhook_secret || '',
   };

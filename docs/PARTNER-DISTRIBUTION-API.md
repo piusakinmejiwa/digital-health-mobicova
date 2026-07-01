@@ -66,11 +66,20 @@ curl -X POST {API}/api/partner/v1/enrolments -H "Authorization: Bearer $KEY" \
   }'
 # -> { enrolmentId, membershipId, status: "pending_payment", premium, currency, ... }
 
-# 4) Confirm premium collected -> policy activates, webhook fires
+# 4) Confirm premium collected -> policy activates, ledger entry written, webhook fires
 curl -X POST {API}/api/partner/v1/enrolments/<enrolmentId>/payment \
-  -H "Authorization: Bearer $KEY"
-# -> { enrolmentId, status: "active" }
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{ "amount": 2500, "externalTxnRef": "PP-TXN-98765" }'
+# -> { enrolmentId, status: "active", ledgerId,
+#      premium: { gross, commission, platformFee, net, ... } }
 ```
+
+`amount` defaults to the bound premium if omitted. Each confirmed payment writes a
+row to the **premium ledger** (gross → partner commission → MobiCova platform fee →
+net to underwriter, rates snapshotted), idempotent on `externalTxnRef`. Roll-ups per
+billing period are available to platform admins at
+`GET /api/v1/admin/distribution-partners/:id/premiums`. See
+[PARTNER-SETTLEMENT-DESIGN.md](PARTNER-SETTLEMENT-DESIGN.md).
 
 `POST /enrolments` and `/payment` are **idempotent** — retrying with the same
 `externalRef` (or re-confirming payment) returns the existing policy, so network

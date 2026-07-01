@@ -12,7 +12,7 @@ import { generateDistributionKey, generatePartnerWebhookSecret } from '../lib/di
 export async function listDistributionPartners(_req: Request, res: Response): Promise<void> {
   const r = await query(
     `SELECT dp.id, dp.name, dp.slug, dp.key_prefix, dp.webhook_url, dp.commission_rate,
-            dp.sandbox, dp.active, dp.created_at, dp.last_used_at,
+            dp.platform_fee_rate, dp.sandbox, dp.active, dp.created_at, dp.last_used_at,
             o.name AS org_name, dp.org_id
        FROM distribution_partners dp JOIN organisations o ON o.id = dp.org_id
       ORDER BY dp.created_at DESC`
@@ -35,11 +35,11 @@ export async function createDistributionPartner(req: Request, res: Response): Pr
   const webhookSecret = generatePartnerWebhookSecret();
   const r = await query(
     `INSERT INTO distribution_partners
-        (org_id, name, slug, key_prefix, key_hash, webhook_url, webhook_secret, commission_rate, sandbox)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        (org_id, name, slug, key_prefix, key_hash, webhook_url, webhook_secret, commission_rate, platform_fee_rate, sandbox)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING id`,
     [orgId, name, slug, key.prefix, key.hash, String(b.webhookUrl || ''), webhookSecret,
-     Number(b.commissionRate) || 0, b.sandbox !== false]
+     Number(b.commissionRate) || 0, Number(b.platformFeeRate) || 0, b.sandbox !== false]
   );
   await recordAudit(req, {
     action: 'distribution_partner.create', orgId, targetType: 'distribution_partner',
@@ -75,14 +75,39 @@ export async function updateDistributionPartner(req: Request, res: Response): Pr
   const b = req.body || {};
   const r = await query(
     `UPDATE distribution_partners SET
-        active          = COALESCE($2, active),
-        sandbox         = COALESCE($3, sandbox),
-        webhook_url     = COALESCE($4, webhook_url),
-        commission_rate = COALESCE($5, commission_rate)
+        active            = COALESCE($2, active),
+        sandbox           = COALESCE($3, sandbox),
+        webhook_url       = COALESCE($4, webhook_url),
+        commission_rate   = COALESCE($5, commission_rate),
+        platform_fee_rate = COALESCE($6, platform_fee_rate)
       WHERE id = $1
-      RETURNING id, name, slug, sandbox, active, webhook_url, commission_rate`,
-    [id, b.active ?? null, b.sandbox ?? null, b.webhookUrl ?? null, b.commissionRate ?? null]
+      RETURNING id, name, slug, sandbox, active, webhook_url, commission_rate, platform_fee_rate`,
+    [id, b.active ?? null, b.sandbox ?? null, b.webhookUrl ?? null, b.commissionRate ?? null, b.platformFeeRate ?? null]
   );
   if (r.rows.length === 0) { res.status(404).json({ error: 'Distribution partner not found' }); return; }
   res.json(r.rows[0]);
+}
+
+// GET /admin/distribution-partners/:id/premiums[?period=YYYY-MM]
+// Ledger roll-up per billing period: gross, commission, MobiCova fee, net to underwriter.
+export async function distributionPartnerPremiums(req: Request, res: Response): Promise<void> {
+  const id = String(req.params.id);
+  const period = String(req.query.period || '').trim();
+  const params: unknown[] = [id];
+  let where = 'partner_id = $1';
+  if (period) { params.push(period); where += ' AND period = $2'; }
+  const r = await query(
+    `SELECT period,
+            COUNT(*)::int AS transactions,
+            COALESCE(SUM(gross_amount), 0)        AS gross,
+            COALESCE(SUM(commission_amount), 0)   AS commission,
+            COALESCE(SUM(platform_fee_amount), 0) AS platform_fee,
+            COALESCE(SUM(levy_amount), 0)         AS levy,
+            COALESCE(SUM(net_amount), 0)          AS net_to_underwriter
+       FROM premium_transactions
+      WHERE ${where} AND type = 'premium'
+      GROUP BY period ORDER BY period DESC`,
+    params
+  );
+  res.json({ summary: r.rows });
 }

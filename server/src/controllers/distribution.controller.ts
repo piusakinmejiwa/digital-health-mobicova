@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { pool, query } from '../config/database';
 import { newMembershipId } from '../lib/membership';
 import { productView, quotePremium, emitPartnerEvent, PlanRow } from '../lib/distribution';
+import { computePremiumSplit, billingPeriod } from '../lib/settlement';
 
 // The Partner Distribution API (/api/partner/v1). Every handler runs behind
 // authenticateDistributionPartner, so req.distributionPartner is set: the partner
@@ -137,30 +138,73 @@ export async function createEnrolment(req: Request, res: Response): Promise<void
   }
 }
 
-// POST /enrolments/:id/payment — the partner confirms premium collected. Activates
-// the policy (idempotent) and fires the policy.activated webhook back to the partner.
+// POST /enrolments/:id/payment { amount?, externalTxnRef?, collectedAt? }
+// The partner confirms premium collected. Activates the policy (idempotent),
+// writes a premium-ledger entry (gross → commission / platform fee / net, rates
+// snapshotted), and fires the policy.activated webhook on first activation.
 export async function recordPayment(req: Request, res: Response): Promise<void> {
   const p = partnerOrg(req);
   const id = String(req.params.id);
   const cur = await query(
-    'SELECT id, status FROM enrolments WHERE id = $1 AND source_partner_id = $2',
+    'SELECT id, status, plan_id, premium_amount, currency FROM enrolments WHERE id = $1 AND source_partner_id = $2',
     [id, p.id]
   );
   if (cur.rows.length === 0) { res.status(404).json({ error: 'Enrolment not found' }); return; }
+  const enr = cur.rows[0];
 
-  if (cur.rows[0].status !== 'active') {
+  const wasActive = enr.status === 'active';
+  if (!wasActive) {
     await query(
       `UPDATE enrolments SET status = 'active', payment_status = 'paid',
               paid_at = NOW(), activated_at = NOW() WHERE id = $1`,
       [id]
     );
+  }
+
+  // Ledger entry. Amount defaults to the bound premium; rates snapshot the
+  // partner's current commission + MobiCova platform fee. Idempotent on the
+  // partner's transaction ref (repeat confirmations don't double-record).
+  const gross = Number(req.body?.amount) > 0 ? Number(req.body.amount) : Number(enr.premium_amount || 0);
+  const externalTxnRef = String(req.body?.externalTxnRef || '').trim() || null;
+  const collectedAt = req.body?.collectedAt ? new Date(req.body.collectedAt) : new Date();
+  const split = computePremiumSplit(gross, p.commissionRate, p.platformFeeRate);
+
+  let ledgerId: string | null = null;
+  if (gross > 0) {
+    const dup = externalTxnRef
+      ? await query('SELECT id FROM premium_transactions WHERE partner_id = $1 AND external_txn_ref = $2', [p.id, externalTxnRef])
+      : { rows: [] as { id: string }[] };
+    if (dup.rows.length > 0) {
+      ledgerId = dup.rows[0].id;
+    } else {
+      try {
+        const ins = await query(
+          `INSERT INTO premium_transactions
+             (enrolment_id, partner_id, org_id, plan_id, type, gross_amount,
+              commission_rate, commission_amount, platform_fee_rate, platform_fee_amount,
+              levy_amount, net_amount, currency, period, external_txn_ref, collected_at)
+           VALUES ($1,$2,$3,$4,'premium',$5, $6,$7,$8,$9, $10,$11,$12,$13,$14,$15)
+           RETURNING id`,
+          [id, p.id, p.orgId, enr.plan_id, split.gross,
+           split.commissionRate, split.commission, split.platformFeeRate, split.platformFee,
+           split.levy, split.net, enr.currency || 'NGN', billingPeriod(collectedAt), externalTxnRef, collectedAt]
+        );
+        ledgerId = ins.rows[0].id;
+      } catch (err) {
+        // Unique-violation on a concurrent duplicate ref → treat as idempotent.
+        if ((err as { code?: string }).code !== '23505') throw err;
+      }
+    }
+  }
+
+  if (!wasActive) {
     emitPartnerEvent(
       { id: p.id, webhook_url: p.webhookUrl, webhook_secret: p.webhookSecret },
       'policy.activated',
       { enrolmentId: id }
     );
   }
-  res.json({ enrolmentId: id, status: 'active' });
+  res.json({ enrolmentId: id, status: 'active', ledgerId, premium: split });
 }
 
 // GET /enrolments/:id — policy + cover status for the partner's "my insurance" view.

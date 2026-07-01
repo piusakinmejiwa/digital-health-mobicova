@@ -94,7 +94,12 @@ export async function requestOtp(req: Request, res: Response): Promise<void> {
   const devReveal = env.otpDevMode; // global "show the code" switch
 
   if (!member) {
-    // Generic response; only reveal "not found" in explicit dev mode.
+    // Timing parity: spend the same dominant crypto cost (a bcrypt hash) that a
+    // real member incurs below, so response latency can't be used to enumerate
+    // which phones/emails are enrolled members. (Residual variance from live
+    // SMS/email delivery on the real path is network-dominated and not a reliable
+    // oracle.) Generic response; only reveal "not found" in explicit dev mode.
+    await hashOtp(generateOtpCode());
     res.json({ sent: true, ...(devReveal ? { delivered: false, notFound: true } : {}) });
     return;
   }

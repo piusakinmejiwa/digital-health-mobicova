@@ -58,12 +58,22 @@ import {
   adminListCatalogue, adminCreateCatalogueItem, adminUpdateCatalogueItem, adminDeleteCatalogueItem,
   adminListRedemptions, adminUpdateRedemption,
 } from '../controllers/adminRewards.controller';
+import {
+  listDistributionPartners, createDistributionPartner, rotateDistributionKey, updateDistributionPartner,
+} from '../controllers/adminDistribution.controller';
 
 const router = Router();
 
 // Every admin route requires a valid token AND platform-admin privileges.
 router.use(authenticate);
 router.use(asyncHandler(requirePlatformAdmin));
+
+// Distribution partners (PalmPay, OPay, …) — provision keys for the Partner
+// Distribution API. Keys + webhook secrets are returned once at create/rotate.
+router.get('/distribution-partners', asyncHandler(listDistributionPartners));
+router.post('/distribution-partners', asyncHandler(createDistributionPartner));
+router.post('/distribution-partners/:id/rotate-key', asyncHandler(rotateDistributionKey));
+router.patch('/distribution-partners/:id', asyncHandler(updateDistributionPartner));
 
 // Partner organisations (tenants)
 router.get('/organisations', asyncHandler(adminListOrgs));

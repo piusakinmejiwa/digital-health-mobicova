@@ -10,6 +10,7 @@ import { getMigrationStatus } from './lib/migrationStatus';
 import { errorHandler } from './middleware/errorHandler';
 import routes from './routes';
 import publicApiRoutes from './routes/publicApi.routes';
+import distributionRoutes from './routes/distribution.routes';
 import { smsConfigured, whatsappConfigured } from './lib/messaging';
 import { pharmarunConfigured } from './lib/pharmacyFulfilment';
 import { storageEnabled } from './config/storage';
@@ -100,6 +101,10 @@ app.use('/api/v1', routes);
 // versioned path, separate from the dashboard's internal /api/v1. Gets the same
 // baseline throttle as the rest of the API.
 app.use('/api/public/v1', apiLimiter, publicApiRoutes);
+
+// Partner Distribution API — a distribution channel (PalmPay, OPay, …) sells +
+// services an underwriter's plans. Own versioned path, API-key authenticated.
+app.use('/api/partner/v1', apiLimiter, distributionRoutes);
 
 app.get('/health', async (_req, res) => {
   // Booleans only — confirms which integrations the running service can see,

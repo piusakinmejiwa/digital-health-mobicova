@@ -5,6 +5,7 @@ import { recordAudit, writeAudit } from '../lib/audit';
 import {
   generateOtpCode, hashOtp, verifyOtpHash, signMemberToken,
   maskDestination, OTP_TTL_MS, OTP_MAX_ATTEMPTS, OTP_MAX_PER_HOUR,
+  getMemberSessionEpoch, revokeMemberSessions,
 } from '../lib/memberAuth';
 import { generateClaimReference, isClaimType } from '../lib/claims';
 import { emitEvent } from '../lib/webhooks';
@@ -200,11 +201,19 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
     targetType: 'member', targetId: member.id, targetLabel: member.full_name, ip: req.ip,
   });
 
-  const token = signMemberToken(member.id, member.org_id);
+  const epoch = (await getMemberSessionEpoch(member.id)) ?? 0;
+  const token = signMemberToken(member.id, member.org_id, epoch);
   res.json({
     token,
     member: { id: member.id, fullName: member.full_name, orgId: member.org_id },
   });
+}
+
+// POST /member/auth/logout-all — "sign out of all devices". Bumps the member's
+// session epoch, invalidating every outstanding token (including this one).
+export async function memberLogoutAll(req: Request, res: Response): Promise<void> {
+  await revokeMemberSessions(req.member!.memberId);
+  res.json({ ok: true });
 }
 
 // ── Authenticated portal data ───────────────────────────────────────────

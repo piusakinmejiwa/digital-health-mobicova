@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
-import { signProviderToken } from '../lib/providerAuth';
+import { signProviderToken, getProviderSessionEpoch, revokeProviderSessions } from '../lib/providerAuth';
 import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult, recordingConfigured, listRoomRecordings, getRecordingAccessLink } from '../lib/daily';
 import { haversineKm } from '../lib/geo';
 import { pharmarunConfigured, createFulfilmentOrder } from '../lib/pharmacyFulfilment';
@@ -54,7 +54,8 @@ export async function providerLogin(req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const token = signProviderToken(provider.id, provider.partner_id, provider.role);
+  const epoch = (await getProviderSessionEpoch(provider.id)) ?? 0;
+  const token = signProviderToken(provider.id, provider.partner_id, provider.role, epoch);
   const organisations = await getProviderOrgs(provider.id);
   res.json({
     token,
@@ -70,6 +71,13 @@ export async function providerLogin(req: Request, res: Response): Promise<void> 
       activeOrgId: organisations[0]?.id ?? null,
     },
   });
+}
+
+// POST /provider/auth/logout-all — "sign out of all devices". Bumps the provider's
+// session epoch, invalidating every outstanding token (including this one).
+export async function providerLogoutAll(req: Request, res: Response): Promise<void> {
+  await revokeProviderSessions(req.provider!.providerId);
+  res.json({ ok: true });
 }
 
 // GET /provider/me

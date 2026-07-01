@@ -9,6 +9,7 @@ import {
   getMemberRewardsHandler, getMemberChallengesHandler,
   getMemberLeaderboardHandler, setMemberLeaderboardOptIn,
   getMemberCatalogue, redeemReward, getMemberRedemptionsHandler,
+  memberLogoutAll,
 } from '../controllers/memberPortal.controller';
 import { authenticateMember } from '../middleware/memberAuth';
 import { validate } from '../middleware/validate';
@@ -31,6 +32,7 @@ router.post('/auth/request-otp', otpLimiter, [body('identifier').trim().notEmpty
 router.post('/auth/verify-otp', otpLimiter, [body('identifier').trim().notEmpty(), body('code').trim().notEmpty()], validate, asyncHandler(verifyOtp));
 
 // --- Authenticated member portal ---
+router.post('/auth/logout-all', authenticateMember, asyncHandler(memberLogoutAll));
 router.get('/me', authenticateMember, asyncHandler(getMemberMe));
 router.get('/overview', authenticateMember, asyncHandler(getMemberOverview));
 router.get('/doctors', authenticateMember, asyncHandler(getMemberDoctors));

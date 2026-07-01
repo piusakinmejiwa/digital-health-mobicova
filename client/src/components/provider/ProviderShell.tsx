@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProviderAuth } from '../../context/ProviderAuthContext';
 import { PROVIDER_ORG_KEY } from '../../api/providerClient';
+import { providerLogoutAllDevices } from '../../api/provider';
 import BrandLogo from '../common/BrandLogo';
 import '../../pages/provider/Provider.css';
 
@@ -30,6 +31,13 @@ export default function ProviderShell() {
     localStorage.removeItem(PROVIDER_ORG_KEY);
     logout();
     navigate('/provider/login');
+  };
+
+  // Lost/shared device: revoke all sessions server-side, then drop this one.
+  const signOutEverywhere = async () => {
+    if (!confirm('Sign out of all devices? Every signed-in session for your account will be ended.')) return;
+    try { await providerLogoutAllDevices(); } catch { /* best-effort; still drop local session */ }
+    signOut();
   };
 
   const roleLabel = provider?.role === 'pharmacist' ? 'Pharmacy' : 'Clinician';
@@ -61,6 +69,7 @@ export default function ProviderShell() {
             </span>
           </div>
           <button className="btn btn-link" onClick={signOut}>Sign out</button>
+          <button className="btn btn-link" onClick={signOutEverywhere} title="Revoke every signed-in session for your account">All devices</button>
         </div>
       </header>
       <main className="prov-main">

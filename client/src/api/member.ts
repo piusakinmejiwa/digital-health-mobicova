@@ -9,6 +9,11 @@ export async function requestMemberOtp(identifier: string): Promise<OtpRequestRe
   return res.data;
 }
 
+// "Sign out of all devices" — revokes every outstanding token for this member.
+export async function memberLogoutAllDevices(): Promise<void> {
+  await memberApi.post('/member/auth/logout-all');
+}
+
 export async function verifyMemberOtp(
   identifier: string,
   code: string

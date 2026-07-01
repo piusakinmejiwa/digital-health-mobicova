@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { getMemberMe, getMemberOverview, updateMemberLocation } from '../../api/member';
+import { getMemberMe, getMemberOverview, updateMemberLocation, memberLogoutAllDevices } from '../../api/member';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import { naira, formatDate, badgeClass } from '../../lib/format';
 import './Member.css';
@@ -24,6 +24,16 @@ export default function MemberProfilePage() {
   };
 
   const signOut = () => { logout(); navigate('/member/login'); };
+
+  // Lost/old device: revoke every session server-side, then drop this one too.
+  const [allState, setAllState] = useState<'idle' | 'busy'>('idle');
+  const signOutEverywhere = async () => {
+    if (!confirm('Sign out of MobiCova on all devices? You’ll need to sign in again with a new code.')) return;
+    setAllState('busy');
+    try { await memberLogoutAllDevices(); } catch { /* revoke best-effort; still drop local session */ }
+    logout();
+    navigate('/member/login');
+  };
 
   return (
     <div className="m-screen">
@@ -85,6 +95,9 @@ export default function MemberProfilePage() {
 
         <button className="m-btn ghost m-mt" disabled title="Coming soon">Download member card</button>
         <button className="m-btn ghost m-mt-s m-signout" onClick={signOut}>Sign out</button>
+        <button className="m-btn ghost m-mt-s m-signout" onClick={signOutEverywhere} disabled={allState === 'busy'}>
+          {allState === 'busy' ? 'Signing out…' : 'Sign out of all devices'}
+        </button>
       </div>
     </div>
   );

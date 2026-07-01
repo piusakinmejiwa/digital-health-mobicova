@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import {
-  providerLogin, getProviderMe,
+  providerLogin, providerLogoutAll, getProviderMe,
   listProviderConsultations, getProviderConsultation, acceptConsultation,
   providerConsultationCall, getConsultationRecording, getIncomingCalls,
   updateProviderConsultation, addProviderPrescription, listPharmacies,
@@ -21,6 +21,7 @@ router.post(
   asyncHandler(providerLogin)
 );
 
+router.post('/auth/logout-all', authenticateProvider, asyncHandler(providerLogoutAll));
 router.get('/me', authenticateProvider, asyncHandler(getProviderMe));
 
 // Doctor — consultations.

@@ -13,6 +13,11 @@ export async function providerLogin(
   return res.data;
 }
 
+// "Sign out of all devices" — revokes every outstanding token for this provider.
+export async function providerLogoutAllDevices(): Promise<void> {
+  await providerApi.post('/provider/auth/logout-all');
+}
+
 export async function getProviderMe(): Promise<ProviderSession> {
   const res = await providerApi.get('/provider/me');
   return res.data;

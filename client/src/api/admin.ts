@@ -319,3 +319,27 @@ export type BuddySafetyFeed = {
 export async function adminBuddySafety(days = 30): Promise<BuddySafetyFeed> {
   return (await api.get('/admin/buddy-safety', { params: { days } })).data;
 }
+
+// --- Distribution partners (PalmPay, OPay, …) ---
+export interface DistributionPartner {
+  id: string; name: string; slug: string; key_prefix: string | null; webhook_url: string;
+  commission_rate: number; sandbox: boolean; active: boolean;
+  created_at: string; last_used_at: string | null; org_name: string; org_id: string;
+}
+export async function adminListDistributionPartners(): Promise<{ partners: DistributionPartner[] }> {
+  return (await api.get('/admin/distribution-partners')).data;
+}
+// apiKey + webhookSecret are returned ONCE at creation.
+export async function adminCreateDistributionPartner(data: {
+  orgId: string; name: string; slug: string; webhookUrl?: string; commissionRate?: number; sandbox?: boolean;
+}): Promise<{ id: string; name: string; slug: string; sandbox: boolean; apiKey: string; webhookSecret: string; note: string }> {
+  return (await api.post('/admin/distribution-partners', data)).data;
+}
+export async function adminRotateDistributionKey(id: string): Promise<{ id: string; apiKey: string; note: string }> {
+  return (await api.post(`/admin/distribution-partners/${id}/rotate-key`)).data;
+}
+export async function adminUpdateDistributionPartner(id: string, data: {
+  active?: boolean; sandbox?: boolean; webhookUrl?: string; commissionRate?: number;
+}): Promise<DistributionPartner> {
+  return (await api.patch(`/admin/distribution-partners/${id}`, data)).data;
+}

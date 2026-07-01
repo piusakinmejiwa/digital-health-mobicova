@@ -22,6 +22,7 @@ import { csvCell } from '../../lib/download';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
 import ProvidersAdmin from './ProvidersAdmin';
+import DistributionAdmin from './DistributionAdmin';
 import AuditAdmin from './AuditAdmin';
 import HealthTipsAdmin from './HealthTipsAdmin';
 import './Admin.css';
@@ -34,7 +35,7 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-type AdminTab = 'organisations' | 'users' | 'providers' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'newsletter' | 'healthtips' | 'challenges' | 'audit' | 'safety' | 'system';
+type AdminTab = 'organisations' | 'users' | 'providers' | 'distribution' | 'plans' | 'partners' | 'blog' | 'images' | 'messages' | 'newsletter' | 'healthtips' | 'challenges' | 'audit' | 'safety' | 'system';
 
 // Tabs grouped into categories so the bar stays short: pick a category, then a
 // sub-tab within it.
@@ -43,6 +44,7 @@ const TAB_GROUPS: { label: string; tabs: { key: AdminTab; label: string }[] }[] 
     { key: 'organisations', label: 'Organisations' },
     { key: 'users', label: 'Users' },
     { key: 'providers', label: 'Providers' },
+    { key: 'distribution', label: 'Distribution' },
   ] },
   { label: 'Catalog', tabs: [
     { key: 'plans', label: 'Insurance plans' },
@@ -106,6 +108,7 @@ export default function AdminPage() {
       {tab === 'organisations' && <OrgsAdmin />}
       {tab === 'users' && <UsersAdmin />}
       {tab === 'providers' && <ProvidersAdmin />}
+      {tab === 'distribution' && <DistributionAdmin />}
       {tab === 'plans' && <PlansAdmin />}
       {tab === 'partners' && <PartnersAdmin />}
       {tab === 'blog' && <BlogAdmin />}

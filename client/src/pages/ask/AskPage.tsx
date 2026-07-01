@@ -45,23 +45,31 @@ export default function AskPage() {
       <SiteHeader />
       <div className="mk">
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px 56px' }}>
-          <h1 style={{ marginBottom: 4 }}>Ask Eze</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <img src="/apple-touch-icon.png" alt="MobiCova Health" style={{ width: 34, height: 34, borderRadius: '50%' }} />
+            <h1 style={{ margin: 0 }}>Ask Eze</h1>
+          </div>
           <p style={{ color: '#5e6e6e', marginTop: 0 }}>Your MobiCova assistant — questions about the platform, answered.</p>
 
           <div style={{ border: '1px solid #e2e8e8', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
             <div style={{ maxHeight: 460, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {msgs.map((m, i) => (
-                <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
-                  <div style={{
-                    padding: '10px 14px', borderRadius: 12, lineHeight: 1.55,
-                    background: m.role === 'user' ? '#0A7B7B' : '#f1f6f6',
-                    color: m.role === 'user' ? '#fff' : '#15302f',
-                  }}>{m.role === 'assistant' ? <RichText text={m.content} onNavigate={(p) => navigate(p)} /> : m.content}</div>
-                  {m.handoff === 'buddy' && (
-                    <button className="btn btn-secondary btn-sm" style={{ marginTop: 6 }} onClick={() => navigate('/buddy')}>
-                      💬 Open the Health Buddy
-                    </button>
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-end', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
+                  {m.role === 'assistant' && (
+                    <img src="/apple-touch-icon.png" alt="MobiCova" style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0 }} />
                   )}
+                  <div>
+                    <div style={{
+                      padding: '10px 14px', borderRadius: 12, lineHeight: 1.55,
+                      background: m.role === 'user' ? '#0A7B7B' : '#f1f6f6',
+                      color: m.role === 'user' ? '#fff' : '#15302f',
+                    }}>{m.role === 'assistant' ? <RichText text={m.content} onNavigate={(p) => navigate(p)} /> : m.content}</div>
+                    {m.handoff === 'buddy' && (
+                      <button className="btn btn-secondary btn-sm" style={{ marginTop: 6 }} onClick={() => navigate('/buddy')}>
+                        💬 Open the Health Buddy
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
               {sending && <div style={{ alignSelf: 'flex-start', color: '#5e6e6e', fontSize: 14 }}>…</div>}

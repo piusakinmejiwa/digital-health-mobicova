@@ -99,6 +99,9 @@ export default function BuddyPage() {
             <div className="buddy-chat">
               {msgs.map((m, i) => (
                 <div key={i} className={`buddy-row ${m.role}`}>
+                  {m.role === 'assistant' && (
+                    <img src="/apple-touch-icon.png" alt="MobiCova" className="buddy-avatar" />
+                  )}
                   <div className={`buddy-bubble ${m.role} ${m.safety === 'crisis' || m.safety === 'emergency' ? 'alert' : ''}`}>
                     {m.content.split('\n').map((line, j) => <p key={j}>{line || ' '}</p>)}
                     {m.sources && m.sources.length > 0 && (

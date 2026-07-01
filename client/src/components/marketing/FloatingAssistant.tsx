@@ -55,7 +55,7 @@ export default function FloatingAssistant() {
           boxShadow: '0 8px 24px rgba(10,123,123,.4)', display: 'flex', alignItems: 'center', gap: 8,
         }}
       >
-        <span style={{ fontSize: 18 }}>💬</span> Ask Eze
+        <img src="/apple-touch-icon.png" alt="" style={{ width: 22, height: 22, borderRadius: '50%', background: '#fff' }} /> Ask Eze
       </button>
     );
   }
@@ -68,23 +68,34 @@ export default function FloatingAssistant() {
       border: '1px solid #e2e8e8',
     }}>
       <div style={{ background: '#0A7B7B', color: '#fff', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <strong>Ask Eze</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img src="/apple-touch-icon.png" alt="MobiCova Health" style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', padding: 2, boxSizing: 'border-box' }} />
+          <div style={{ lineHeight: 1.15 }}>
+            <strong>Ask Eze</strong>
+            <div style={{ fontSize: 11, opacity: 0.85 }}>MobiCova Health</div>
+          </div>
+        </div>
         <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: 'transparent', border: 0, color: '#fff', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>×</button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {msgs.map((m, i) => (
-          <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
-            <div style={{
-              padding: '8px 12px', borderRadius: 10, fontSize: 14, lineHeight: 1.5,
-              background: m.role === 'user' ? '#0A7B7B' : '#f1f6f6',
-              color: m.role === 'user' ? '#fff' : '#15302f',
-            }}>{m.role === 'assistant' ? <RichText text={m.content} onNavigate={(p) => navigate(p)} /> : m.content}</div>
-            {m.handoff === 'buddy' && (
-              <button onClick={() => navigate('/buddy')} style={{ marginTop: 6, background: '#fff', border: '1px solid #0A7B7B', color: '#0A7B7B', borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}>
-                💬 Open the Health Buddy
-              </button>
+          <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-end', alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
+            {m.role === 'assistant' && (
+              <img src="/apple-touch-icon.png" alt="MobiCova" style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, background: '#fff' }} />
             )}
+            <div>
+              <div style={{
+                padding: '8px 12px', borderRadius: 10, fontSize: 14, lineHeight: 1.5,
+                background: m.role === 'user' ? '#0A7B7B' : '#f1f6f6',
+                color: m.role === 'user' ? '#fff' : '#15302f',
+              }}>{m.role === 'assistant' ? <RichText text={m.content} onNavigate={(p) => navigate(p)} /> : m.content}</div>
+              {m.handoff === 'buddy' && (
+                <button onClick={() => navigate('/buddy')} style={{ marginTop: 6, background: '#fff', border: '1px solid #0A7B7B', color: '#0A7B7B', borderRadius: 8, padding: '6px 10px', fontSize: 13, cursor: 'pointer' }}>
+                  💬 Open the Health Buddy
+                </button>
+              )}
+            </div>
           </div>
         ))}
         {sending && <div style={{ alignSelf: 'flex-start', color: '#5e6e6e', fontSize: 14 }}>…</div>}

@@ -1,10 +1,22 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
+import { env } from '../config/env';
+import { constantTimeEqual } from '../lib/safeCompare';
 import {
   advanceIntake, createMemberFromIntake, initialIntakeState, IntakeState, INTAKE_INTRO,
 } from '../services/intake.service';
 import { buddyMenuScreen, buddyTipScreen, buddyTopicLabel } from '../lib/buddyMenu';
 import { findMemberByPhone, memberMenu, handleMemberChoice } from '../lib/memberServices';
+
+// Africa's Talking calls these endpoints directly (no dashboard JWT). Guard with
+// AT_WEBHOOK_TOKEN appended as ?token= on the callback URLs registered with AT.
+// Enforced ONLY once a token is configured, so enabling it is a config step
+// (set the env + update the AT URL) that doesn't break a live service code that
+// predates it. Compare is constant-time.
+function atTokenOk(req: Request): boolean {
+  if (!env.atWebhookToken) return true;
+  return constantTimeEqual(String(req.query.token || ''), env.atWebhookToken);
+}
 
 // USSD opening adds a Health Buddy option. INTAKE_INTRO (shared with WhatsApp) is
 // left untouched; entering an org code as the first input still goes to enrolment.
@@ -26,6 +38,7 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
   const parts = text === '' ? [] : String(text).split('*');
 
   res.set('Content-Type', 'text/plain');
+  if (!atTokenOk(req)) { res.status(403).send('END Unauthorised request.'); return; }
 
   // Identify the caller: a known member gets self-service; everyone else gets
   // enrolment. The MSISDN is the identity — no password on USSD.
@@ -96,6 +109,7 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
 // Optional second callback (set under USSD → Service Codes). We just acknowledge
 // it (and log) so AT doesn't flag a delivery error; no menu response is expected.
 export async function handleUssdNotification(req: Request, res: Response): Promise<void> {
+  if (!atTokenOk(req)) { res.sendStatus(403); return; }
   console.log('[ussd] session ended:', {
     sessionId: req.body?.sessionId, serviceCode: req.body?.serviceCode,
     networkCode: req.body?.networkCode, date: req.body?.date,

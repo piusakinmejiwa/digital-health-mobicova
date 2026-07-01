@@ -3,6 +3,7 @@ import { query } from '../config/database';
 import { recordAudit } from '../lib/audit';
 import { generateApiKey } from '../lib/apiKeys';
 import { generateWebhookSecret, WEBHOOK_EVENTS, sendPing } from '../lib/webhooks';
+import { assertPublicHttpUrl } from '../lib/ssrfGuard';
 
 // Org-admin self-service for the public API: manage API keys and webhook
 // endpoints. All handlers are scoped to the caller's organisation and sit behind
@@ -131,13 +132,12 @@ export async function listWebhooks(req: Request, res: Response): Promise<void> {
   res.json(result.rows);
 }
 
+// Structural SSRF check: http(s) only, and not pointed at an internal host or a
+// literal private/loopback/link-local IP (e.g. the cloud metadata endpoint). A
+// second DNS-based check runs at delivery time (lib/webhooks.ts) to catch hosts
+// that resolve inward or rebind after saving.
 function validUrl(u: string): boolean {
-  try {
-    const parsed = new URL(u);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
-  } catch {
-    return false;
-  }
+  return assertPublicHttpUrl(u) !== null;
 }
 
 function sanitiseEvents(input: unknown): string[] {

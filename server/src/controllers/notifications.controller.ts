@@ -11,13 +11,16 @@ export async function getNotifications(req: Request, res: Response): Promise<voi
 
 // POST /notifications/read { ids: string[] } — mark specific notifications read.
 export async function markNotificationsRead(req: Request, res: Response): Promise<void> {
-  const userId = req.user!.userId;
+  const { orgId, userId } = req.user!;
   const ids: string[] = Array.isArray(req.body?.ids) ? req.body.ids.map(String).slice(0, 200) : [];
   for (const id of ids) {
+    // Only mark read a notification that actually belongs to the caller's org —
+    // don't let a client write read-state rows referencing arbitrary/foreign ids.
     await query(
-      `INSERT INTO notification_reads (user_id, notification_id) VALUES ($1, $2)
+      `INSERT INTO notification_reads (user_id, notification_id)
+       SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM notifications WHERE id = $2 AND org_id = $3)
        ON CONFLICT (user_id, notification_id) DO NOTHING`,
-      [userId, id]
+      [userId, id, orgId]
     );
   }
   res.json({ ok: true });

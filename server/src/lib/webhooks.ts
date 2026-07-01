@@ -1,5 +1,6 @@
 import { createHmac, randomBytes } from 'crypto';
 import { query } from '../config/database';
+import { isPublicHost } from './ssrfGuard';
 
 // The event catalogue insurers can subscribe to. Keep names stable — they are a
 // public contract.
@@ -48,16 +49,36 @@ async function recordDelivery(
   }
 }
 
+// Resolve the endpoint host and confirm it's public right before fetching, so a
+// URL that passed the save-time check can't reach an internal address via DNS
+// (rebinding or a name that points inward). Returns an error string if blocked.
+async function ssrfPreflight(url: string): Promise<string | null> {
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return 'invalid URL';
+  }
+  return (await isPublicHost(host)) ? null : 'blocked: endpoint resolves to a non-public address';
+}
+
 async function deliver(endpoint: EndpointRow, event: WebhookEvent, payload: object): Promise<void> {
   const body = JSON.stringify(payload);
   const ts = Math.floor(Date.now() / 1000);
   const signature = signWebhook(endpoint.secret, ts, body);
+
+  const blocked = await ssrfPreflight(endpoint.url);
+  if (blocked) {
+    await recordDelivery(endpoint.id, event, null, false, blocked);
+    return;
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(endpoint.url, {
       method: 'POST',
+      redirect: 'error', // don't follow redirects — they could bounce to an internal host
       headers: {
         'Content-Type': 'application/json',
         'X-MobiCova-Event': event,
@@ -115,11 +136,19 @@ export async function sendPing(endpoint: EndpointRow): Promise<boolean> {
   const body = JSON.stringify(envelope);
   const ts = Math.floor(Date.now() / 1000);
   const signature = signWebhook(endpoint.secret, ts, body);
+
+  const blocked = await ssrfPreflight(endpoint.url);
+  if (blocked) {
+    await recordDelivery(endpoint.id, 'ping', null, false, blocked);
+    return false;
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(endpoint.url, {
       method: 'POST',
+      redirect: 'error', // don't follow redirects — they could bounce to an internal host
       headers: {
         'Content-Type': 'application/json',
         'X-MobiCova-Event': 'ping',

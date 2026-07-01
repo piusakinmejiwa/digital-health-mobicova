@@ -60,10 +60,17 @@ const authLimiter = rateLimit({
 });
 app.use('/api/v1/auth', authLimiter);
 
-// Raw body needed so payment-provider webhook signatures can be verified.
-// Must be registered before express.json() so these paths keep the unparsed body.
+// Raw body needed so webhook signatures can be verified over the exact bytes the
+// provider signed. Must be registered before express.json() so these paths keep
+// the unparsed body: Stripe/Paystack (payments), Meta (WhatsApp X-Hub-Signature),
+// PharmaRun (HMAC).
 app.use(
-  ['/api/v1/billing/stripe/webhook', '/api/v1/billing/paystack/webhook'],
+  [
+    '/api/v1/billing/stripe/webhook',
+    '/api/v1/billing/paystack/webhook',
+    '/api/v1/channels/whatsapp/webhook',
+    '/api/v1/pharmarun/webhook',
+  ],
   express.raw({ type: '*/*' })
 );
 // 2 MB accommodates a bulk member import (up to ~1,000 rows) while still

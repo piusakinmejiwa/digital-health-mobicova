@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
+import { createHmac } from 'crypto';
 import { query } from '../config/database';
 import { env } from '../config/env';
+import { constantTimeEqual } from '../lib/safeCompare';
 import {
   advanceIntake, createMemberFromIntake, initialIntakeState, INTAKE_INTRO, IntakeState, IntakeStep,
 } from '../services/intake.service';
@@ -210,11 +212,29 @@ export async function verifyWhatsapp(req: Request, res: Response): Promise<void>
 }
 
 export async function handleWhatsappWebhook(req: Request, res: Response): Promise<void> {
+  // Verify Meta's X-Hub-Signature-256 (HMAC-SHA256 of the RAW body with the App
+  // Secret) before trusting the payload. This path is served express.raw(), so
+  // req.body is the unparsed Buffer. Fail closed when the secret isn't set — an
+  // unauthenticated payload could otherwise enrol members and spoof sessions.
+  const raw: Buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
+  if (!env.whatsappAppSecret) {
+    console.warn('[whatsapp] inbound webhook rejected — WHATSAPP_APP_SECRET not set');
+    res.sendStatus(401);
+    return;
+  }
+  const header = String(req.headers['x-hub-signature-256'] || '');
+  const expected = `sha256=${createHmac('sha256', env.whatsappAppSecret).update(raw).digest('hex')}`;
+  if (!header || !constantTimeEqual(header, expected)) {
+    res.sendStatus(401);
+    return;
+  }
+
   // Acknowledge immediately so Meta does not retry; processing follows.
   res.sendStatus(200);
 
   try {
-    const entry = req.body?.entry?.[0];
+    const payload = JSON.parse(raw.toString('utf8'));
+    const entry = payload?.entry?.[0];
     const change = entry?.changes?.[0];
     const messageObj = change?.value?.messages?.[0];
     if (!messageObj || messageObj.type !== 'text') return;

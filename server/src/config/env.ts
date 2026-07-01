@@ -42,6 +42,10 @@ export const env = {
   whatsappVerifyToken: process.env.WHATSAPP_VERIFY_TOKEN || '',
   whatsappToken: process.env.WHATSAPP_TOKEN || '',
   whatsappPhoneId: process.env.WHATSAPP_PHONE_ID || '',
+  // Meta App Secret — verifies the X-Hub-Signature-256 HMAC on inbound WhatsApp
+  // webhooks. When unset, the POST webhook is rejected (fail-closed) since the
+  // payload can't be authenticated. Required before going live on inbound WhatsApp.
+  whatsappAppSecret: process.env.WHATSAPP_APP_SECRET || '',
   // Optional — Supabase Storage for claim documents (receipts, scans). When the
   // URL + service-role key are set, uploads go to a private bucket and the API
   // stores a signed URL; when unset, claims still work but document upload is

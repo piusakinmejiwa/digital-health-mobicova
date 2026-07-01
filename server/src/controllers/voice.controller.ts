@@ -1,15 +1,18 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { env } from '../config/env';
+import { constantTimeEqual } from '../lib/safeCompare';
 import { bridgeInstruction, endInstruction } from '../lib/voice';
 
 // Public webhooks for the masking-call provider (Africa's Talking). These are
 // hit by the provider, not the browser, so there's no member/provider token.
-// We optionally guard them with AT_WEBHOOK_TOKEN passed as ?token= on the URLs
-// registered in the AT dashboard.
+// We guard them with AT_WEBHOOK_TOKEN passed as ?token= on the URLs registered
+// in the AT dashboard. Compare is constant-time; when no token is configured we
+// fail CLOSED in production (accept only in dev/test) so a misconfigured prod
+// can't leave these call-bridging endpoints wide open.
 function tokenOk(req: Request): boolean {
-  if (!env.atWebhookToken) return true; // none configured → accept (set one in prod)
-  return String(req.query.token || '') === env.atWebhookToken;
+  if (!env.atWebhookToken) return env.appEnv !== 'production';
+  return constantTimeEqual(String(req.query.token || ''), env.atWebhookToken);
 }
 
 // POST /voice/callback — the provider calls this when the MEMBER answers. We

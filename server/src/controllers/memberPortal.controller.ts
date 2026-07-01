@@ -298,8 +298,9 @@ export async function setPrescriptionFulfilment(req: Request, res: Response): Pr
   }
 
   const result = await query(
-    `UPDATE prescriptions SET fulfilment_method = $2, delivery_address = $3 WHERE id = $1 RETURNING *`,
-    [id, method, method === 'delivery' ? address : '']
+    `UPDATE prescriptions SET fulfilment_method = $2, delivery_address = $3
+       WHERE id = $1 AND member_id = $4 RETURNING *`,
+    [id, method, method === 'delivery' ? address : '', memberId]
   );
   res.json(result.rows[0]);
 }

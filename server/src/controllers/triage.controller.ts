@@ -54,19 +54,35 @@ export async function sendTriageMessage(req: Request, res: Response): Promise<vo
     }
     session = existing.rows[0];
   } else {
+    // If the caller attaches a member, that member MUST belong to their org —
+    // otherwise a staff user could reference another tenant's member id and pull
+    // that member's clinical profile into the AI context below.
+    let linkedMemberId: string | null = null;
+    if (memberId) {
+      const owned = await query(
+        `SELECT id FROM members WHERE id = $1 AND org_id = $2`,
+        [memberId, orgId]
+      );
+      if (owned.rows.length === 0) {
+        res.status(404).json({ error: 'Member not found' });
+        return;
+      }
+      linkedMemberId = owned.rows[0].id;
+    }
     const created = await query(
       `INSERT INTO triage_sessions (org_id, member_id, messages) VALUES ($1, $2, '[]') RETURNING *`,
-      [orgId, memberId || null]
+      [orgId, linkedMemberId]
     );
     session = created.rows[0];
   }
 
   let member;
   if (session.member_id) {
+    // Defence-in-depth: re-scope the PHI fetch to the caller's org, never id alone.
     const m = await query(
       `SELECT full_name, gender, date_of_birth, allergies, chronic_conditions, current_medications
-       FROM members WHERE id = $1`,
-      [session.member_id]
+       FROM members WHERE id = $1 AND org_id = $2`,
+      [session.member_id, orgId]
     );
     if (m.rows.length > 0) {
       const r = m.rows[0];

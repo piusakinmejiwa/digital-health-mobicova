@@ -2,9 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Auto-upgrade any stray http:// subresource (e.g. a stored image URL) to
-         https, so a single insecure asset can't downgrade the padlock to "Not secure". -->
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+    <!-- Baseline CSP applied at the document level. These directives are safe for a
+         Vite+React SPA and add no breakage risk:
+           · upgrade-insecure-requests — upgrade any stray http:// subresource to https
+           · object-src 'none'         — no <object>/<embed>/<applet> (plugin injection)
+           · base-uri 'self'           — block an injected <base> tag redirecting relative URLs
+         The higher-value script-src/style-src/connect-src restrictions belong as HTTP
+         response headers on the static host (Render), where connect-src can name the
+         real API/Sentry/Daily origins and be verified against a production build — a
+         wrong value here would silently break every API call. See SECURITY-CSP note. -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; object-src 'none'; base-uri 'self'" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />

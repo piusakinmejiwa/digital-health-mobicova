@@ -3,6 +3,7 @@ import { query } from '../config/database';
 import { env } from '../config/env';
 import { sendEmail } from '../lib/email';
 import { getOrgBranding } from '../lib/branding';
+import { constantTimeEqual } from '../lib/safeCompare';
 import {
   CADENCES, isCadence, periodFor, computeReportSnapshot,
   renderReportHtml, renderReportText, type Cadence,
@@ -86,7 +87,7 @@ async function buildReport(
 // never double-sends.
 export async function runScheduledReports(req: Request, res: Response): Promise<void> {
   const secret = String(req.headers['x-cron-secret'] || req.query?.secret || '');
-  if (!env.reportsCronSecret || secret !== env.reportsCronSecret) {
+  if (!env.reportsCronSecret || !constantTimeEqual(secret, env.reportsCronSecret)) {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }

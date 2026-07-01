@@ -21,7 +21,18 @@ const app = express();
 // of throwing ERR_ERL_UNEXPECTED_X_FORWARDED_FOR and lumping everyone together.
 app.set('trust proxy', 1);
 
-app.use(helmet());
+// Explicit hardening on top of helmet's defaults: long HSTS with preload +
+// subdomains, deny framing entirely (clickjacking), and don't leak URLs in the
+// Referer. useDefaults keeps helmet's sensible base CSP (so server-rendered
+// pages like the SAML ACS callback aren't broken) and only tightens framing.
+app.use(helmet({
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: { 'frame-ancestors': ["'none'"] },
+  },
+  referrerPolicy: { policy: 'no-referrer' },
+}));
 // Allow the configured client origins (custom domain, Render URL, localhost).
 // Requests without an Origin header (server-to-server, curl, the public API) are
 // permitted — CORS only governs browsers.

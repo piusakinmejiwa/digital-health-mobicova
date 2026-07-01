@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { env } from '../config/env';
 import { sendSms, smsConfigured } from '../lib/messaging';
+import { constantTimeEqual } from '../lib/safeCompare';
 
 // POST /diag/test-sms  { to }   header: x-diag-secret
 // Sends one test SMS and returns Africa's Talking's *raw* outcome so we can see
@@ -12,7 +13,7 @@ import { sendSms, smsConfigured } from '../lib/messaging';
 export async function testSms(req: Request, res: Response): Promise<void> {
   const secret = env.healthTipsCronSecret;
   const presented = String(req.header('x-diag-secret') || '');
-  if (!secret || presented !== secret || !env.atSandbox) {
+  if (!secret || !constantTimeEqual(presented, secret) || !env.atSandbox) {
     res.status(404).json({ error: 'Not found' });
     return;
   }

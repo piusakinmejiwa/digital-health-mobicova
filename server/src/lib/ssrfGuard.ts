@@ -54,6 +54,9 @@ function isBlockedHostname(host: string): boolean {
   return false;
 }
 
+// Exposed for unit tests only.
+export const isBlockedHostnameForTest = isBlockedHostname;
+
 // Structural check used when a tenant SAVES a webhook URL. Rejects non-http(s),
 // blocked hostnames, and literal private IPs. Returns the parsed URL or null.
 export function assertPublicHttpUrl(u: string): URL | null {

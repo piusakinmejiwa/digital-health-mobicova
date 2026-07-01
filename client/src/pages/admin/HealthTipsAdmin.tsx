@@ -7,6 +7,7 @@ import {
   adminListHealthTipSends, adminSendHealthTipNow,
   type HealthTip, type HealthTipSendSummary,
 } from '../../api/healthTips';
+import { csvCell } from '../../lib/download';
 
 function errMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) return err.response?.data?.error || fallback;
@@ -37,7 +38,7 @@ function Subscribers() {
   const exportCsv = () => {
     const head = ['Name', 'SMS', 'WhatsApp', 'Email', 'Channels', 'Active', 'Joined'];
     const rows = subs.map((s) => [s.full_name, s.sms_number, s.whatsapp_number, s.email, (s.channels || []).join('|'), s.is_active ? 'yes' : 'no', new Date(s.created_at).toISOString()]);
-    const csv = [head, ...rows].map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = [head, ...rows].map((r) => r.map((c) => csvCell(c)).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const a = document.createElement('a'); a.href = url; a.download = 'health-tip-subscribers.csv'; a.click(); URL.revokeObjectURL(url);
   };

@@ -3,6 +3,7 @@ import { query } from '../config/database';
 import { env } from '../config/env';
 import { sendEmail } from '../lib/email';
 import { sendSms, sendWhatsApp, smsConfigured, whatsappConfigured } from '../lib/messaging';
+import { constantTimeEqual } from '../lib/safeCompare';
 
 const CHANNELS = ['sms', 'whatsapp', 'email'] as const;
 type Channel = (typeof CHANNELS)[number];
@@ -170,7 +171,7 @@ export async function sendDailyTips(): Promise<SendSummary> {
 // secret (x-cron-secret header or ?secret=) so only your cron can fire it.
 export async function runDailyTips(req: Request, res: Response): Promise<void> {
   const secret = String(req.headers['x-cron-secret'] || req.query?.secret || '');
-  if (!env.healthTipsCronSecret || secret !== env.healthTipsCronSecret) {
+  if (!env.healthTipsCronSecret || !constantTimeEqual(secret, env.healthTipsCronSecret)) {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }

@@ -18,6 +18,7 @@ import { adminListContactMessages, adminDeleteContactMessage } from '../../api/c
 import { adminListPageAssets, adminSavePageAsset, adminGenerateImage } from '../../api/pageAssets';
 import { adminListNewsletter, adminDeleteNewsletter } from '../../api/newsletter';
 import { naira } from '../../lib/format';
+import { csvCell } from '../../lib/download';
 import OrgsAdmin from './OrgsAdmin';
 import UsersAdmin from './UsersAdmin';
 import ProvidersAdmin from './ProvidersAdmin';
@@ -230,7 +231,7 @@ function NewsletterAdmin() {
   };
   const csv = () => {
     const rows = [['Name', 'Email', 'Phone', 'Signed up'], ...(signups || []).map((s) => [s.name, s.email, s.phone, new Date(s.created_at).toISOString()])];
-    const blob = new Blob([rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv' });
+    const blob = new Blob([rows.map((r) => r.map((c) => csvCell(c)).join(',')).join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'mobicova-newsletter.csv'; a.click();
   };

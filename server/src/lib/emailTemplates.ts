@@ -45,6 +45,20 @@ export function adminWelcomeEmail(o: {
   return { subject, html, text };
 }
 
+// Password-reset link for a staff user or provider who used "forgot password".
+export function passwordResetEmail(o: { fullName?: string; resetUrl: string }): Tpl {
+  const subject = 'Reset your MobiCova password';
+  const body = `<p>Hi ${o.fullName || 'there'},</p>
+    <p>We received a request to reset the password for your MobiCova account. Click below to choose a new one:</p>
+    ${button('Reset your password', o.resetUrl)}
+    <p style="font-size:13px;color:#4a5d61">This link expires in 1 hour and can be used once. If you didn't
+    request this, you can safely ignore this email — your password won't change.</p>`;
+  const html = shell('Reset your password', body);
+  const text = `Hi ${o.fullName || 'there'},\n\nReset your MobiCova password using this link (expires in 1 hour, single use):\n`
+    + `${o.resetUrl}\n\nIf you didn't request this, ignore this email — your password won't change.\n`;
+  return { subject, html, text };
+}
+
 // Welcome for a newly enrolled member: how to reach the platform.
 export function memberWelcomeEmail(o: {
   fullName: string; orgName: string; portalUrl: string; joinCode: string;

@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../config/database';
 import { signProviderToken, getProviderSessionEpoch, revokeProviderSessions } from '../lib/providerAuth';
+import { env } from '../config/env';
+import { hashToken } from '../lib/invites';
+import { passwordIssue } from '../lib/password';
+import { issueProviderResetToken } from '../lib/passwordReset';
+import { sendEmail } from '../lib/email';
+import { passwordResetEmail } from '../lib/emailTemplates';
 import { dailyConfigured, ensureRoom, createMeetingToken, roomNameForConsult, recordingConfigured, listRoomRecordings, getRecordingAccessLink } from '../lib/daily';
 import { haversineKm } from '../lib/geo';
 import { pharmarunConfigured, createFulfilmentOrder } from '../lib/pharmacyFulfilment';
@@ -77,6 +83,50 @@ export async function providerLogin(req: Request, res: Response): Promise<void> 
 // session epoch, invalidating every outstanding token (including this one).
 export async function providerLogoutAll(req: Request, res: Response): Promise<void> {
   await revokeProviderSessions(req.provider!.providerId);
+  res.json({ ok: true });
+}
+
+// POST /provider/auth/forgot-password { email } — generic 200 (no enumeration);
+// emails a single-use reset link (1h) if the email matches an active provider.
+export async function providerForgotPassword(req: Request, res: Response): Promise<void> {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const generic = { ok: true, message: 'If that email has an account, a reset link is on its way.' };
+  if (!email) { res.json(generic); return; }
+
+  const r = await query('SELECT id, full_name FROM providers WHERE email = $1 AND is_active = true', [email]);
+  if (r.rows.length > 0) {
+    const p = r.rows[0];
+    const token = await issueProviderResetToken(p.id);
+    const resetUrl = `${env.clientUrl}/provider/reset-password?token=${encodeURIComponent(token)}`;
+    const tpl = passwordResetEmail({ fullName: p.full_name, resetUrl });
+    void sendEmail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text });
+  }
+  res.json(generic);
+}
+
+// POST /provider/auth/reset-password { token, password } — set a new password and
+// revoke all outstanding tokens (bump session epoch).
+export async function providerResetPassword(req: Request, res: Response): Promise<void> {
+  const token = String(req.body?.token || '');
+  const password = String(req.body?.password || '');
+  if (!token) { res.status(400).json({ error: 'Invalid reset link.' }); return; }
+  const issue = passwordIssue(password);
+  if (issue) { res.status(400).json({ error: issue }); return; }
+
+  const r = await query(
+    'SELECT id FROM providers WHERE reset_token_hash = $1 AND reset_expires > NOW()',
+    [hashToken(token)]
+  );
+  if (r.rows.length === 0) {
+    res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(password, 12);
+  await query(
+    `UPDATE providers SET password_hash = $2, reset_token_hash = NULL, reset_expires = NULL WHERE id = $1`,
+    [r.rows[0].id, passwordHash]
+  );
+  await revokeProviderSessions(r.rows[0].id); // a reset signs out everywhere
   res.json({ ok: true });
 }
 

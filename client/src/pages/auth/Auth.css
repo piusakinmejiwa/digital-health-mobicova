@@ -87,3 +87,6 @@
   .auth-wrap { grid-template-columns: 1fr; }
   .auth-hero { display: none; }
 }
+
+.auth-forgot { text-align: right; margin: -2px 0 10px; font-size: 0.85rem; }
+.auth-forgot a { color: #0A7B7B; }

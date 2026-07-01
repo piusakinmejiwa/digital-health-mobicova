@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { providerLogin } from '../../api/provider';
 import { useProviderAuth } from '../../context/ProviderAuthContext';
 import BrandLogo from '../../components/common/BrandLogo';
@@ -46,6 +46,7 @@ export default function ProviderLoginPage() {
             <label>Password</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
+          <div className="auth-forgot"><Link to="/provider/forgot-password">Forgot password?</Link></div>
           {error && <div className="error-text">{error}</div>}
           <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
             {busy ? 'Signing in…' : 'Sign in'}

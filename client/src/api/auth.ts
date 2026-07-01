@@ -34,6 +34,14 @@ export async function activateAccount(data: { token: string; password: string })
   return res.data;
 }
 
+// Forgotten password: request a reset link, then set a new password with the token.
+export async function forgotPassword(email: string): Promise<void> {
+  await api.post('/auth/forgot-password', { email });
+}
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await api.post('/auth/reset-password', { token, password });
+}
+
 // --- MFA self-service (Security settings) ---
 export async function getMfaStatus(): Promise<MfaStatus> {
   const res = await api.get('/auth/mfa/status');

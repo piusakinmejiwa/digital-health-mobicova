@@ -5,6 +5,8 @@ import {
   login,
   getMe,
   activateAccount,
+  forgotPassword,
+  resetPassword,
   mfaChallenge,
   mfaSetup,
   mfaEnable,
@@ -53,6 +55,16 @@ router.post(
   [body('token').notEmpty(), body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')],
   validate,
   asyncHandler(activateAccount)
+);
+
+// Forgotten password (public; rate-limited by the /auth authLimiter). Request a
+// reset link, then set a new password with the token from that link.
+router.post('/forgot-password', [body('email').isEmail().normalizeEmail()], validate, asyncHandler(forgotPassword));
+router.post(
+  '/reset-password',
+  [body('token').notEmpty(), body('password').isLength({ min: 12 }).withMessage('Password must be at least 12 characters')],
+  validate,
+  asyncHandler(resetPassword)
 );
 
 // --- Multi-factor authentication (TOTP) ---

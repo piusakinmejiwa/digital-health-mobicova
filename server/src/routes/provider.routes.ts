@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import {
-  providerLogin, providerLogoutAll, getProviderMe,
+  providerLogin, providerLogoutAll, providerForgotPassword, providerResetPassword, getProviderMe,
   listProviderConsultations, getProviderConsultation, acceptConsultation,
   providerConsultationCall, getConsultationRecording, getIncomingCalls,
   updateProviderConsultation, addProviderPrescription, listPharmacies,
@@ -21,6 +21,13 @@ router.post(
   asyncHandler(providerLogin)
 );
 
+router.post('/auth/forgot-password', [body('email').isEmail().normalizeEmail()], validate, asyncHandler(providerForgotPassword));
+router.post(
+  '/auth/reset-password',
+  [body('token').notEmpty(), body('password').isLength({ min: 12 })],
+  validate,
+  asyncHandler(providerResetPassword)
+);
 router.post('/auth/logout-all', authenticateProvider, asyncHandler(providerLogoutAll));
 router.get('/me', authenticateProvider, asyncHandler(getProviderMe));
 

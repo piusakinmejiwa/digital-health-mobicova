@@ -107,11 +107,14 @@ export default function MemberLoginPage() {
             <button className="btn btn-primary btn-block" onClick={verify} disabled={busy || !code.trim()}>
               {busy ? 'Verifying…' : 'Verify & sign in'}
             </button>
+            <button className="btn btn-link btn-block" onClick={sendCode} disabled={busy}>
+              Didn’t get it? Resend code
+            </button>
             <button
               className="btn btn-link btn-block"
               onClick={() => { setStep('identify'); setCode(''); setDevCode(''); setError(''); setHint(''); }}
             >
-              ← Use a different contact
+              ← Use a different number or email
             </button>
           </>
         )}

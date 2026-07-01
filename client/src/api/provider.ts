@@ -18,6 +18,14 @@ export async function providerLogoutAllDevices(): Promise<void> {
   await providerApi.post('/provider/auth/logout-all');
 }
 
+// Forgotten password (provider portal).
+export async function providerForgotPassword(email: string): Promise<void> {
+  await providerApi.post('/provider/auth/forgot-password', { email });
+}
+export async function providerResetPassword(token: string, password: string): Promise<void> {
+  await providerApi.post('/provider/auth/reset-password', { token, password });
+}
+
 export async function getProviderMe(): Promise<ProviderSession> {
   const res = await providerApi.get('/provider/me');
   return res.data;

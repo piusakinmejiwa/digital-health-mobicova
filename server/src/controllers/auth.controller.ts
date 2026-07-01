@@ -9,6 +9,9 @@ import { generateJoinCode } from '../lib/org';
 import { orgClass } from '../lib/orgTypes';
 import { hashToken } from '../lib/invites';
 import { passwordIssue } from '../lib/password';
+import { issueUserResetToken } from '../lib/passwordReset';
+import { sendEmail } from '../lib/email';
+import { passwordResetEmail } from '../lib/emailTemplates';
 import {
   generateTotpSecret,
   buildOtpauthUrl,
@@ -400,6 +403,56 @@ export async function activateAccount(req: Request, res: Response): Promise<void
     [result.rows[0].id, passwordHash]
   );
   res.json({ ok: true, email: result.rows[0].email });
+}
+
+// --- Forgotten password (staff users) ---
+
+// POST /auth/forgot-password { email } — always responds 200 with a generic
+// message so it can't be used to enumerate which emails have accounts. If the
+// email matches an active user, a single-use reset link (1h) is emailed.
+export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const generic = { ok: true, message: 'If that email has an account, a reset link is on its way.' };
+  if (!email) { res.json(generic); return; }
+
+  const r = await query('SELECT id, full_name FROM users WHERE email = $1 AND is_active = true', [email]);
+  if (r.rows.length > 0) {
+    const u = r.rows[0];
+    const token = await issueUserResetToken(u.id);
+    const resetUrl = `${env.clientUrl}/reset-password?token=${encodeURIComponent(token)}`;
+    const tpl = passwordResetEmail({ fullName: u.full_name, resetUrl });
+    void sendEmail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text });
+  }
+  res.json(generic);
+}
+
+// POST /auth/reset-password { token, password } — set a new password from a valid
+// reset token, then revoke all existing sessions (a reset signs you out everywhere).
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  const token = String(req.body?.token || '');
+  const password = String(req.body?.password || '');
+  if (!token) { res.status(400).json({ error: 'Invalid reset link.' }); return; }
+  const issue = passwordIssue(password);
+  if (issue) { res.status(400).json({ error: issue }); return; }
+
+  const r = await query(
+    'SELECT id, email FROM users WHERE reset_token_hash = $1 AND reset_expires > NOW()',
+    [hashToken(token)]
+  );
+  if (r.rows.length === 0) {
+    res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(password, 12);
+  await query(
+    `UPDATE users SET password_hash = $2, reset_token_hash = NULL, reset_expires = NULL, updated_at = NOW() WHERE id = $1`,
+    [r.rows[0].id, passwordHash]
+  );
+  // A password reset invalidates every existing session (best-effort).
+  try {
+    await query('UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL', [r.rows[0].id]);
+  } catch { /* sessions table optional; never block the reset */ }
+  res.json({ ok: true, email: r.rows[0].email });
 }
 
 // --- Active sessions (device management) ---

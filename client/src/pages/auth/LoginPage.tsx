@@ -198,6 +198,7 @@ export default function LoginPage() {
                   <label>Password</label>
                   <input type="password" {...register('password', { required: true })} />
                 </div>
+                <div className="auth-forgot"><Link to="/forgot-password">Forgot password?</Link></div>
                 {error && <div className="error-text">{error}</div>}
                 <button className="btn btn-primary btn-block" type="submit" disabled={loading}>
                   {loading ? 'Signing in…' : 'Sign in'}

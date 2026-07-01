@@ -5,7 +5,11 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import ActivatePage from './pages/auth/ActivatePage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import SsoCallbackPage from './pages/auth/SsoCallbackPage';
+import { forgotPassword, resetPassword } from './api/auth';
+import { providerForgotPassword, providerResetPassword } from './api/provider';
 import SsoSettingsPage from './pages/settings/SsoSettingsPage';
 import SecuritySettingsPage from './pages/settings/SecuritySettingsPage';
 import CompliancePage from './pages/settings/CompliancePage';
@@ -113,6 +117,8 @@ export const router = createBrowserRouter([
   { path: '/o/:slug/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/activate', element: <ActivatePage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage requestReset={forgotPassword} loginPath="/login" /> },
+  { path: '/reset-password', element: <ResetPasswordPage submitReset={resetPassword} loginPath="/login" /> },
   { path: '/sso/callback', element: <SsoCallbackPage /> },
 
   // --- Member self-service portal (separate auth domain) ---
@@ -136,6 +142,8 @@ export const router = createBrowserRouter([
 
   // --- Provider portal (clinician / pharmacist — separate auth domain) ---
   { path: '/provider/login', element: <ProviderLoginPage /> },
+  { path: '/provider/forgot-password', element: <ForgotPasswordPage requestReset={providerForgotPassword} loginPath="/provider/login" /> },
+  { path: '/provider/reset-password', element: <ResetPasswordPage submitReset={providerResetPassword} loginPath="/provider/login" /> },
   {
     path: '/provider',
     element: (

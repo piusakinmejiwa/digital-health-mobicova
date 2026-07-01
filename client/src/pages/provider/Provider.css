@@ -191,3 +191,6 @@
 /* Join-call bar in the consult drawer */
 .prov-callbar { display: flex; gap: .6rem; margin: 0 0 1.2rem; }
 .prov-callbar .btn { flex: 1; }
+
+.auth-forgot { text-align: right; margin: -2px 0 10px; font-size: 0.85rem; }
+.auth-forgot a { color: #0A7B7B; }

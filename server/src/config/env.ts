@@ -151,3 +151,27 @@ export const env = {
   pharmarunSandbox: process.env.PHARMARUN_SANDBOX === 'true',
   pharmarunWebhookSecret: process.env.PHARMARUN_WEBHOOK_SECRET || '',
 };
+
+// Fail-fast configuration guard, run once at boot (server.ts). In production a
+// bad config REFUSES to start rather than serving traffic in a weak/broken state;
+// in dev/test it only warns so local work that doesn't need every integration
+// isn't blocked. Guards the security-critical settings the audit flagged:
+//   - JWT_SECRET present and long enough (a weak HMAC key = forgeable tokens)
+//   - DATABASE_URL present
+//   - OTP_DEV_MODE never on in production (it returns live login codes in the API)
+export function assertConfig(): void {
+  const isProd = env.appEnv === 'production';
+  const problems: string[] = [];
+  if (!env.jwtSecret) problems.push('JWT_SECRET is not set — authentication cannot work.');
+  else if (isProd && env.jwtSecret.length < 32) problems.push('JWT_SECRET must be at least 32 characters in production.');
+  if (!env.databaseUrl) problems.push('DATABASE_URL is not set.');
+  if (isProd && env.otpDevMode) problems.push('OTP_DEV_MODE must NOT be enabled in production — it leaks one-time login codes.');
+
+  if (problems.length === 0) return;
+  const msg = 'Invalid configuration:\n  - ' + problems.join('\n  - ');
+  if (isProd) {
+    console.error('FATAL: ' + msg);
+    process.exit(1);
+  }
+  console.warn('⚠️  ' + msg + `\n(These would refuse startup in production; continuing in "${env.appEnv}".)`);
+}

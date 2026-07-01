@@ -40,7 +40,8 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   const token = header.split(' ')[1];
   let decoded: JwtPayload & { scope?: string };
   try {
-    decoded = jwt.verify(token, env.jwtSecret) as JwtPayload & { scope?: string };
+    // Pin the algorithm so a token can't dictate a weaker/none alg.
+    decoded = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] }) as JwtPayload & { scope?: string };
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });
     return;
@@ -55,8 +56,9 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
   // Active-device management: if the token carries a session id, make sure that
   // session hasn't been revoked ("sign out this device" / "sign out everywhere").
-  // isSessionActive fails open if sessions are unavailable, so it never causes a
-  // lockout. Legacy/impersonation tokens have no sid and skip this entirely.
+  // isSessionActive fails CLOSED (rejects on a revoked/absent session or DB error),
+  // except when the sessions table doesn't exist yet. Legacy/impersonation tokens
+  // have no sid and skip this entirely.
   if (decoded.sid) {
     if (!(await isSessionActive(decoded.sid))) {
       res.status(401).json({ error: 'This session has been signed out. Please sign in again.' });

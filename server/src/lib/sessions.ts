@@ -21,15 +21,22 @@ export async function createSession(userId: string, req: Request): Promise<strin
   }
 }
 
-// Is this session still valid (exists and not revoked)? Returns true when the
-// sessions table is unavailable so a transient DB issue never locks users out.
+// Is this session still valid (exists and not revoked)? Fails CLOSED so
+// "sign out everywhere" is authoritative: a token whose session row is absent
+// (purged) or revoked is rejected, and a DB error rejects too. The ONE exception
+// is the sessions table not existing yet (migration 058 not applied) — that
+// legacy state is allowed so login can't break before the migration runs.
+// Revocation sets revoked_at (the row persists), so an active session always has
+// a row; row-absent therefore only means purged/expired → deny.
 export async function isSessionActive(sid: string): Promise<boolean> {
   try {
     const r = await query('SELECT revoked_at FROM user_sessions WHERE id = $1', [sid]);
-    if (r.rows.length === 0) return true;          // unknown sid — don't block
+    if (r.rows.length === 0) return false;         // no session row → treat as revoked
     return !r.rows[0].revoked_at;
-  } catch {
-    return true;
+  } catch (err) {
+    if ((err as { code?: string }).code === '42P01') return true; // table missing (pre-migration) → allow
+    console.error('[sessions] isSessionActive failed (denying):', (err as Error).message);
+    return false;                                  // any other DB error → fail closed
   }
 }
 

@@ -59,6 +59,10 @@ const authLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later' },
 });
 app.use('/api/v1/auth', authLimiter);
+// Same strict brute-force limit on the member OTP and provider (doctor/pharmacist)
+// login surfaces — these guard PHI too and were previously only under the loose
+// global limiter.
+app.use(['/api/v1/member/auth', '/api/v1/provider/auth'], authLimiter);
 
 // Raw body needed so webhook signatures can be verified over the exact bytes the
 // provider signed. Must be registered before express.json() so these paths keep

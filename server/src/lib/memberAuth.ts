@@ -22,7 +22,7 @@ export function signMemberToken(memberId: string, orgId: string): string {
 
 export function verifyMemberToken(token: string): MemberJwtPayload | null {
   try {
-    const decoded = jwt.verify(token, env.jwtSecret) as MemberJwtPayload;
+    const decoded = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] }) as MemberJwtPayload;
     if (decoded.scope !== 'member' || !decoded.memberId) return null;
     return decoded;
   } catch {
@@ -33,6 +33,9 @@ export function verifyMemberToken(token: string): MemberJwtPayload | null {
 // --- One-time codes ------------------------------------------------------
 export const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 export const OTP_MAX_ATTEMPTS = 5;
+// Max codes a single member can be issued per hour. Bounds total brute-force
+// guesses (codes/hour × attempts/code) so re-requesting can't reset the cap.
+export const OTP_MAX_PER_HOUR = 5;
 
 export function generateOtpCode(): string {
   // 6 digits, zero-padded. randomInt is cryptographically sound.

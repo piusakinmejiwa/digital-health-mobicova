@@ -4,7 +4,7 @@ import { env } from '../config/env';
 import { recordAudit, writeAudit } from '../lib/audit';
 import {
   generateOtpCode, hashOtp, verifyOtpHash, signMemberToken,
-  maskDestination, OTP_TTL_MS, OTP_MAX_ATTEMPTS,
+  maskDestination, OTP_TTL_MS, OTP_MAX_ATTEMPTS, OTP_MAX_PER_HOUR,
 } from '../lib/memberAuth';
 import { generateClaimReference, isClaimType } from '../lib/claims';
 import { emitEvent } from '../lib/webhooks';
@@ -96,6 +96,20 @@ export async function requestOtp(req: Request, res: Response): Promise<void> {
   if (!member) {
     // Generic response; only reveal "not found" in explicit dev mode.
     res.json({ sent: true, ...(devReveal ? { delivered: false, notFound: true } : {}) });
+    return;
+  }
+
+  // Per-MEMBER issuance cap. The 5-attempt cap lives on each OTP row, but a new
+  // request invalidates the old code and resets that counter — so without this a
+  // targeted member's code is brute-forceable via request→guess→request loops.
+  // Capping codes issued per member per hour bounds total guesses; we respond
+  // with the same generic shape so the throttle can't be used to enumerate members.
+  const recent = await query(
+    `SELECT COUNT(*)::int AS n FROM member_otps WHERE member_id = $1 AND created_at > now() - interval '1 hour'`,
+    [member.id]
+  );
+  if (recent.rows[0].n >= OTP_MAX_PER_HOUR) {
+    res.json({ sent: true, ...(devReveal ? { delivered: false, throttled: true } : {}) });
     return;
   }
 

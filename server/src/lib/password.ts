@@ -3,7 +3,9 @@
 // human-readable error string when the password is too weak, or null when it
 // passes. Keeping this in one place means the policy can be tightened once.
 
-const MIN_LENGTH = 8;
+// 12 is the current OWASP/NIST-aligned floor for accounts guarding PHI. Only
+// affects newly set/reset passwords; existing users are unaffected until they change it.
+const MIN_LENGTH = 12;
 
 export function passwordIssue(input: unknown): string | null {
   if (typeof input !== 'string' || input.length === 0) {

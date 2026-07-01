@@ -21,7 +21,7 @@ export function signProviderToken(providerId: string, partnerId: string | null, 
 
 export function verifyProviderToken(token: string): ProviderJwtPayload | null {
   try {
-    const decoded = jwt.verify(token, env.jwtSecret) as ProviderJwtPayload;
+    const decoded = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] }) as ProviderJwtPayload;
     if (decoded.scope !== 'provider' || !decoded.providerId) return null;
     return decoded;
   } catch {

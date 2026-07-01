@@ -80,7 +80,7 @@ export function signMfaPendingToken(userId: string): string {
 
 export function verifyMfaPendingToken(token: string): string | null {
   try {
-    const decoded = jwt.verify(token, env.jwtSecret) as MfaPendingPayload;
+    const decoded = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] }) as MfaPendingPayload;
     if (decoded.scope !== 'mfa') return null;
     return decoded.userId;
   } catch {

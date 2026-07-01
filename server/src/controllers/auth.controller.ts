@@ -120,16 +120,18 @@ export async function login(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  // A suspended organisation blocks all of its users from signing in.
-  if (result.rows[0].org_active === false) {
-    res.status(403).json({ error: 'This organisation is suspended. Contact MobiCova support.' });
-    return;
-  }
-
   const user = result.rows[0];
   const validPassword = await bcrypt.compare(password, user.password_hash);
   if (!validPassword) {
     res.status(401).json({ error: 'Invalid email or password' });
+    return;
+  }
+
+  // Only AFTER proving the password do we reveal org-level status — otherwise the
+  // distinct "suspended" response is an account-enumeration oracle (it confirms a
+  // real account exists without the caller knowing the password).
+  if (user.org_active === false) {
+    res.status(403).json({ error: 'This organisation is suspended. Contact MobiCova support.' });
     return;
   }
 

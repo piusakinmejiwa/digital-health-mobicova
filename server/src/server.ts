@@ -1,8 +1,11 @@
 import './instrument'; // MUST stay first — registers Sentry before app deps load
 import * as Sentry from '@sentry/node';
 import app from './app';
-import { env } from './config/env';
+import { env, assertConfig } from './config/env';
 import { getMigrationStatus } from './lib/migrationStatus';
+
+// Refuse to boot production on a weak/missing security config (fail-fast).
+assertConfig();
 
 // Last-resort safety net: a stray rejection or thrown error outside the
 // request lifecycle should be logged (and reported), not silently terminate the

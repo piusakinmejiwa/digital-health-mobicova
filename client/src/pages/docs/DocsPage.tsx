@@ -80,9 +80,52 @@ const DOCS: Doc[] = [
       <h3>Signature</h3><p>Each delivery carries <code>X-MobiCova-Signature: t=&lt;ts&gt;,v1=&lt;hmac&gt;</code> — HMAC-SHA256 of <code>&lt;timestamp&gt;.&lt;body&gt;</code>.</p>
       <h3>Events</h3><ul><li><code>member.enrolled</code></li><li><code>claim.created</code></li><li><code>claim.status_changed</code></li></ul>`,
   },
+  {
+    id: 'slack', group: 'Integrations', kicker: 'Integrations', title: 'Connect Slack',
+    toc: ['Create a Slack webhook', 'Connect it in MobiCova', 'Test & go live'],
+    body: `
+      <p>Post MobiCova notifications straight to your team's Slack channel — a <b>headline and a link</b> for the categories you choose (claims, enrolments, members, billing, reports and more). <b>No member data is ever sent to Slack</b>; the detail stays in-app behind login. You need the <b>admin</b> role.</p>
+
+      <ol style="list-style:none;padding:0;margin:18px 0;display:grid;gap:16px">
+        <li style="display:flex;gap:12px;align-items:flex-start">
+          <span style="flex:0 0 28px;height:28px;border-radius:50%;background:#0a7b7b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">1</span>
+          <div>
+            <b>Create a Slack Incoming Webhook</b>
+            <p style="margin:4px 0 0">In Slack: open <a href="https://api.slack.com/apps" target="_blank" rel="noreferrer">api.slack.com/apps</a> → <b>Create New App</b> → <b>From scratch</b>, name it "MobiCova" and pick your workspace. Open <b>Incoming Webhooks</b>, switch it <b>On</b>, click <b>Add New Webhook to Workspace</b>, choose the channel, and <b>Copy</b> the URL (it looks like <code>https://hooks.slack.com/services/…</code>).</p>
+          </div>
+        </li>
+        <li style="display:flex;gap:12px;align-items:flex-start">
+          <span style="flex:0 0 28px;height:28px;border-radius:50%;background:#0a7b7b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">2</span>
+          <div style="flex:1">
+            <b>Open Settings → Notifications → Slack</b>
+            <p style="margin:4px 0 10px">Paste the webhook URL, tick the categories you want in Slack, and click <b>Save Slack settings</b>.</p>
+            <div style="border:1px solid #e2ebf0;border-radius:12px;padding:14px;background:#fbfdfd;max-width:440px">
+              <div style="font-weight:700;margin-bottom:4px">Slack</div>
+              <div style="font-size:12.5px;color:#5e6e6e;margin-bottom:10px">Post a headline + link to your team's Slack channel. <b>No member data is sent.</b></div>
+              <div style="font-size:12px;color:#7a8a8a;margin-bottom:4px">Slack Incoming Webhook URL</div>
+              <div style="border:1px solid #d6e0e0;border-radius:8px;padding:8px 10px;color:#9aabab;font-size:13px;background:#fff">https://hooks.slack.com/services/…</div>
+              <div style="margin:10px 0 0;font-size:13px;color:#33474a">☑ Claims &nbsp; ☑ Enrolments &nbsp; ☑ Members &nbsp; ☑ Billing &nbsp; ☐ Reports</div>
+              <div style="display:flex;gap:8px;margin-top:12px">
+                <span style="background:#0a7b7b;color:#fff;border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600">Save Slack settings</span>
+                <span style="border:1px solid #cdd6d6;border-radius:8px;padding:7px 13px;font-size:13px">Send test</span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li style="display:flex;gap:12px;align-items:flex-start">
+          <span style="flex:0 0 28px;height:28px;border-radius:50%;background:#0a7b7b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">3</span>
+          <div>
+            <b>Send a test — then you're live</b>
+            <p style="margin:4px 0 0">Click <b>Send test</b>; a "MobiCova is connected to this channel" message appears in Slack within a second. From then on the categories you picked post automatically. Use the master switch to pause, or <b>Disconnect</b> to remove the webhook.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="callout">The webhook URL is a secret — anyone with it can post to your channel. MobiCova stores it server-side and only ever shows a masked hint. Share it only over a secure channel, never in a document or chat.</div>`,
+  },
 ];
 
-const GROUPS = ['Get started', 'Channels', 'Developers'];
+const GROUPS = ['Get started', 'Channels', 'Integrations', 'Developers'];
 
 export default function DocsPage() {
   const [params, setParams] = useSearchParams();

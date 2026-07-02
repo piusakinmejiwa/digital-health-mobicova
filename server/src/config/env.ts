@@ -70,6 +70,11 @@ export const env = {
   orgEmailAlias: process.env.ORG_EMAIL_ALIAS || 'org@mobicovahealth.com',
   // Optional inbox to notify when a "Shape MobiCova" (/shape) feedback form is submitted.
   feedbackNotifyEmail: process.env.FEEDBACK_NOTIFY_EMAIL || '',
+  // Platform-ops Slack: MobiCova's OWN team channel (a Slack Incoming Webhook) for
+  // internal signals — new org / distribution-partner sign-ups. Business events
+  // only (no PHI). Absent ⇒ platform-ops Slack is off. Distinct from the per-tenant
+  // Slack integration, which each org configures for its own channel.
+  platformSlackWebhookUrl: process.env.PLATFORM_SLACK_WEBHOOK_URL || '',
   // Comma-separated emails granted platform-admin access to the catalog Admin UI.
   platformAdminEmails: (process.env.PLATFORM_ADMIN_EMAILS || '')
     .split(',')

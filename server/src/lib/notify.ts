@@ -1,6 +1,7 @@
 import { query } from '../config/database';
 import { sendEmail } from './email';
 import { env } from '../config/env';
+import { emitSlack } from './slack';
 
 // Notifications Centre engine. Org-scoped events, per-user read state + prefs.
 // notify() is best-effort and never throws — business flows fire-and-forget.
@@ -49,6 +50,9 @@ export async function notify(input: NotifyInput): Promise<void> {
         input.body || '', input.href || '', input.dedupeKey || null]
     );
     if (ins.rows.length === 0) return; // deduped — already notified
+
+    // Slack (per-org, PHI-safe headline + link) — independent of email config.
+    emitSlack(input.orgId, input.category, input.title, input.href);
 
     if (!env.resendApiKey) return;     // no email provider configured
 

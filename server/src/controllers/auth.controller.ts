@@ -12,6 +12,7 @@ import { passwordIssue } from '../lib/password';
 import { issueUserResetToken } from '../lib/passwordReset';
 import { sendEmail } from '../lib/email';
 import { passwordResetEmail } from '../lib/emailTemplates';
+import { emitPlatformSlack } from '../lib/slack';
 import {
   generateTotpSecret,
   buildOtpauthUrl,
@@ -96,6 +97,9 @@ export async function register(req: Request, res: Response): Promise<void> {
      VALUES ($1, $2, $3, $4, 'admin') RETURNING id`,
     [orgId, email, passwordHash, fullName]
   );
+
+  // Platform-ops signal (internal team channel; business event, no PHI).
+  emitPlatformSlack(`:tada: New organisation registered: *${orgName}* (${partnerType || 'employer'})`);
 
   const sid = await createSession(userResult.rows[0].id, req);
   const payload: JwtPayload = { userId: userResult.rows[0].id, orgId, role: 'admin', ...(sid ? { sid } : {}) };

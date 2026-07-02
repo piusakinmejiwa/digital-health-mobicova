@@ -37,9 +37,10 @@ export const INTEGRATIONS: Integration[] = [
   { name: 'Resend', category: 'Communications', status: 'available',
     blurb: 'Transactional emails, notifications and scheduled reports.' },
 
+  { name: 'Slack', category: 'Communications', status: 'available', href: '/settings/notifications',
+    blurb: 'Post operational notifications (no member data) to your team’s Slack channel.' },
+
   // Coming soon (roadmap, not built)
-  { name: 'Slack', category: 'Communications', status: 'soon',
-    blurb: 'Send notifications to your team’s Slack channels.' },
   { name: 'Microsoft Teams', category: 'Communications', status: 'soon',
     blurb: 'Surface alerts and approvals inside Teams.' },
   { name: 'Google / Outlook Calendar', category: 'Productivity', status: 'soon',

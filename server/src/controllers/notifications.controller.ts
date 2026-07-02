@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { CATEGORIES, DEFAULT_EMAIL, isCategory, listForUser } from '../lib/notify';
+import { getOrgSlack, isSlackWebhookUrl, maskSlackUrl, postSlackMessage } from '../lib/slack';
 
 // GET /notifications?limit= — the signed-in user's feed + unread count.
 export async function getNotifications(req: Request, res: Response): Promise<void> {
@@ -65,4 +66,56 @@ export async function updateNotificationPrefs(req: Request, res: Response): Prom
     [userId, muted, email]
   );
   res.json({ muted, email });
+}
+
+// --- Per-org Slack integration (org-level; mutations are admin-only) ---
+const ALL_CATEGORY_KEYS = CATEGORIES.map((c) => c.key);
+
+// GET /notifications/slack — current org Slack config (URL only ever masked).
+export async function getSlackConfig(req: Request, res: Response): Promise<void> {
+  const cfg = await getOrgSlack(req.user!.orgId);
+  res.json({
+    categories: CATEGORIES,
+    connected: Boolean(cfg?.url),
+    active: cfg?.active ?? true,
+    enabled: cfg?.categories ?? ALL_CATEGORY_KEYS,
+    urlHint: cfg?.url ? maskSlackUrl(cfg.url) : '',
+  });
+}
+
+// PUT /notifications/slack { webhookUrl?, active?, categories? } — connect/update.
+// An empty webhookUrl disconnects. Categories default to all on first connect.
+export async function updateSlackConfig(req: Request, res: Response): Promise<void> {
+  const orgId = req.user!.orgId;
+  // webhookUrl is only touched when explicitly provided (so saving category/active
+  // changes keeps the stored secret). An empty string disconnects.
+  const hasUrl = req.body?.webhookUrl !== undefined;
+  const url = String(req.body?.webhookUrl ?? '').trim();
+  if (hasUrl && url && !isSlackWebhookUrl(url)) {
+    res.status(400).json({ error: 'Enter a valid Slack Incoming Webhook URL (https://hooks.slack.com/services/…).' });
+    return;
+  }
+  const active = req.body?.active !== false;
+  const categories = Array.isArray(req.body?.categories)
+    ? req.body.categories.map(String).filter(isCategory)
+    : ALL_CATEGORY_KEYS;
+  const r = await query(
+    `INSERT INTO org_slack (org_id, webhook_url, active, categories, updated_at)
+     VALUES ($1, $2, $3, $4, now())
+     ON CONFLICT (org_id) DO UPDATE SET
+        webhook_url = CASE WHEN $5 THEN $2 ELSE org_slack.webhook_url END,
+        active = $3, categories = $4, updated_at = now()
+     RETURNING webhook_url`,
+    [orgId, url, active, categories, hasUrl]
+  );
+  res.json({ connected: Boolean(r.rows[0]?.webhook_url), active, categories });
+}
+
+// POST /notifications/slack/test — send a harmless test message to the channel.
+export async function testSlack(req: Request, res: Response): Promise<void> {
+  const cfg = await getOrgSlack(req.user!.orgId);
+  if (!cfg?.url) { res.status(400).json({ error: 'Connect a Slack webhook first.' }); return; }
+  const r = await postSlackMessage(cfg.url, ':wave: *MobiCova is connected to this channel.* Operational alerts will appear here — no member data is ever posted.');
+  if (!r.ok) { res.status(502).json({ error: `Slack rejected the test (${r.error}). Check the webhook URL and channel.` }); return; }
+  res.json({ ok: true });
 }

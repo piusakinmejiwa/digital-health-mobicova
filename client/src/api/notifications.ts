@@ -26,6 +26,20 @@ export async function updateNotificationPrefs(muted: string[], email: string[]):
   return (await api.put('/notifications/prefs', { muted, email })).data;
 }
 
+// --- Per-org Slack integration ---
+export interface SlackConfig {
+  categories: CategoryMeta[]; connected: boolean; active: boolean; enabled: string[]; urlHint: string;
+}
+export async function getSlackConfig(): Promise<SlackConfig> {
+  return (await api.get('/notifications/slack')).data;
+}
+export async function updateSlackConfig(data: { webhookUrl?: string; active?: boolean; categories?: string[] }): Promise<{ connected: boolean; active: boolean; categories: string[] }> {
+  return (await api.put('/notifications/slack', data)).data;
+}
+export async function testSlack(): Promise<void> {
+  await api.post('/notifications/slack/test', {});
+}
+
 // "2h ago" style relative time, kept tiny and dependency-free.
 export function timeAgo(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);

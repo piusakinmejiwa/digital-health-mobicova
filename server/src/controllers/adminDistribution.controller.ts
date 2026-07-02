@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { recordAudit } from '../lib/audit';
 import { generateDistributionKey, generatePartnerWebhookSecret } from '../lib/distribution';
+import { emitPlatformSlack } from '../lib/slack';
 
 // Platform-admin provisioning for distribution partners (PalmPay, OPay, …).
 // Lives behind the /admin router (authenticate + requirePlatformAdmin). The API
@@ -45,6 +46,7 @@ export async function createDistributionPartner(req: Request, res: Response): Pr
     action: 'distribution_partner.create', orgId, targetType: 'distribution_partner',
     targetId: r.rows[0].id, targetLabel: name,
   });
+  emitPlatformSlack(`:electric_plug: Distribution partner signed up: *${name}*${b.sandbox !== false ? ' (sandbox)' : ' (live)'}`);
   // apiKey + webhookSecret are shown ONCE — the partner stores them; we keep only the hash.
   res.status(201).json({
     id: r.rows[0].id, name, slug, sandbox: b.sandbox !== false,

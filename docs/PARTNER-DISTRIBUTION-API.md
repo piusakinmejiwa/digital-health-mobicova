@@ -85,6 +85,18 @@ billing period are available to platform admins at
 `externalRef` (or re-confirming payment) returns the existing policy, so network
 retries never create duplicates or double-charge.
 
+### Smoke test
+
+`docs/test-palmpay.sh` walks the whole flow end-to-end (provision → products →
+quote → enrol + idempotency → payment + split → status → negative checks → ledger
+roll-up) in sandbox. Set the variables via env and run:
+
+```bash
+API_BASE=https://api.mobicovahealth.com ADMIN_JWT=<platform-admin-jwt> \
+  ORG_ID=<underwriter-org-id> bash docs/test-palmpay.sh
+```
+Requires `curl` + `jq`; every record it creates is flagged `sandbox=true`.
+
 ## Webhooks (MobiCova → partner)
 
 If the partner has a `webhookUrl`, MobiCova POSTs signed events to it:

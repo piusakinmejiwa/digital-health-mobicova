@@ -53,17 +53,23 @@ export function whatsappConfigured(): boolean {
   return !!(env.whatsappToken && env.whatsappPhoneId && env.whatsappTemplate);
 }
 
-export async function sendWhatsApp(to: string, message: string): Promise<SendOutcome> {
-  if (!whatsappConfigured()) return { ok: false, error: 'WhatsApp not configured' };
+// Send a SPECIFIC approved template with its body parameters. This is the general
+// form — different message types (tips, appointment reminders, claim updates) each
+// use their own Meta-approved template, passed by name here.
+export async function sendWhatsAppTemplate(
+  to: string, template: string, params: string[] = [], lang?: string,
+): Promise<SendOutcome> {
+  if (!env.whatsappToken || !env.whatsappPhoneId) return { ok: false, error: 'WhatsApp not configured' };
+  if (!template) return { ok: false, error: 'WhatsApp template not set' };
   const url = `https://graph.facebook.com/v21.0/${env.whatsappPhoneId}/messages`;
   const payload = {
     messaging_product: 'whatsapp',
     to: to.replace(/[^\d+]/g, ''),
     type: 'template',
     template: {
-      name: env.whatsappTemplate,
-      language: { code: env.whatsappLang },
-      components: [{ type: 'body', parameters: [{ type: 'text', text: message }] }],
+      name: template,
+      language: { code: lang || env.whatsappLang },
+      components: params.length ? [{ type: 'body', parameters: params.map((text) => ({ type: 'text', text })) }] : [],
     },
   };
   try {
@@ -85,4 +91,9 @@ export async function sendWhatsApp(to: string, message: string): Promise<SendOut
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
+}
+
+// Backward-compatible shim: send a single-parameter message on the default template.
+export async function sendWhatsApp(to: string, message: string): Promise<SendOutcome> {
+  return sendWhatsAppTemplate(to, env.whatsappTemplate, [message]);
 }

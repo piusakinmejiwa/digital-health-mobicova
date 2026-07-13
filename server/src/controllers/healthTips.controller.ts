@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { env } from '../config/env';
-import { sendEmail } from '../lib/email';
-import { sendSms, sendWhatsApp, smsConfigured, whatsappConfigured } from '../lib/messaging';
+import { smsConfigured, whatsappConfigured } from '../lib/messaging';
+import { notifyMember, MemberMessage } from '../lib/notifyMember';
 import { constantTimeEqual } from '../lib/safeCompare';
 import { generateHealthTipDraft, HealthTipDraftUnavailable } from '../lib/healthTipDraft';
 
@@ -169,14 +169,17 @@ function renderEmail(tip: TipContent, unsub: string): { subject: string; html: s
   return { subject: `Your daily health tip — ${tip.title}`, html, text: textParts.join('\n') };
 }
 
-async function deliver(channel: Channel, dest: string, tip: TipContent, unsubToken: string) {
-  if (channel === 'email') {
-    const unsub = `${env.clientUrl}/health-tips/unsubscribe?token=${unsubToken}`;
-    const { subject, html, text } = renderEmail(tip, unsub);
-    return sendEmail({ to: dest, subject, html, text }).then((r) => ({ ok: r.sent, error: r.error }));
-  }
-  if (channel === 'sms') return sendSms(dest, renderSms(tip));
-  return sendWhatsApp(dest, renderWhatsApp(tip));
+// Render a tip into one channel-aware message the dispatcher can deliver. WhatsApp
+// rides the default approved template (the tip text as its body parameter); it's
+// only attempted when WhatsApp is actually configured, otherwise the dispatcher
+// falls through to SMS/email.
+function buildMemberMessage(tip: TipContent, unsubToken: string): MemberMessage {
+  const unsub = `${env.clientUrl}/health-tips/unsubscribe?token=${unsubToken}`;
+  return {
+    sms: renderSms(tip),
+    whatsapp: env.whatsappTemplate ? { template: env.whatsappTemplate, params: [renderWhatsApp(tip)] } : undefined,
+    email: renderEmail(tip, unsub),
+  };
 }
 
 // Send today's tip to every active subscriber on their chosen channels. Idempotent
@@ -210,6 +213,12 @@ export async function sendDailyTips(): Promise<SendSummary> {
 
   for (const s of subs.rows) {
     const channels: Channel[] = Array.isArray(s.channels) ? s.channels : [];
+    // Tips are opt-in per channel, so we deliver on each chosen channel independently
+    // (broadcast semantics) — one MemberMessage, delivered per-channel via the shared
+    // dispatcher so rendering + send logic stays in one place.
+    const contact = { phone: s.sms_number, whatsapp: s.whatsapp_number, email: s.email };
+    const message = buildMemberMessage(tip, s.unsubscribe_token);
+
     for (const channel of channels) {
       const dest = channel === 'email' ? s.email : channel === 'sms' ? s.sms_number : s.whatsapp_number;
       if (!dest) { summary.skipped++; continue; }
@@ -226,14 +235,16 @@ export async function sendDailyTips(): Promise<SendSummary> {
       if (claim.rows.length === 0) { summary.skipped++; continue; }
       const sendId = claim.rows[0].id;
 
-      const outcome = await deliver(channel, dest, tip, s.unsubscribe_token);
-      if (outcome.ok) {
+      // Deliver just this channel (order restricted to it — no cross-channel fallback
+      // for an opt-in stream), reusing the dispatcher's per-channel send logic.
+      const res = await notifyMember(contact, message, { mode: 'reachOnce', order: [channel] });
+      if (res.delivered.includes(channel)) {
         summary.sent[channel]++;
         await query(`UPDATE health_tip_sends SET status = 'sent' WHERE id = $1`, [sendId]);
       } else {
         summary.failed[channel]++;
         await query(`UPDATE health_tip_sends SET status = 'failed', error = $2 WHERE id = $1`,
-          [sendId, String(outcome.error || '').slice(0, 300)]);
+          [sendId, String(res.attempted[0]?.error || 'channel unavailable').slice(0, 300)]);
       }
     }
   }

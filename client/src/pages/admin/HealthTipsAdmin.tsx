@@ -123,6 +123,11 @@ function Tips() {
     try { await adminUpdateHealthTip(t.id, { is_active: !t.is_active }); refresh(); }
     catch (err) { alert(errMessage(err, 'Could not update.')); }
   };
+  // Approve a draft in one click: mark it published + enabled so it joins the rotation.
+  const publish = async (t: HealthTip) => {
+    try { await adminUpdateHealthTip(t.id, { status: 'published', is_active: true }); refresh(); }
+    catch (err) { alert(errMessage(err, 'Could not publish.')); }
+  };
   const remove = async (t: HealthTip) => {
     if (!confirm(`Delete the tip "${t.title}"?`)) return;
     try { await adminDeleteHealthTip(t.id); refresh(); }
@@ -159,7 +164,9 @@ function Tips() {
               </td>
               <td className="admin-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => openEdit(t)}>Edit</button>
-                {t.status === 'published' && <button className="btn btn-secondary btn-sm" onClick={() => toggle(t)}>{t.is_active ? 'Disable' : 'Enable'}</button>}
+                {t.status === 'draft'
+                  ? <button className="btn btn-primary btn-sm" onClick={() => publish(t)}>Publish</button>
+                  : <button className="btn btn-secondary btn-sm" onClick={() => toggle(t)}>{t.is_active ? 'Disable' : 'Enable'}</button>}
                 <button className="btn btn-danger btn-sm" onClick={() => remove(t)}>Delete</button>
               </td>
             </tr>

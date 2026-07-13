@@ -275,13 +275,23 @@ export async function adminDeleteSubscriber(req: Request, res: Response): Promis
 export async function adminListTips(_req: Request, res: Response): Promise<void> {
   const r = await query(
     `SELECT id, seq, title, body, sms_text, why_it_matters, action, myth, fact, source,
-            category, status, is_active, created_at
+            category, status, tags, is_active, created_at
        FROM health_tips ORDER BY seq`
   );
   res.json({ tips: r.rows });
 }
 
 const cleanStatus = (v: unknown): 'draft' | 'published' => (String(v) === 'draft' ? 'draft' : 'published');
+
+// Accept tags as an array or a comma-separated string; normalise to a clean,
+// de-duplicated, lowercase array. Returns null when the field wasn't provided
+// (so COALESCE leaves existing tags untouched on update).
+function parseTags(v: unknown): string[] | null {
+  if (v === undefined || v === null) return null;
+  const raw = Array.isArray(v) ? v : String(v).split(',');
+  const out = raw.map((t) => String(t).trim().toLowerCase().slice(0, 40)).filter(Boolean);
+  return Array.from(new Set(out)).slice(0, 20);
+}
 
 export async function adminCreateTip(req: Request, res: Response): Promise<void> {
   const b = req.body || {};
@@ -290,8 +300,8 @@ export async function adminCreateTip(req: Request, res: Response): Promise<void>
   const category = String(b.category || 'general').trim().slice(0, 60);
   if (!title || !body) { res.status(400).json({ error: 'Title and body are required.' }); return; }
   const r = await query(
-    `INSERT INTO health_tips (title, body, sms_text, why_it_matters, action, myth, fact, source, category, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+    `INSERT INTO health_tips (title, body, sms_text, why_it_matters, action, myth, fact, source, category, status, tags)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
     [
       title, body,
       String(b.sms_text || '').trim().slice(0, 320),
@@ -302,6 +312,7 @@ export async function adminCreateTip(req: Request, res: Response): Promise<void>
       String(b.source || '').trim().slice(0, 200),
       category,
       cleanStatus(b.status),
+      parseTags(b.tags) ?? [],
     ]
   );
   res.status(201).json(r.rows[0]);
@@ -317,7 +328,8 @@ export async function adminUpdateTip(req: Request, res: Response): Promise<void>
             sms_text = COALESCE($4, sms_text), why_it_matters = COALESCE($5, why_it_matters),
             action = COALESCE($6, action), myth = COALESCE($7, myth), fact = COALESCE($8, fact),
             source = COALESCE($9, source), category = COALESCE($10, category),
-            status = COALESCE($11, status), is_active = COALESCE($12, is_active)
+            status = COALESCE($11, status), is_active = COALESCE($12, is_active),
+            tags = COALESCE($13, tags)
       WHERE id = $1 RETURNING *`,
     [
       id,
@@ -326,10 +338,25 @@ export async function adminUpdateTip(req: Request, res: Response): Promise<void>
       s(b.myth, 600), s(b.fact, 600), s(b.source, 200), s(b.category, 60),
       b.status !== undefined ? cleanStatus(b.status) : null,
       b.is_active !== undefined ? Boolean(b.is_active) : null,
+      parseTags(b.tags),
     ]
   );
   if (r.rows.length === 0) { res.status(404).json({ error: 'Tip not found' }); return; }
   res.json(r.rows[0]);
+}
+
+// Bulk enable/disable every tip carrying a given tag — e.g. retire all
+// 'rainy-season' tips when the dry season starts, in one call. Only flips the
+// on/off switch; it never publishes drafts (those still need review).
+export async function adminBulkToggleTipsByTag(req: Request, res: Response): Promise<void> {
+  const tag = String(req.body?.tag || '').trim().toLowerCase().slice(0, 40);
+  if (!tag) { res.status(400).json({ error: 'A tag is required.' }); return; }
+  if (typeof req.body?.is_active !== 'boolean') { res.status(400).json({ error: 'is_active (boolean) is required.' }); return; }
+  const r = await query(
+    `UPDATE health_tips SET is_active = $2 WHERE $1 = ANY(tags) RETURNING id`,
+    [tag, req.body.is_active]
+  );
+  res.json({ updated: r.rows.length, tag, is_active: req.body.is_active });
 }
 
 // AI-draft a structured tip for an admin to review. Persists NOTHING — the draft

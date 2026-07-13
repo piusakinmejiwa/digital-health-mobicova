@@ -29,11 +29,11 @@ export interface HealthTip {
   id: string; seq: number; title: string; body: string;
   sms_text: string; why_it_matters: string; action: string;
   myth: string; fact: string; source: string;
-  category: string; status: 'draft' | 'published'; is_active: boolean; created_at: string;
+  category: string; status: 'draft' | 'published'; tags: string[]; is_active: boolean; created_at: string;
 }
 // The editable/AI-draftable fields of a tip (everything except server-managed ids).
 export type HealthTipFields = Pick<HealthTip,
-  'title' | 'body' | 'sms_text' | 'why_it_matters' | 'action' | 'myth' | 'fact' | 'source' | 'category' | 'status'>;
+  'title' | 'body' | 'sms_text' | 'why_it_matters' | 'action' | 'myth' | 'fact' | 'source' | 'category' | 'status' | 'tags'>;
 export interface HealthTipSend {
   id: string; channel: string; status: string; error: string; sent_on: string;
   created_at: string; full_name: string; tip_title: string;
@@ -65,6 +65,10 @@ export async function adminUpdateHealthTip(id: string, data: Partial<HealthTipFi
 // AI-draft a structured tip for review. Returns the draft; saves nothing.
 export async function adminGenerateHealthTipDraft(topic?: string): Promise<{ draft: HealthTipFields }> {
   return (await api.post('/admin/health-tips/tips/generate', { topic: topic || '' })).data;
+}
+// Enable/disable every tip carrying a tag in one call (e.g. retire 'rainy-season').
+export async function adminBulkToggleHealthTipsByTag(tag: string, isActive: boolean): Promise<{ updated: number }> {
+  return (await api.patch('/admin/health-tips/tips/bulk', { tag, is_active: isActive })).data;
 }
 export async function adminDeleteHealthTip(id: string): Promise<void> {
   await api.delete(`/admin/health-tips/tips/${id}`);

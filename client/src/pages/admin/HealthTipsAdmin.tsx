@@ -5,6 +5,7 @@ import {
   adminListHealthSubscribers, adminDeleteHealthSubscriber,
   adminListHealthTips, adminCreateHealthTip, adminUpdateHealthTip, adminDeleteHealthTip,
   adminListHealthTipSends, adminSendHealthTipNow, adminGenerateHealthTipDraft,
+  adminBulkToggleHealthTipsByTag,
   type HealthTip, type HealthTipFields, type HealthTipSendSummary,
 } from '../../api/healthTips';
 import { csvCell } from '../../lib/download';
@@ -79,20 +80,28 @@ function Subscribers() {
 type TipForm = HealthTipFields & { id?: string };
 const emptyTip: TipForm = {
   title: '', body: '', sms_text: '', why_it_matters: '', action: '',
-  myth: '', fact: '', source: '', category: 'general', status: 'published',
+  myth: '', fact: '', source: '', category: 'general', status: 'published', tags: [],
 };
+const parseTags = (s: string): string[] =>
+  Array.from(new Set(s.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))).slice(0, 20);
 
 function Tips() {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ['ht-tips'], queryFn: adminListHealthTips });
   const tips = data?.tips ?? [];
   const [editing, setEditing] = useState<TipForm | null>(null);
+  const [tagsInput, setTagsInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [topic, setTopic] = useState('');
   const [generating, setGenerating] = useState(false);
   const refresh = () => qc.invalidateQueries({ queryKey: ['ht-tips'] });
   const set = (patch: Partial<TipForm>) => setEditing((e) => (e ? { ...e, ...patch } : e));
+
+  // Tally tags across the library so we can offer bulk enable/disable per tag.
+  const tagCounts: Record<string, number> = {};
+  tips.forEach((t) => (t.tags || []).forEach((tag) => { tagCounts[tag] = (tagCounts[tag] || 0) + 1; }));
+  const tagList = Object.keys(tagCounts).sort();
 
   const save = async () => {
     if (!editing) return;
@@ -102,6 +111,7 @@ function Tips() {
       sms_text: editing.sms_text.trim(), why_it_matters: editing.why_it_matters.trim(),
       action: editing.action.trim(), myth: editing.myth.trim(), fact: editing.fact.trim(),
       source: editing.source.trim(), category: editing.category.trim() || 'general', status: editing.status,
+      tags: parseTags(tagsInput),
     };
     try {
       if (editing.id) await adminUpdateHealthTip(editing.id, payload);
@@ -115,12 +125,17 @@ function Tips() {
     try {
       const { draft } = await adminGenerateHealthTipDraft(topic);
       // Land AI output as a DRAFT the admin must review + publish.
-      setEditing((e) => ({ ...(e || emptyTip), ...draft, status: 'draft' }));
+      setEditing((e) => ({ ...(e || emptyTip), ...draft, tags: (e || emptyTip).tags, status: 'draft' }));
     } catch (err) { setError(errMessage(err, 'Could not generate a draft (is AI enabled?).')); }
     finally { setGenerating(false); }
   };
   const toggle = async (t: HealthTip) => {
     try { await adminUpdateHealthTip(t.id, { is_active: !t.is_active }); refresh(); }
+    catch (err) { alert(errMessage(err, 'Could not update.')); }
+  };
+  const bulkToggle = async (tag: string, active: boolean) => {
+    if (!confirm(`${active ? 'Enable' : 'Disable'} all ${tagCounts[tag]} tip(s) tagged "${tag}"?${active ? ' (Drafts stay drafts — they still need review.)' : ''}`)) return;
+    try { await adminBulkToggleHealthTipsByTag(tag, active); refresh(); }
     catch (err) { alert(errMessage(err, 'Could not update.')); }
   };
   // Approve a draft in one click: mark it published + enabled so it joins the rotation.
@@ -133,12 +148,13 @@ function Tips() {
     try { await adminDeleteHealthTip(t.id); refresh(); }
     catch (err) { alert(errMessage(err, 'Could not delete.')); }
   };
-  const openNew = () => { setError(''); setTopic(''); setEditing({ ...emptyTip }); };
+  const openNew = () => { setError(''); setTopic(''); setTagsInput(''); setEditing({ ...emptyTip }); };
   const openEdit = (t: HealthTip) => {
-    setError(''); setTopic('');
+    setError(''); setTopic(''); setTagsInput((t.tags || []).join(', '));
     setEditing({
       id: t.id, title: t.title, body: t.body, sms_text: t.sms_text, why_it_matters: t.why_it_matters,
-      action: t.action, myth: t.myth, fact: t.fact, source: t.source, category: t.category, status: t.status,
+      action: t.action, myth: t.myth, fact: t.fact, source: t.source, category: t.category,
+      status: t.status, tags: t.tags || [],
     });
   };
 
@@ -148,13 +164,38 @@ function Tips() {
         <span className="muted small">{tips.length} tips · one published tip is sent per day, rotating by order</span>
         <button className="btn btn-primary btn-sm" onClick={openNew}>+ Add a tip</button>
       </div>
+
+      {tagList.length > 0 && (
+        <div className="notice" style={{ marginBottom: 14 }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>🏷️ Tag sets</div>
+          <div className="muted small" style={{ marginBottom: 8 }}>Enable or retire a whole tagged set in one click — e.g. switch off <code>rainy-season</code> tips when the dry season starts, then back on next year.</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {tagList.map((tag) => (
+              <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #e2ebf0', borderRadius: 8, padding: '6px 10px' }}>
+                <span className="badge badge-gray">{tag}</span>
+                <span className="muted small">{tagCounts[tag]} tip{tagCounts[tag] === 1 ? '' : 's'}</span>
+                <button className="btn btn-secondary btn-sm" onClick={() => bulkToggle(tag, true)}>Enable all</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => bulkToggle(tag, false)}>Disable all</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <table className="table">
         <thead><tr><th>#</th><th>Title</th><th>Tip</th><th>Category</th><th>State</th><th></th></tr></thead>
         <tbody>
           {tips.map((t) => (
             <tr key={t.id} className={t.is_active && t.status === 'published' ? '' : 'row-inactive'}>
               <td className="muted small">{t.seq}</td>
-              <td><strong>{t.title}</strong></td>
+              <td>
+                <strong>{t.title}</strong>
+                {(t.tags || []).length > 0 && (
+                  <div style={{ marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {t.tags.map((tag) => <span key={tag} className="badge badge-gray" style={{ fontSize: 10 }}>{tag}</span>)}
+                  </div>
+                )}
+              </td>
               <td className="muted small">{t.body.length > 80 ? t.body.slice(0, 80) + '…' : t.body}</td>
               <td className="muted small">{t.category}</td>
               <td>
@@ -233,6 +274,10 @@ function Tips() {
                 <label>Source <span className="muted small">— e.g. WHO, Nigeria CDC (optional)</span></label>
                 <input value={editing.source} onChange={(e) => set({ source: e.target.value })} placeholder="WHO" />
               </div>
+            </div>
+            <div className="form-group">
+              <label>Tags <span className="muted small">— comma-separated; group a set to bulk enable/disable (e.g. rainy-season)</span></label>
+              <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="rainy-season" />
             </div>
             <div className="form-group">
               <label>State</label>

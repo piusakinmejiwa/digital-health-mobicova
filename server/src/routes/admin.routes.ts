@@ -27,7 +27,7 @@ import { adminListPageAssets, adminUpsertPageAsset, adminGenerateImage } from '.
 import { adminListNewsletterSignups, adminDeleteNewsletterSignup } from '../controllers/newsletter.controller';
 import {
   adminListSubscribers, adminDeleteSubscriber, adminListTips, adminCreateTip,
-  adminUpdateTip, adminDeleteTip, adminListTipSends, adminSendDailyTipNow,
+  adminUpdateTip, adminDeleteTip, adminListTipSends, adminSendDailyTipNow, adminGenerateTip,
 } from '../controllers/healthTips.controller';
 
 // In-memory upload (image goes straight to Supabase Storage; 5 MB cap, images only).
@@ -194,6 +194,7 @@ router.delete('/newsletter/:id', asyncHandler(adminDeleteNewsletterSignup));
 router.get('/health-tips/subscribers', asyncHandler(adminListSubscribers));
 router.delete('/health-tips/subscribers/:id', asyncHandler(adminDeleteSubscriber));
 router.get('/health-tips/tips', asyncHandler(adminListTips));
+router.post('/health-tips/tips/generate', asyncHandler(adminGenerateTip));
 router.post('/health-tips/tips', asyncHandler(adminCreateTip));
 router.patch('/health-tips/tips/:id', asyncHandler(adminUpdateTip));
 router.delete('/health-tips/tips/:id', asyncHandler(adminDeleteTip));

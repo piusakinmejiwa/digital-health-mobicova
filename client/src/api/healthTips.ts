@@ -26,8 +26,14 @@ export interface HealthTipSubscriber {
   email: string; channels: HealthTipChannel[]; consent: boolean; is_active: boolean; created_at: string;
 }
 export interface HealthTip {
-  id: string; seq: number; title: string; body: string; category: string; is_active: boolean; created_at: string;
+  id: string; seq: number; title: string; body: string;
+  sms_text: string; why_it_matters: string; action: string;
+  myth: string; fact: string; source: string;
+  category: string; status: 'draft' | 'published'; is_active: boolean; created_at: string;
 }
+// The editable/AI-draftable fields of a tip (everything except server-managed ids).
+export type HealthTipFields = Pick<HealthTip,
+  'title' | 'body' | 'sms_text' | 'why_it_matters' | 'action' | 'myth' | 'fact' | 'source' | 'category' | 'status'>;
 export interface HealthTipSend {
   id: string; channel: string; status: string; error: string; sent_on: string;
   created_at: string; full_name: string; tip_title: string;
@@ -50,11 +56,15 @@ export async function adminDeleteHealthSubscriber(id: string): Promise<void> {
 export async function adminListHealthTips(): Promise<{ tips: HealthTip[] }> {
   return (await api.get('/admin/health-tips/tips')).data;
 }
-export async function adminCreateHealthTip(data: { title: string; body: string; category?: string }): Promise<HealthTip> {
+export async function adminCreateHealthTip(data: Partial<HealthTipFields>): Promise<HealthTip> {
   return (await api.post('/admin/health-tips/tips', data)).data;
 }
-export async function adminUpdateHealthTip(id: string, data: Partial<Pick<HealthTip, 'title' | 'body' | 'category' | 'is_active'>>): Promise<HealthTip> {
+export async function adminUpdateHealthTip(id: string, data: Partial<HealthTipFields & Pick<HealthTip, 'is_active'>>): Promise<HealthTip> {
   return (await api.patch(`/admin/health-tips/tips/${id}`, data)).data;
+}
+// AI-draft a structured tip for review. Returns the draft; saves nothing.
+export async function adminGenerateHealthTipDraft(topic?: string): Promise<{ draft: HealthTipFields }> {
+  return (await api.post('/admin/health-tips/tips/generate', { topic: topic || '' })).data;
 }
 export async function adminDeleteHealthTip(id: string): Promise<void> {
   await api.delete(`/admin/health-tips/tips/${id}`);

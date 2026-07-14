@@ -35,10 +35,19 @@ const USSD_OPENING = `${INTAKE_INTRO}\n0 Health Buddy (free health tips)`;
 export async function handleUssd(req: Request, res: Response): Promise<void> {
   const phoneNumber: string = req.body?.phoneNumber || '';
   const text: string = req.body?.text ?? '';
-  const parts = text === '' ? [] : String(text).split('*');
 
   res.set('Content-Type', 'text/plain');
   if (!atTokenOk(req)) { res.status(403).send('END Unauthorised request.'); return; }
+
+  res.send(await ussdReply(phoneNumber, text));
+}
+
+// The USSD engine, as a pure function of (phoneNumber, accumulated text) → the
+// full "CON …"/"END …" reply string. Extracted from the HTTP handler so a health
+// probe can exercise the real code path (see ussdSelfTest). No side effects for an
+// opening request (empty text); member creation only fires when a flow completes.
+export async function ussdReply(phoneNumber: string, text: string): Promise<string> {
+  const parts = text === '' ? [] : String(text).split('*');
 
   // Identify the caller: a known member gets self-service; everyone else gets
   // enrolment. The MSISDN is the identity — no password on USSD.
@@ -46,15 +55,13 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
 
   // Opening screen, before any input.
   if (parts.length === 0) {
-    res.send(`CON ${member ? memberMenu(member.full_name) : USSD_OPENING}`);
-    return;
+    return `CON ${member ? memberMenu(member.full_name) : USSD_OPENING}`;
   }
 
   // Member self-service (options 1–5). Option 0 still goes to the Health Buddy below.
   if (member && ['1', '2', '3', '4', '5'].includes(parts[0])) {
     const out = await handleMemberChoice(member, parts[0], 'ussd');
-    res.send(`END ${out ?? 'Sorry, please try again.'}`);
-    return;
+    return `END ${out ?? 'Sorry, please try again.'}`;
   }
 
   // Health Buddy branch (first input "0"): a curated menu of short, sourced tips.
@@ -62,8 +69,7 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
   if (parts[0] === '0') {
     const nav = parts.slice(1);
     if (nav.length === 0) {
-      res.send(`CON ${buddyMenuScreen()}`);
-      return;
+      return `CON ${buddyMenuScreen()}`;
     }
     const choice = nav[0];
     const tip = buddyTipScreen(choice);
@@ -76,14 +82,12 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
     } catch (err) {
       console.error('USSD buddy log failed (non-fatal):', err);
     }
-    res.send(`END ${tip}`);
-    return;
+    return `END ${tip}`;
   }
 
   // A known member only has options 0–4; anything else just re-shows the menu.
   if (member) {
-    res.send(`CON Invalid option.\n${memberMenu(member.full_name)}`);
-    return;
+    return `CON Invalid option.\n${memberMenu(member.full_name)}`;
   }
 
   // Replay every answer so far through the engine (enrolment for non-members).
@@ -102,7 +106,34 @@ export async function handleUssd(req: Request, res: Response): Promise<void> {
     await createMemberFromIntake(state, { phone: phoneNumber, channel: 'ussd' });
   }
 
-  res.send(`${done ? 'END' : 'CON'} ${reply}`);
+  return `${done ? 'END' : 'CON'} ${reply}`;
+}
+
+// GET /channels/ussd/selftest — deep health probe for USSD. Runs a synthetic
+// opening request through the REAL engine (empty text → the opening menu), which
+// exercises the route, the controller and the database (findMemberByPhone). A
+// healthy USSD service returns a "CON …" opening screen. Returns 200 when good,
+// 503 otherwise, so an external uptime monitor can alert the instant USSD breaks —
+// something /healthz and /readyz don't catch. Side-effect free; exposes no data.
+//
+// Note: this proves OUR code + DB are healthy. If this is green but real dials
+// still fail, the fault is on the Africa's Talking / telco side — the service-code
+// callback URL, the ?token= on it, or the service code itself — not the app.
+export async function ussdSelfTest(_req: Request, res: Response): Promise<void> {
+  const started = Date.now();
+  try {
+    const reply = await ussdReply('+000000000000', '');
+    const ms = Date.now() - started;
+    if (!reply.startsWith('CON ')) {
+      res.status(503).json({ ok: false, error: 'USSD engine did not return an opening screen', ms });
+      return;
+    }
+    // requiresToken flags whether the public webhook is guarded — a quick way to
+    // spot the "AT calling without ?token= → 403" misconfiguration.
+    res.json({ ok: true, ms, requiresToken: !!env.atWebhookToken });
+  } catch (err) {
+    res.status(503).json({ ok: false, error: (err as Error).message, ms: Date.now() - started });
+  }
 }
 
 // POST /channels/ussd/notification — Africa's Talking end-of-session notification.

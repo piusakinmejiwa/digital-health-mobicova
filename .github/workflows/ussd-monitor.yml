@@ -1,0 +1,46 @@
+name: USSD Monitor
+
+# Pings the USSD self-test endpoint every 5 minutes. The endpoint runs a synthetic
+# USSD opening request through the real engine (route + controller + DB), so this
+# catches a USSD outage that /healthz and /readyz miss. On failure it alerts the
+# platform Slack channel; a failed run also surfaces in the Actions tab and emails
+# the repo owner. Requires repo secrets: PLATFORM_SLACK_WEBHOOK_URL (for the alert)
+# and optionally API_BASE_URL (defaults to the production API host).
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # every 5 minutes (GitHub's minimum interval)
+  workflow_dispatch: {}      # run on demand from the Actions tab
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe USSD self-test
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          SLACK_WEBHOOK: ${{ secrets.PLATFORM_SLACK_WEBHOOK_URL }}
+        run: |
+          set -uo pipefail
+          BASE="${API_BASE_URL:-https://api.mobicovahealth.com}"
+          URL="$BASE/api/v1/channels/ussd/selftest"
+
+          probe() { curl -sS -o /tmp/body.txt -w '%{http_code}' --max-time 30 "$URL" 2>/dev/null || echo 000; }
+
+          CODE="$(probe)"
+          # One retry after a short pause so a transient blip / cold-start doesn't page anyone.
+          if [ "$CODE" != "200" ]; then sleep 20; CODE="$(probe)"; fi
+          BODY="$(cat /tmp/body.txt 2>/dev/null || true)"
+          echo "GET $URL -> HTTP $CODE : $BODY"
+
+          if [ "$CODE" = "200" ]; then
+            echo "USSD healthy."
+            exit 0
+          fi
+
+          echo "USSD appears DOWN (HTTP $CODE)."
+          if [ -n "${SLACK_WEBHOOK:-}" ]; then
+            TEXT=":rotating_light: *MobiCova USSD is DOWN* — self-test returned HTTP ${CODE}. Response: ${BODY:-none}. Endpoint: ${URL}"
+            PAYLOAD="$(jq -n --arg t "$TEXT" '{text:$t}')"
+            curl -sS -X POST -H 'Content-Type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK" || true
+          fi
+          exit 1

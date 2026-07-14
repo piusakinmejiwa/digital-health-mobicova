@@ -40,4 +40,11 @@ app.listen(env.port, async () => {
   } catch {
     /* the check is advisory — never let it take the service down */
   }
+
+  // Security nudge: without a shared token the USSD/AT webhooks are open to the
+  // internet (a valid org code is still required to actually enrol). Set
+  // AT_WEBHOOK_TOKEN and append ?token=… to the Africa's Talking callback URLs.
+  if (!env.atWebhookToken) {
+    console.warn('⚠️  AT_WEBHOOK_TOKEN is not set — the USSD webhook is unauthenticated. Set it and append ?token=… to the AT callback URLs to lock it down. See docs/USSD-OPERATIONS.md.');
+  }
 });

@@ -90,12 +90,21 @@ Vite env vars are build-time, so the SPA is built per environment (`VITE_API_URL
 ## 8. Implementation roadmap
 
 **Can build now (independent of Nobus provisioning):**
-1. CI workflow: PR checks + build/push image to GHCR on `main`.
-2. Wire `npm run migrate` into the deploy job (auto-migrations).
-3. `docker-compose` templates per environment (app + Redis + Nginx).
-4. Create the `production` and `demo` branches + GitHub Environment protections.
+1. ✅ CI workflow: verify + build/push image to GHCR on push to `main`/`production`/`demo`
+   — **built (`.github/workflows/ci.yml`)**, tags `mobicova-api:<sha>` and `:<branch>`.
+2. Wire `npm run migrate` into the deploy job (auto-migrations) — the runner exists
+   (`node dist/db/migrate.js`, proven in `production.yml`'s ECS task).
+3. `docker-compose` templates per environment (app pulling the GHCR tag + Nginx; Redis
+   is its own instance on Nobus).
+4. Create the `production` and `demo` branches + GitHub Environment protections
+   (`production` = required reviewer for the 1-click approval).
 5. Refactor the existing `production.yml` / `release.yml` / `uat.yml` into the
-   staging/prod/demo model.
+   staging/prod/demo model (retire the Render paths at cutover).
+
+**Pending a decision first:** the deploy mechanism (steps 2–3 above) depends on
+**managed-Docker vs self-managed** — if Nobus manages Docker, they pull the GHCR tag and
+we skip the SSH deploy; if self-managed, a deploy workflow SSHes to the VMs. Hold these
+until Nobus's managed-Docker price lands.
 
 **Waits for Nobus provisioning (needs real hosts/keys/DNS):**
 6. Deploy workflows' SSH targets for staging/prod; the demo host.

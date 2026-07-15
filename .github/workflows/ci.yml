@@ -1,0 +1,64 @@
+name: CI (build & publish image)
+
+# Canonical build pipeline for the Nobus deployment model (see
+# docs/ENVIRONMENTS-AND-CICD.md). On a push to a deploy branch it verifies the
+# code and publishes ONE immutable API image to GHCR, tagged by commit SHA and by
+# branch. Deploys (SSH to the Nobus VMs, or Nobus managed-Docker) then pull that
+# exact tag — build once, promote the same artifact:
+#
+#   main        → staging image      (ghcr.io/<owner>/mobicova-api:main)
+#   production  → production image   (…:production)   ← promoted, 1-click approved
+#   demo        → demo image         (…:demo)
+#
+# The legacy Render workflows (uat.yml, release.yml) remain active for the current
+# managed stack and are retired at the Nobus cutover. PRs are verified by uat.yml.
+
+on:
+  push:
+    branches: [main, production, demo]
+
+permissions:
+  contents: read
+  packages: write        # push to GitHub Container Registry
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+      - name: Server — install, test, build
+        working-directory: server
+        run: npm ci && npm test && npm run build
+      - name: Client — install, build
+        working-directory: client
+        run: npm ci && npm run build
+
+  build-image:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lowercase the image namespace
+        id: ns
+        run: echo "repo=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: true
+          tags: |
+            ghcr.io/${{ steps.ns.outputs.repo }}/mobicova-api:${{ github.sha }}
+            ghcr.io/${{ steps.ns.outputs.repo }}/mobicova-api:${{ github.ref_name }}

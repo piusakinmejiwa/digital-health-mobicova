@@ -111,6 +111,41 @@ gross premium
 Add an `hmo_margin_amount` leg + the HMO as a party; the final leg is conditional on an
 underwriter being present.
 
+## Claims
+
+Claims ride the same coverage chain (claim → member → enrolment → plan → HMO/insurer).
+
+- **The HMO adjudicates** (eligibility, benefits, approve/deny) — MobiCova provides the
+  workflow, not the decision; maps to the existing `analyst` reviewer role as HMO users.
+- **Visibility:** HMO sees claims for members on the plans it offers; insurer sees claims on
+  plans it underwrites (risk/reserving); provider sees its own submissions; **employer sees no
+  individual claims** — aggregate utilisation only (existing member-privacy design).
+- **Payment stays Model A:** the HMO pays the provider from the risk pool; MobiCova records it.
+- **Optional later:** require insurer sign-off on claims above a ₦ threshold (excess/reinsurance).
+
+## Onboarding — who creates / links whom
+
+- **Platform admin** provisions **insurer + HMO** orgs and their parent links (regulated,
+  low-volume, high-trust, contract-gated).
+- **HMO admin self-onboards employers** — creates the employer org under itself
+  (`parent_org_id = hmo`) and assigns plans. New delegated capability; keeps MobiCova off the
+  critical path as HMOs sign up many employers.
+- **Employer** onboards members (existing wizard / CSV / join code / WhatsApp / USSD).
+- **Retail members** self-enrol directly under an HMO (public flow / HMO join code).
+- Platform admin retains oversight + "view as" across the tree.
+
+## Re-parenting — employer switches HMO
+
+Coverage-chain makes this clean — **not a data migration**:
+
+- End the employer's enrolments on the old HMO's plans; assign + enrol on the new HMO's plans;
+  update `parent_org_id`.
+- **Access shifts automatically** — the old HMO loses live visibility when its enrolments end;
+  the new HMO gains it. `members.org_id` (the employer) is unchanged, so nothing moves.
+- **History retained** — claims/data from the old coverage period stay on record (the old HMO
+  adjudicated them; regulatory retention), but no new data flows to them.
+- **Consent** updates in the switch flow (the new HMO now sees the member's data) — per NDPR.
+
 ## Migration & backwards compatibility
 
 Additive. Add `parent_org_id` and `plans.offered_by_org_id` (both nullable). With no parents
@@ -120,17 +155,21 @@ that are actually HMOs can be re-typed to `hmo` case by case.
 
 ## Phased implementation
 
-- **Phase 1 — foundation (no behaviour change):** schema (`parent_org_id`,
-  `plans.offered_by_org_id`) + `hmo` type in `orgTypes.ts` + `visibleOrgIds()` helper +
-  admin UI to set an org's parent and create HMO orgs. Nothing re-scopes yet.
-- **Phase 2 — coverage-chain reads:** give HMO/insurer actors access to members via the plans
-  they offer/underwrite (join through `enrolments → plans`), alongside the existing
-  employer-scoped reads; extend PHI projection to `hmo`. Endpoint-by-endpoint, each with tests.
-  This is the careful part (big blast radius).
-- **Phase 3 — parent-tier UX:** HMO/insurer dashboards that aggregate across the branch;
-  drill-down into a child; write-targeting a child org.
-- **Phase 4 — settlement (if needed):** an HMO margin in the premium split (the ledger
-  already snapshots rates, so it extends cleanly).
+- **Phase 1 — foundation (no behaviour change):** schema (`organisations.parent_org_id`; new
+  `hmo` type in `orgTypes.ts` as a demand/PHI-owner; `insurance_plans.offered_by_org_id` +
+  `kind` group|individual); the coverage-chain access resolver (given an actor org, yields its
+  member predicate) wired but not yet applied; admin UI to create HMO/insurer orgs + set parent
+  links. Additive — single-tenant behaviour unchanged until orgs are linked.
+- **Phase 2 — coverage-chain reads + HMO onboarding:** apply the resolver to core reads
+  (members, enrolments, claims, dashboards, reports) via the plan join; extend PHI projection to
+  `hmo`; endpoint-by-endpoint with tests (the careful, big-blast-radius part). HMO console to
+  self-onboard employer orgs + assign plans.
+- **Phase 3 — plans, pricing & parent-tier UX:** `plan_assignments` (employer↔plan, negotiated
+  premium / benefit override); enrolments resolve premium from the assignment; retail
+  individual-plan flow. HMO/insurer aggregate dashboards, drill-down, write-targeting a child.
+- **Phase 4 — settlement + claims chain:** extend `premium_transactions` with the HMO-margin
+  leg (Model A — record only); claims visibility up the chain (HMO adjudicates, insurer
+  oversight); optional insurer sign-off threshold.
 
 ## Risks
 

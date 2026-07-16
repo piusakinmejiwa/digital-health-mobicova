@@ -152,11 +152,17 @@ export async function aiReviewClaim(req: Request, res: Response): Promise<void> 
   const orgId = req.user!.orgId;
   const id = String(req.params.id);
 
-  const exists = await query('SELECT 1 FROM claims WHERE id = $1 AND org_id = $2', [id, orgId]);
-  if (exists.rows.length === 0) { res.status(404).json({ error: 'Claim not found' }); return; }
+  // Authorise via the coverage chain (an HMO/insurer may review claims on its
+  // plans), but analyse against the claim's OWNING org so the fraud-comparison
+  // population is consistent regardless of who triggers the review.
+  const actor = await resolveOrgActor(orgId);
+  const scope = coverageChainClause(actor, { alias: '', memberCol: 'member_id', startIndex: 2 });
+  const claimRow = await query(`SELECT org_id FROM claims WHERE id = $1 AND (${scope.sql})`, [id, ...scope.params]);
+  if (claimRow.rows.length === 0) { res.status(404).json({ error: 'Claim not found' }); return; }
+  const claimOrgId = claimRow.rows[0].org_id as string;
 
   try {
-    const review = await reviewClaim(orgId, id);
+    const review = await reviewClaim(claimOrgId, id);
     await recordAudit(req, {
       action: 'claim.ai_review', targetType: 'claim', targetId: id,
       orgId, metadata: { verdict: review.ai_status, risk: review.ai_risk },

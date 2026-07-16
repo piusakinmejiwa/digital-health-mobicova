@@ -184,7 +184,11 @@ export async function decideClaim(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const existing = await query('SELECT status, reference FROM claims WHERE id = $1 AND org_id = $2', [id, orgId]);
+  // Adjudication authority follows the coverage chain: an HMO/insurer can decide
+  // claims for members on the plans it offers/underwrites; a company its own.
+  const actor = await resolveOrgActor(orgId);
+  const scope = coverageChainClause(actor, { alias: '', memberCol: 'member_id', startIndex: 2 });
+  const existing = await query(`SELECT status, reference FROM claims WHERE id = $1 AND (${scope.sql})`, [id, ...scope.params]);
   if (existing.rows.length === 0) {
     res.status(404).json({ error: 'Claim not found' });
     return;
@@ -232,7 +236,9 @@ export async function uploadClaimDocument(req: Request, res: Response): Promise<
     return;
   }
 
-  const claim = await query('SELECT reference FROM claims WHERE id = $1 AND org_id = $2', [id, orgId]);
+  const actor = await resolveOrgActor(orgId);
+  const scope = coverageChainClause(actor, { alias: '', memberCol: 'member_id', startIndex: 2 });
+  const claim = await query(`SELECT reference FROM claims WHERE id = $1 AND (${scope.sql})`, [id, ...scope.params]);
   if (claim.rows.length === 0) {
     res.status(404).json({ error: 'Claim not found' });
     return;

@@ -1,5 +1,6 @@
 import { query } from '../config/database';
 import type { OrgBranding } from './branding';
+import { resolveOrgActor, memberVisibilityClause, coverageChainClause } from './orgHierarchy';
 
 // Scheduled client reports. Three cadences, each reporting the most-recently
 // *completed* period relative to "now":
@@ -113,67 +114,76 @@ export async function computeReportSnapshot(orgId: string, period: Period, gener
   const s = start.toISOString();
   const e = end.toISOString();
 
+  // Coverage-chain scopes — every clause references only $1 (= orgId, already the
+  // first param of each query below), so the params arrays are unchanged. A company
+  // resolves to plain `org_id = $1`; an HMO/insurer spans its book via its plans.
+  const actor = await resolveOrgActor(orgId);
+  const mScope = memberVisibilityClause(actor, '', 1).sql;                                // members (unaliased: org_id / id)
+  const mScopeM = memberVisibilityClause(actor, 'm', 1).sql;                              // members aliased m
+  const xScope = coverageChainClause(actor, { alias: '', memberCol: 'member_id' }).sql;   // consult/enrol/claims/triage (unaliased)
+  const enScope = coverageChainClause(actor, { alias: 'en', memberCol: 'member_id' }).sql; // enrolments aliased en
+
   const [
     org, members, consults, enrol, triage, rx, claims, premium, plans, channels, prev,
   ] = await Promise.all([
     query('SELECT name FROM organisations WHERE id = $1', [orgId]),
     query(
       `SELECT
-         (SELECT COUNT(*)::int FROM members WHERE org_id=$1 AND created_at>=$2 AND created_at<$3) AS new_members,
-         (SELECT COUNT(*)::int FROM members WHERE org_id=$1 AND created_at<$3) AS total_members,
-         (SELECT COUNT(*)::int FROM members WHERE org_id=$1 AND status='active' AND created_at<$3) AS active_members`,
+         (SELECT COUNT(*)::int FROM members WHERE ${mScope} AND created_at>=$2 AND created_at<$3) AS new_members,
+         (SELECT COUNT(*)::int FROM members WHERE ${mScope} AND created_at<$3) AS total_members,
+         (SELECT COUNT(*)::int FROM members WHERE ${mScope} AND status='active' AND created_at<$3) AS active_members`,
       [orgId, s, e]
     ),
     query(
       `SELECT
-         (SELECT COUNT(*)::int FROM consultations WHERE org_id=$1 AND created_at>=$2 AND created_at<$3) AS consultations,
-         (SELECT COUNT(*)::int FROM consultations WHERE org_id=$1 AND status='completed' AND created_at>=$2 AND created_at<$3) AS completed`,
+         (SELECT COUNT(*)::int FROM consultations WHERE ${xScope} AND created_at>=$2 AND created_at<$3) AS consultations,
+         (SELECT COUNT(*)::int FROM consultations WHERE ${xScope} AND status='completed' AND created_at>=$2 AND created_at<$3) AS completed`,
       [orgId, s, e]
     ),
     query(
       `SELECT
-         (SELECT COUNT(*)::int FROM enrolments WHERE org_id=$1 AND enrolled_at>=$2 AND enrolled_at<$3) AS enrolments,
-         (SELECT COUNT(*)::int FROM enrolments WHERE org_id=$1 AND payment_status='paid' AND enrolled_at>=$2 AND enrolled_at<$3) AS paid`,
+         (SELECT COUNT(*)::int FROM enrolments WHERE ${xScope} AND enrolled_at>=$2 AND enrolled_at<$3) AS enrolments,
+         (SELECT COUNT(*)::int FROM enrolments WHERE ${xScope} AND payment_status='paid' AND enrolled_at>=$2 AND enrolled_at<$3) AS paid`,
       [orgId, s, e]
     ),
-    query(`SELECT COUNT(*)::int AS n FROM triage_sessions WHERE org_id=$1 AND created_at>=$2 AND created_at<$3`, [orgId, s, e]),
+    query(`SELECT COUNT(*)::int AS n FROM triage_sessions WHERE ${xScope} AND created_at>=$2 AND created_at<$3`, [orgId, s, e]),
     query(
       `SELECT COUNT(*)::int AS n FROM prescriptions p JOIN members m ON m.id=p.member_id
-        WHERE m.org_id=$1 AND p.created_at>=$2 AND p.created_at<$3`,
+        WHERE ${mScopeM} AND p.created_at>=$2 AND p.created_at<$3`,
       [orgId, s, e]
     ),
     query(
       `SELECT COUNT(*)::int AS n,
               COALESCE(SUM(amount),0) AS amount,
               COALESCE(SUM(amount) FILTER (WHERE status IN ('approved','paid')),0) AS approved
-         FROM claims WHERE org_id=$1 AND created_at>=$2 AND created_at<$3`,
+         FROM claims WHERE ${xScope} AND created_at>=$2 AND created_at<$3`,
       [orgId, s, e]
     ),
     query(
       `SELECT COALESCE(SUM(pl.monthly_premium),0) AS premium,
               COALESCE(SUM(pl.monthly_premium*pl.commission_rate/100),0) AS commission
          FROM enrolments en JOIN insurance_plans pl ON en.plan_id=pl.id
-        WHERE en.org_id=$1 AND en.status='active'`,
+        WHERE ${enScope} AND en.status='active'`,
       [orgId]
     ),
     query(
       `SELECT pl.name AS plan_name, pl.underwriter, COUNT(*)::int AS enrolments
          FROM enrolments en JOIN insurance_plans pl ON en.plan_id=pl.id
-        WHERE en.org_id=$1 AND en.enrolled_at>=$2 AND en.enrolled_at<$3
+        WHERE ${enScope} AND en.enrolled_at>=$2 AND en.enrolled_at<$3
         GROUP BY pl.name, pl.underwriter ORDER BY enrolments DESC LIMIT 5`,
       [orgId, s, e]
     ),
     query(
       `SELECT channel, COUNT(*)::int AS count FROM members
-        WHERE org_id=$1 AND created_at>=$2 AND created_at<$3 GROUP BY channel ORDER BY count DESC`,
+        WHERE ${mScope} AND created_at>=$2 AND created_at<$3 GROUP BY channel ORDER BY count DESC`,
       [orgId, s, e]
     ),
     query(
       `SELECT
-         (SELECT COUNT(*)::int FROM members WHERE org_id=$1 AND created_at>=$2 AND created_at<$3) AS new_members,
-         (SELECT COUNT(*)::int FROM consultations WHERE org_id=$1 AND created_at>=$2 AND created_at<$3) AS consultations,
-         (SELECT COUNT(*)::int FROM enrolments WHERE org_id=$1 AND enrolled_at>=$2 AND enrolled_at<$3) AS enrolments,
-         (SELECT COUNT(*)::int FROM triage_sessions WHERE org_id=$1 AND created_at>=$2 AND created_at<$3) AS triage`,
+         (SELECT COUNT(*)::int FROM members WHERE ${mScope} AND created_at>=$2 AND created_at<$3) AS new_members,
+         (SELECT COUNT(*)::int FROM consultations WHERE ${xScope} AND created_at>=$2 AND created_at<$3) AS consultations,
+         (SELECT COUNT(*)::int FROM enrolments WHERE ${xScope} AND enrolled_at>=$2 AND enrolled_at<$3) AS enrolments,
+         (SELECT COUNT(*)::int FROM triage_sessions WHERE ${xScope} AND created_at>=$2 AND created_at<$3) AS triage`,
       [orgId, prevStart.toISOString(), prevEnd.toISOString()]
     ),
   ]);

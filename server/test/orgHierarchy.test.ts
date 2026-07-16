@@ -68,4 +68,10 @@ describe('coverageChainClause — member-linked entities (e.g. claims)', () => {
     expect(c.sql).toContain('c.member_id IN');
     expect(c.sql).toContain('underwriter_org_id = $1');
   });
+  it('empty alias → unqualified columns (for alias-less subqueries, e.g. reports)', () => {
+    expect(coverageChainClause(actor('company'), { alias: '', memberCol: 'member_id' }).sql).toBe('org_id = $1');
+    const hmo = coverageChainClause(actor('hmo'), { alias: '', memberCol: 'member_id' }).sql;
+    expect(hmo).toContain('org_id = $1');
+    expect(hmo).toContain('OR member_id IN'); // outer column unqualified (subquery keeps cc_e.member_id)
+  });
 });

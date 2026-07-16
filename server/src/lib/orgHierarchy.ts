@@ -39,19 +39,20 @@ export function coverageChainClause(
   const memberCol = opts.memberCol ?? 'id';
   const ownCol = opts.ownCol ?? 'org_id';
   const startIndex = opts.startIndex ?? 1;
+  const pre = alias ? `${alias}.` : ''; // empty alias → unqualified columns
 
   const scope = memberAccessScope(actor.orgType, actor.isPlatform);
   if (scope === 'all') return { sql: 'TRUE', params: [] };
 
   const p = `$${startIndex}`;
-  const own = `${alias}.${ownCol} = ${p}`;
+  const own = `${pre}${ownCol} = ${p}`;
 
   if (scope === 'offered-plans' || scope === 'underwritten-plans') {
     const planCol = scope === 'offered-plans' ? 'offered_by_org_id' : 'underwriter_org_id';
     // Distinctive inner aliases (cc_e / cc_pl) so this never collides with an outer
     // query that already aliases enrolments/insurance_plans (e.g. the dashboard).
     return {
-      sql: `(${own} OR ${alias}.${memberCol} IN (
+      sql: `(${own} OR ${pre}${memberCol} IN (
         SELECT cc_e.member_id FROM enrolments cc_e
           JOIN insurance_plans cc_pl ON cc_pl.id = cc_e.plan_id
          WHERE cc_pl.${planCol} = ${p}))`,

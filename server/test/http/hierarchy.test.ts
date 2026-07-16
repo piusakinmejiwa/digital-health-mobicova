@@ -46,3 +46,19 @@ describe('GET /api/v1/hierarchy/plans — assignable plans', () => {
     expect(r.body[0].name).toBe('Bronze');
   });
 });
+
+describe('POST /api/v1/hierarchy/employers/:id/members', () => {
+  it('403s for a company', async () => {
+    vi.mocked(query).mockImplementation(buildQueryImpl({ orgType: 'company' }) as never);
+    const r = await request(app).post('/api/v1/hierarchy/employers/emp-1/members')
+      .set('Authorization', `Bearer ${staffToken()}`).send({ fullName: 'Ada' });
+    expect(r.status).toBe(403);
+  });
+
+  it('400s without a full name (as an HMO with a valid child)', async () => {
+    vi.mocked(query).mockImplementation(buildQueryImpl({ orgType: 'hmo' }) as never);
+    const r = await request(app).post('/api/v1/hierarchy/employers/emp-1/members')
+      .set('Authorization', `Bearer ${staffToken()}`).send({});
+    expect(r.status).toBe(400);
+  });
+});

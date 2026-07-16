@@ -47,3 +47,16 @@ export async function assignPlan(employerId: string, data: { planId: string; neg
 export async function unassignPlan(employerId: string, assignmentId: string): Promise<void> {
   await api.delete(`/hierarchy/employers/${employerId}/plans/${assignmentId}`);
 }
+
+// ── Members under a child employer ──
+export interface EmployerMember {
+  id: string; full_name: string; membership_id: string; status: string; channel: string; created_at: string;
+}
+export async function listEmployerMembers(employerId: string): Promise<EmployerMember[]> {
+  return (await api.get(`/hierarchy/employers/${employerId}/members`)).data;
+}
+export async function addEmployerMember(employerId: string, data: {
+  fullName: string; phone?: string; email?: string; dateOfBirth?: string; gender?: string;
+}): Promise<EmployerMember> {
+  return (await api.post(`/hierarchy/employers/${employerId}/members`, data)).data;
+}

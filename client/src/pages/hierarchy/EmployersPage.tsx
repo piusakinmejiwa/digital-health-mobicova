@@ -4,6 +4,7 @@ import axios from 'axios';
 import {
   listChildEmployers, createChildEmployer, type ChildEmployer,
   listAssignablePlans, listEmployerAssignments, assignPlan, unassignPlan,
+  listEmployerMembers, addEmployerMember,
 } from '../../api/hierarchy';
 
 function errMessage(err: unknown, fallback: string): string {
@@ -22,6 +23,7 @@ export default function EmployersPage() {
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | (ChildEmployer & { admin_user?: { email: string } })>(null);
   const [plansFor, setPlansFor] = useState<null | ChildEmployer>(null);
+  const [membersFor, setMembersFor] = useState<null | ChildEmployer>(null);
 
   const list = employers ?? [];
 
@@ -69,7 +71,10 @@ export default function EmployersPage() {
                 <td className="muted small">{o.member_count}</td>
                 <td className="muted small">{o.user_count}</td>
                 <td><span className={`badge ${o.is_active ? 'badge-green' : 'badge-gray'}`}>{o.is_active ? 'active' : 'suspended'}</span></td>
-                <td className="admin-actions"><button className="btn btn-secondary btn-sm" onClick={() => setPlansFor(o)}>Plans</button></td>
+                <td className="admin-actions">
+                  <button className="btn btn-secondary btn-sm" onClick={() => setMembersFor(o)}>Members</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setPlansFor(o)}>Plans</button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -116,6 +121,7 @@ export default function EmployersPage() {
       )}
 
       {plansFor && <PlanAssignmentsModal employer={plansFor} onClose={() => setPlansFor(null)} />}
+      {membersFor && <EmployerMembersModal employer={membersFor} onClose={() => setMembersFor(null)} />}
 
       {provisioned && (
         <div className="drawer-overlay" onClick={() => setProvisioned(null)}>
@@ -209,6 +215,72 @@ function PlanAssignmentsModal({ employer, onClose }: { employer: ChildEmployer; 
         <div className="modal-actions">
           <button className="btn btn-secondary" onClick={onClose}>Close</button>
           <button className="btn btn-primary" onClick={add} disabled={busy || !planId}>{busy ? 'Assigning…' : 'Assign plan'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// View + add members for one child employer (PHI-safe list; the member attaches to
+// the employer, not the HMO).
+function EmployerMembersModal({ employer, onClose }: { employer: ChildEmployer; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: members } = useQuery({ queryKey: ['emp-members', employer.id], queryFn: () => listEmployerMembers(employer.id) });
+  const [form, setForm] = useState({ fullName: '', phone: '', email: '' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const list = members ?? [];
+
+  const add = async () => {
+    if (!form.fullName.trim()) return;
+    setBusy(true); setError('');
+    try {
+      await addEmployerMember(employer.id, { fullName: form.fullName.trim(), phone: form.phone.trim(), email: form.email.trim() });
+      setForm({ fullName: '', phone: '', email: '' });
+      qc.invalidateQueries({ queryKey: ['emp-members', employer.id] });
+      qc.invalidateQueries({ queryKey: ['child-employers'] }); // refresh member counts
+    } catch (err) { setError(errMessage(err, 'Could not add the member.')); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+        <h3>Members · {employer.name}</h3>
+        <p className="muted small">Members you add here belong to this employer. Full health profiles can be completed by the employer or the member.</p>
+        {error && <div className="notice notice-error">{error}</div>}
+
+        <table className="table">
+          <thead><tr><th>Name</th><th>Membership ID</th><th>Status</th></tr></thead>
+          <tbody>
+            {list.map((m) => (
+              <tr key={m.id}>
+                <td><strong>{m.full_name}</strong></td>
+                <td className="muted small"><code>{m.membership_id}</code></td>
+                <td><span className={`badge ${m.status === 'active' ? 'badge-green' : 'badge-gray'}`}>{m.status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {list.length === 0 && <p className="empty-state">No members yet.</p>}
+
+        <div className="form-grid" style={{ marginTop: 12 }}>
+          <div className="form-group">
+            <label>Full name</label>
+            <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="e.g. Ada Obi" />
+          </div>
+          <div className="form-group">
+            <label>Phone <span className="muted">— optional</span></label>
+            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+234…" />
+          </div>
+          <div className="form-group form-span-2">
+            <label>Email <span className="muted">— optional</span></label>
+            <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="member@example.com" />
+          </div>
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={onClose}>Close</button>
+          <button className="btn btn-primary" onClick={add} disabled={busy || !form.fullName.trim()}>{busy ? 'Adding…' : 'Add member'}</button>
         </div>
       </div>
     </div>

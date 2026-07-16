@@ -6,6 +6,8 @@ import { passwordIssue } from '../lib/password';
 import { randomPlaceholderSecret } from '../lib/invites';
 import { sendAdminWelcome } from '../lib/onboarding';
 import { recordAudit } from '../lib/audit';
+import { newMembershipId } from '../lib/membership';
+import { checkMemberSeats, seatLimitError } from '../lib/plans';
 
 // The HMO / insurer onboarding console. An HMO (or insurer) admin manages the
 // EMPLOYER organisations that sit beneath it in the hierarchy (parent_org_id =
@@ -153,6 +155,50 @@ export async function assignPlan(req: Request, res: Response): Promise<void> {
   await recordAudit(req, {
     action: 'plan.assign', targetType: 'organisation', targetId: employerId,
     targetLabel: plan.rows[0].name, orgId: callerId, metadata: { planId, negotiatedPremium: negotiated },
+  });
+  res.status(201).json(r.rows[0]);
+}
+
+// ── Members under a child employer ──────────────────────────────────────────
+
+// GET /hierarchy/employers/:id/members — the employer's members (PHI-safe list).
+export async function listEmployerMembers(req: Request, res: Response): Promise<void> {
+  const callerId = req.user!.orgId;
+  const employerId = String(req.params.id);
+  if (!(await childEmployer(callerId, employerId))) { res.status(404).json({ error: 'Employer not found' }); return; }
+
+  const r = await query(
+    `SELECT id, full_name, membership_id, status, channel, created_at
+       FROM members WHERE org_id = $1 ORDER BY created_at DESC`,
+    [employerId]
+  );
+  res.json(r.rows);
+}
+
+// POST /hierarchy/employers/:id/members — add a member under a child employer
+// (org_id = the employer). Honours the employer's own seat cap.
+export async function addEmployerMember(req: Request, res: Response): Promise<void> {
+  const callerId = req.user!.orgId;
+  const employerId = String(req.params.id);
+  if (!(await childEmployer(callerId, employerId))) { res.status(404).json({ error: 'Employer not found' }); return; }
+
+  const fullName = String(req.body?.fullName || '').trim();
+  if (!fullName) { res.status(400).json({ error: 'Full name is required' }); return; }
+
+  const seats = await checkMemberSeats(employerId, 1);
+  if (seats.exceeded) { res.status(403).json(seatLimitError(seats, 1)); return; }
+
+  const membershipId = await newMembershipId(employerId);
+  const r = await query(
+    `INSERT INTO members (org_id, full_name, phone, email, date_of_birth, gender, channel, membership_id)
+     VALUES ($1, $2, $3, $4, $5, $6, 'app', $7)
+     RETURNING id, full_name, membership_id, status, channel, created_at`,
+    [employerId, fullName, String(req.body?.phone || ''), String(req.body?.email || ''),
+     req.body?.dateOfBirth || null, String(req.body?.gender || ''), membershipId]
+  );
+  await recordAudit(req, {
+    action: 'member.create', targetType: 'member', targetId: r.rows[0].id,
+    targetLabel: fullName, orgId: employerId, metadata: { viaHmo: callerId },
   });
   res.status(201).json(r.rows[0]);
 }

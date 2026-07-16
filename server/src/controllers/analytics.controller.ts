@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
+import { EFFECTIVE_PREMIUM, planAssignmentJoin } from '../lib/premium';
 
 // Per-tenant analytics & reporting. Read-only, so it sits behind authenticate
 // only (every role, including analysts, can view it). All figures are scoped to
@@ -40,18 +41,20 @@ export async function getAnalytics(req: Request, res: Response): Promise<void> {
       [orgId]
     ),
     query(
-      `SELECT COALESCE(SUM(pl.monthly_premium), 0) AS premium,
-              COALESCE(SUM(pl.monthly_premium * pl.commission_rate / 100), 0) AS commission
+      `SELECT COALESCE(SUM(${EFFECTIVE_PREMIUM}), 0) AS premium,
+              COALESCE(SUM(${EFFECTIVE_PREMIUM} * pl.commission_rate / 100), 0) AS commission
        FROM enrolments e JOIN insurance_plans pl ON e.plan_id = pl.id
+       ${planAssignmentJoin('e')}
        WHERE e.org_id = $1 AND e.status = 'active'`,
       [orgId]
     ),
     query(
       `SELECT pl.name AS plan_name, pl.underwriter,
               COUNT(*)::int AS enrolments,
-              COALESCE(SUM(pl.monthly_premium), 0) AS premium,
-              COALESCE(SUM(pl.monthly_premium * pl.commission_rate / 100), 0) AS commission
+              COALESCE(SUM(${EFFECTIVE_PREMIUM}), 0) AS premium,
+              COALESCE(SUM(${EFFECTIVE_PREMIUM} * pl.commission_rate / 100), 0) AS commission
        FROM enrolments e JOIN insurance_plans pl ON e.plan_id = pl.id
+       ${planAssignmentJoin('e')}
        WHERE e.org_id = $1 AND e.status = 'active'
        GROUP BY pl.name, pl.underwriter
        ORDER BY premium DESC`,
@@ -60,8 +63,9 @@ export async function getAnalytics(req: Request, res: Response): Promise<void> {
     query(
       `SELECT pl.underwriter,
               COUNT(*)::int AS enrolments,
-              COALESCE(SUM(pl.monthly_premium), 0) AS premium
+              COALESCE(SUM(${EFFECTIVE_PREMIUM}), 0) AS premium
        FROM enrolments e JOIN insurance_plans pl ON e.plan_id = pl.id
+       ${planAssignmentJoin('e')}
        WHERE e.org_id = $1 AND e.status = 'active'
        GROUP BY pl.underwriter
        ORDER BY premium DESC`,

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
+import { EFFECTIVE_PREMIUM, planAssignmentJoin } from '../lib/premium';
 
 // Ad-hoc query builder: measure × dimension over a time window, org-scoped. The
 // allow-lists below define exactly which SQL fragments may be composed, so user
@@ -43,8 +44,8 @@ const MEASURES: Record<string, MeasureDef> = {
     },
   },
   Premium: {
-    from: 'enrolments e JOIN insurance_plans pl ON e.plan_id = pl.id',
-    value: 'COALESCE(SUM(pl.monthly_premium), 0)', date: 'e.enrolled_at', org: 'e.org_id', money: true,
+    from: `enrolments e JOIN insurance_plans pl ON e.plan_id = pl.id ${planAssignmentJoin('e')}`,
+    value: `COALESCE(SUM(${EFFECTIVE_PREMIUM}), 0)`, date: 'e.enrolled_at', org: 'e.org_id', money: true,
     dims: {
       Plan: 'pl.name',
       Status: 'e.payment_status',

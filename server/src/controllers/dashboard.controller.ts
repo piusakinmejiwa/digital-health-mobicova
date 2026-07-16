@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { getAiActivity } from '../lib/aiActivity';
 import { resolveOrgActor, memberVisibilityClause, coverageChainClause } from '../lib/orgHierarchy';
+import { EFFECTIVE_PREMIUM, planAssignmentJoin } from '../lib/premium';
 
 export async function getDashboard(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
@@ -21,9 +22,10 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
       query(`SELECT COUNT(*)::int AS count FROM enrolments e WHERE ${eScope.sql}`, eScope.params),
       query(`SELECT COUNT(*)::int AS count FROM triage_sessions t WHERE ${tScope.sql}`, tScope.params),
       query(
-        `SELECT COALESCE(SUM(pl.monthly_premium), 0) AS total,
-                COALESCE(SUM(pl.monthly_premium * pl.commission_rate / 100), 0) AS commission
+        `SELECT COALESCE(SUM(${EFFECTIVE_PREMIUM}), 0) AS total,
+                COALESCE(SUM(${EFFECTIVE_PREMIUM} * pl.commission_rate / 100), 0) AS commission
          FROM enrolments e JOIN insurance_plans pl ON e.plan_id = pl.id
+         ${planAssignmentJoin('e')}
          WHERE ${eScope.sql} AND e.status = 'active'`,
         eScope.params
       ),

@@ -1,6 +1,7 @@
 import { query } from '../config/database';
 import type { OrgBranding } from './branding';
 import { resolveOrgActor, memberVisibilityClause, coverageChainClause } from './orgHierarchy';
+import { EFFECTIVE_PREMIUM, planAssignmentJoin } from './premium';
 
 // Scheduled client reports. Three cadences, each reporting the most-recently
 // *completed* period relative to "now":
@@ -160,9 +161,10 @@ export async function computeReportSnapshot(orgId: string, period: Period, gener
       [orgId, s, e]
     ),
     query(
-      `SELECT COALESCE(SUM(pl.monthly_premium),0) AS premium,
-              COALESCE(SUM(pl.monthly_premium*pl.commission_rate/100),0) AS commission
+      `SELECT COALESCE(SUM(${EFFECTIVE_PREMIUM}),0) AS premium,
+              COALESCE(SUM(${EFFECTIVE_PREMIUM}*pl.commission_rate/100),0) AS commission
          FROM enrolments en JOIN insurance_plans pl ON en.plan_id=pl.id
+         ${planAssignmentJoin('en')}
         WHERE ${enScope} AND en.status='active'`,
       [orgId]
     ),

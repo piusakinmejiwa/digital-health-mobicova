@@ -48,11 +48,13 @@ export function coverageChainClause(
 
   if (scope === 'offered-plans' || scope === 'underwritten-plans') {
     const planCol = scope === 'offered-plans' ? 'offered_by_org_id' : 'underwriter_org_id';
+    // Distinctive inner aliases (cc_e / cc_pl) so this never collides with an outer
+    // query that already aliases enrolments/insurance_plans (e.g. the dashboard).
     return {
       sql: `(${own} OR ${alias}.${memberCol} IN (
-        SELECT e.member_id FROM enrolments e
-          JOIN insurance_plans pl ON pl.id = e.plan_id
-         WHERE pl.${planCol} = ${p}))`,
+        SELECT cc_e.member_id FROM enrolments cc_e
+          JOIN insurance_plans cc_pl ON cc_pl.id = cc_e.plan_id
+         WHERE cc_pl.${planCol} = ${p}))`,
       params: [actor.orgId],
     };
   }

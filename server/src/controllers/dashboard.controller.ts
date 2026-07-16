@@ -1,47 +1,56 @@
 import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { getAiActivity } from '../lib/aiActivity';
+import { resolveOrgActor, memberVisibilityClause, coverageChainClause } from '../lib/orgHierarchy';
 
 export async function getDashboard(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
 
+  // Coverage-chain scopes: an HMO/insurer's headline numbers span its whole book
+  // (members on the plans it offers/underwrites); a company's are its own, as before.
+  const actor = await resolveOrgActor(orgId);
+  const mScope = memberVisibilityClause(actor, 'm', 1);                                   // members (m.id)
+  const cScope = coverageChainClause(actor, { alias: 'c', memberCol: 'member_id' });      // consultations
+  const eScope = coverageChainClause(actor, { alias: 'e', memberCol: 'member_id' });      // enrolments
+  const tScope = coverageChainClause(actor, { alias: 't', memberCol: 'member_id' });      // triage
+
   const [members, consultations, enrolments, triage, premium, recentConsults, recentEnrolments, channelBreakdown] =
     await Promise.all([
-      query(`SELECT COUNT(*)::int AS count FROM members WHERE org_id = $1`, [orgId]),
-      query(`SELECT COUNT(*)::int AS count FROM consultations WHERE org_id = $1`, [orgId]),
-      query(`SELECT COUNT(*)::int AS count FROM enrolments WHERE org_id = $1`, [orgId]),
-      query(`SELECT COUNT(*)::int AS count FROM triage_sessions WHERE org_id = $1`, [orgId]),
+      query(`SELECT COUNT(*)::int AS count FROM members m WHERE ${mScope.sql}`, mScope.params),
+      query(`SELECT COUNT(*)::int AS count FROM consultations c WHERE ${cScope.sql}`, cScope.params),
+      query(`SELECT COUNT(*)::int AS count FROM enrolments e WHERE ${eScope.sql}`, eScope.params),
+      query(`SELECT COUNT(*)::int AS count FROM triage_sessions t WHERE ${tScope.sql}`, tScope.params),
       query(
         `SELECT COALESCE(SUM(pl.monthly_premium), 0) AS total,
                 COALESCE(SUM(pl.monthly_premium * pl.commission_rate / 100), 0) AS commission
          FROM enrolments e JOIN insurance_plans pl ON e.plan_id = pl.id
-         WHERE e.org_id = $1 AND e.status = 'active'`,
-        [orgId]
+         WHERE ${eScope.sql} AND e.status = 'active'`,
+        eScope.params
       ),
       query(
         `SELECT c.id, c.status, c.mode, c.created_at, m.full_name AS member_name
          FROM consultations c JOIN members m ON c.member_id = m.id
-         WHERE c.org_id = $1 ORDER BY c.created_at DESC LIMIT 5`,
-        [orgId]
+         WHERE ${cScope.sql} ORDER BY c.created_at DESC LIMIT 5`,
+        cScope.params
       ),
       query(
         `SELECT e.id, e.status, e.payment_status, e.enrolled_at,
                 m.full_name AS member_name, pl.name AS plan_name
          FROM enrolments e JOIN members m ON e.member_id = m.id
          JOIN insurance_plans pl ON e.plan_id = pl.id
-         WHERE e.org_id = $1 ORDER BY e.enrolled_at DESC LIMIT 5`,
-        [orgId]
+         WHERE ${eScope.sql} ORDER BY e.enrolled_at DESC LIMIT 5`,
+        eScope.params
       ),
       query(
-        `SELECT channel, COUNT(*)::int AS count FROM members WHERE org_id = $1 GROUP BY channel`,
-        [orgId]
+        `SELECT channel, COUNT(*)::int AS count FROM members m WHERE ${mScope.sql} GROUP BY channel`,
+        mScope.params
       ),
     ]);
 
   const triageBreakdown = await query(
     `SELECT triage_level, COUNT(*)::int AS count
-     FROM triage_sessions WHERE org_id = $1 GROUP BY triage_level`,
-    [orgId]
+     FROM triage_sessions t WHERE ${tScope.sql} GROUP BY triage_level`,
+    tScope.params
   );
 
   const memberCount = members.rows[0].count;

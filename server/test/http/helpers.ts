@@ -27,6 +27,7 @@ export interface Fixtures {
   claim?: Record<string, unknown> | null;       // existing claim row (status/reference)
   updatedClaim?: Record<string, unknown> | null; // row returned by UPDATE ... RETURNING *
   children?: unknown[];                           // child employer orgs (hierarchy console)
+  assignablePlans?: unknown[];                    // plans an HMO/insurer can assign
 }
 
 const wrap = (rows: unknown[]) => ({ rows, rowCount: rows.length });
@@ -45,6 +46,7 @@ export function buildQueryImpl(fx: Fixtures) {
     // Hierarchy: child employers — matched early because the query embeds a
     // `FROM members m WHERE …` subselect that would otherwise hit the members route.
     if (/parent_org_id = \$1/.test(s)) return wrap(fx.children ?? []);
+    if (/offered_by_org_id = \$1/.test(s)) return wrap(fx.assignablePlans ?? []); // assignable plans
     // getMember now reads `SELECT * FROM members m WHERE m.id …` (coverage-chain scope).
     if (/SELECT \* FROM members m WHERE/.test(s)) return wrap(fx.member ? [fx.member] : []);
     if (/FROM members WHERE id/.test(s)) return wrap(fx.member ? [fx.member] : []); // write existence checks

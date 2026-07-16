@@ -29,3 +29,20 @@ describe('GET /api/v1/hierarchy/employers — org-type gate', () => {
     expect(r.body[0].name).toBe('Acme Ltd');
   });
 });
+
+describe('GET /api/v1/hierarchy/plans — assignable plans', () => {
+  it('403s for a company', async () => {
+    vi.mocked(query).mockImplementation(buildQueryImpl({ orgType: 'company' }) as never);
+    const r = await request(app).get('/api/v1/hierarchy/plans').set('Authorization', `Bearer ${staffToken()}`);
+    expect(r.status).toBe(403);
+  });
+
+  it('returns the plans an HMO offers/underwrites', async () => {
+    vi.mocked(query).mockImplementation(
+      buildQueryImpl({ orgType: 'hmo', assignablePlans: [{ id: 'p1', name: 'Bronze', kind: 'group' }] }) as never,
+    );
+    const r = await request(app).get('/api/v1/hierarchy/plans').set('Authorization', `Bearer ${staffToken()}`);
+    expect(r.status).toBe(200);
+    expect(r.body[0].name).toBe('Bronze');
+  });
+});

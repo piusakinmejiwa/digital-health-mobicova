@@ -41,7 +41,9 @@ export function buildQueryImpl(fx: Fixtures) {
       if (fx.failSelect1) throw new Error('database unavailable');
       return wrap([{ ok: 1 }]);
     }
-    if (/FROM members WHERE id/.test(s)) return wrap(fx.member ? [fx.member] : []);
+    // getMember now reads `SELECT * FROM members m WHERE m.id …` (coverage-chain scope).
+    if (/SELECT \* FROM members m WHERE/.test(s)) return wrap(fx.member ? [fx.member] : []);
+    if (/FROM members WHERE id/.test(s)) return wrap(fx.member ? [fx.member] : []); // write existence checks
     if (/FROM members m WHERE/.test(s)) return wrap(fx.memberList ?? []);
     if (/FROM organisations WHERE id/.test(s)) return wrap([{ type: fx.orgType ?? 'company' }]);
     if (/FROM users WHERE id/.test(s)) return wrap([{ email: fx.userEmail ?? 'staff@x.com', is_platform_admin: fx.platformAdmin ?? false }]);

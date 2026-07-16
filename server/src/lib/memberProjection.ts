@@ -23,7 +23,7 @@ export const PHARMACY_MEMBER_FIELDS = `
 // not see clinical PHI — conditions, DOB, phone — anywhere. HMOs/underwriters
 // (who carry the clinical risk) and platform admins may, inside the member
 // PROFILE only; the member LIST never carries PHI for anyone.
-const PHI_OWNER_TYPES = new Set(['underwriter']);
+const PHI_OWNER_TYPES = new Set(['underwriter', 'hmo']);
 
 export function ownerCanViewPhi(
   orgType: string | null | undefined,

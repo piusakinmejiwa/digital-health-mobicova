@@ -28,12 +28,19 @@ describe('GET /api/v1/members/:id — role-based PHI gating', () => {
     for (const f of PHI_FIELDS) expect(r.body[f]).toBeUndefined();
   });
 
-  it('includes PHI for an HMO / underwriter org', async () => {
+  it('includes PHI for an underwriter org', async () => {
     const r = await getMemberAs({ orgType: 'underwriter', platformAdmin: false });
     expect(r.status).toBe(200);
     expect(r.body.phiRestricted).toBe(false);
     expect(r.body.chronic_conditions).toEqual(['asthma']);
     expect(r.body.date_of_birth).toBe('1990-01-01');
+  });
+
+  it('includes PHI for an HMO org (new PHI owner)', async () => {
+    const r = await getMemberAs({ orgType: 'hmo', platformAdmin: false });
+    expect(r.status).toBe(200);
+    expect(r.body.phiRestricted).toBe(false);
+    expect(r.body.chronic_conditions).toEqual(['asthma']);
   });
 
   it('lets a platform admin see PHI even inside an employer org', async () => {

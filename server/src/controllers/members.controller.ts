@@ -9,6 +9,16 @@ import { notify } from '../lib/notify';
 import { isPlatformAdmin } from '../middleware/platformAdmin';
 import { ownerCanViewPhi, redactMemberPhi, redactConsultationsPhi } from '../lib/memberProjection';
 import { generateCareSummary, getLatestCareSummary, CareSummaryUnavailable } from '../lib/careSummary';
+import { memberVisibilityClause } from '../lib/orgHierarchy';
+
+// Resolve the calling org's context for member access. Row-level visibility
+// follows the coverage chain (an HMO/insurer sees members on the plans it
+// offers/underwrites, not just members whose org_id is theirs); a company sees
+// its own members exactly as before.
+async function orgActor(orgId: string): Promise<{ orgId: string; orgType: string | null; isPlatform: boolean }> {
+  const r = await query('SELECT type, is_platform FROM organisations WHERE id = $1', [orgId]);
+  return { orgId, orgType: r.rows[0]?.type ?? null, isPlatform: Boolean(r.rows[0]?.is_platform) };
+}
 
 // Platform admins "viewing as" a tenant (actingAs set) bypass plan limits so
 // support work is never blocked by the tenant's own cap.
@@ -17,7 +27,8 @@ function bypassLimits(req: Request): boolean {
 }
 
 export async function listMembers(req: Request, res: Response): Promise<void> {
-  const orgId = req.user!.orgId;
+  const actor = await orgActor(req.user!.orgId);
+  const scope = memberVisibilityClause(actor, 'm', 1);
   // PHI-safe list projection. A members LIST never carries date of birth, phone,
   // email or the raw condition list — that data only belongs in the (role-gated)
   // member profile. Conditions surface here only as a yes/no flag; clinical
@@ -30,8 +41,8 @@ export async function listMembers(req: Request, res: Response): Promise<void> {
             (SELECT MAX(c.created_at) FROM consultations c WHERE c.member_id = m.id) AS last_consult_at,
             (SELECT COUNT(*)::int FROM consultations c WHERE c.member_id = m.id) AS consultation_count,
             (COALESCE(array_length(m.chronic_conditions, 1), 0) > 0) AS has_conditions
-     FROM members m WHERE m.org_id = $1 ORDER BY m.created_at DESC`,
-    [orgId]
+     FROM members m WHERE ${scope.sql} ORDER BY m.created_at DESC`,
+    scope.params
   );
   res.json(result.rows);
 }
@@ -40,7 +51,13 @@ export async function getMember(req: Request, res: Response): Promise<void> {
   const orgId = req.user!.orgId;
   const { id } = req.params;
 
-  const result = await query(`SELECT * FROM members WHERE id = $1 AND org_id = $2`, [id, orgId]);
+  // Coverage-chain visibility: $1 is the member id; the scope clause starts at $2.
+  const actor = await orgActor(orgId);
+  const scope = memberVisibilityClause(actor, 'm', 2);
+  const result = await query(
+    `SELECT * FROM members m WHERE m.id = $1 AND (${scope.sql})`,
+    [id, ...scope.params]
+  );
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'Member not found' });
     return;
@@ -50,9 +67,8 @@ export async function getMember(req: Request, res: Response): Promise<void> {
   // administer membership but must not see clinical PHI — conditions, DOB,
   // phone, or the clinical history that reveals them. HMOs/underwriters (who
   // carry the clinical risk) and platform admins may, inside this profile only.
-  const orgRow = await query(`SELECT type FROM organisations WHERE id = $1`, [orgId]);
   const platformAdmin = await isPlatformAdmin(req.user!.userId);
-  const canViewPhi = ownerCanViewPhi(orgRow.rows[0]?.type, platformAdmin);
+  const canViewPhi = ownerCanViewPhi(actor.orgType, platformAdmin);
 
   const consultations = await query(
     `SELECT c.*, p.name AS partner_name

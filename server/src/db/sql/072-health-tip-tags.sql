@@ -24,3 +24,7 @@ UPDATE health_tips
    'Spot dehydration early'
  )
    AND NOT ('rainy-season' = ANY(tags));
+
+-- Bookkeeping: record this migration so /health and the CI migration gate stay in
+-- sync when applied by pasting (the npm run migrate runner records it automatically).
+INSERT INTO _migrations (name) VALUES ('072_health_tip_tags.sql') ON CONFLICT (name) DO NOTHING;

@@ -16,3 +16,7 @@ ALTER TABLE insurance_plans
   ADD COLUMN IF NOT EXISTS offered_by_org_id UUID REFERENCES organisations(id),
   ADD COLUMN IF NOT EXISTS kind VARCHAR(20) NOT NULL DEFAULT 'group';   -- 'group' | 'individual'
 CREATE INDEX IF NOT EXISTS idx_plans_offered_by ON insurance_plans(offered_by_org_id);
+
+-- Bookkeeping: record this migration so /health and the CI migration gate stay in
+-- sync when applied by pasting (the npm run migrate runner records it automatically).
+INSERT INTO _migrations (name) VALUES ('073_org_hierarchy.sql') ON CONFLICT (name) DO NOTHING;

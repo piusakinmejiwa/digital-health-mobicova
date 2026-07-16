@@ -18,3 +18,7 @@ CREATE TABLE IF NOT EXISTS plan_assignments (
 
 CREATE INDEX IF NOT EXISTS idx_plan_assignments_employer ON plan_assignments(employer_org_id);
 CREATE INDEX IF NOT EXISTS idx_plan_assignments_plan ON plan_assignments(plan_id);
+
+-- Bookkeeping: record this migration so /health and the CI migration gate stay in
+-- sync when applied by pasting (the npm run migrate runner records it automatically).
+INSERT INTO _migrations (name) VALUES ('074_plan_assignments.sql') ON CONFLICT (name) DO NOTHING;

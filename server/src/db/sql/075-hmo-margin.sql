@@ -11,3 +11,7 @@ ALTER TABLE insurance_plans
 ALTER TABLE premium_transactions
   ADD COLUMN IF NOT EXISTS hmo_margin_amount NUMERIC(14,2) NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS hmo_org_id UUID REFERENCES organisations(id);
+
+-- Bookkeeping: record this migration so /health and the CI migration gate stay in
+-- sync when applied by pasting (the npm run migrate runner records it automatically).
+INSERT INTO _migrations (name) VALUES ('075_hmo_margin.sql') ON CONFLICT (name) DO NOTHING;

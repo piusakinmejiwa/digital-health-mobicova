@@ -82,3 +82,7 @@ UPDATE health_tips SET
   fact = 'Feeling better does not mean the infection is gone — finishing the course is what clears it safely.',
   source = 'WHO'
 WHERE title = 'Take medicines as prescribed';
+
+-- Bookkeeping: record this migration so /health and the CI migration gate stay in
+-- sync when applied by pasting (the npm run migrate runner records it automatically).
+INSERT INTO _migrations (name) VALUES ('071_health_tips_rich.sql') ON CONFLICT (name) DO NOTHING;

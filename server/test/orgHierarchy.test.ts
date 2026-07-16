@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { memberAccessScope, memberVisibilityClause } from '../src/lib/orgHierarchy';
+import { memberAccessScope, memberVisibilityClause, coverageChainClause } from '../src/lib/orgHierarchy';
 
 describe('memberAccessScope', () => {
   it('company + other demand/supply orgs see their own members', () => {
@@ -46,5 +46,26 @@ describe('memberVisibilityClause', () => {
   it('honours a custom alias and start index', () => {
     const c = memberVisibilityClause(actor('company'), 'mem', 3);
     expect(c.sql).toBe('mem.org_id = $3');
+  });
+});
+
+describe('coverageChainClause — member-linked entities (e.g. claims)', () => {
+  const actor = (orgType: string) => ({ orgId: 'org-1', orgType });
+
+  it('company → the entity’s own org', () => {
+    const c = coverageChainClause(actor('company'), { alias: 'c', memberCol: 'member_id' });
+    expect(c.sql).toBe('c.org_id = $1');
+    expect(c.params).toEqual(['org-1']);
+  });
+  it('hmo → own OR the row’s member is on an offered plan', () => {
+    const c = coverageChainClause(actor('hmo'), { alias: 'c', memberCol: 'member_id' });
+    expect(c.sql).toContain('c.org_id = $1');
+    expect(c.sql).toContain('c.member_id IN');
+    expect(c.sql).toContain('offered_by_org_id = $1');
+  });
+  it('underwriter → own OR the row’s member is on an underwritten plan', () => {
+    const c = coverageChainClause(actor('underwriter'), { alias: 'c', memberCol: 'member_id' });
+    expect(c.sql).toContain('c.member_id IN');
+    expect(c.sql).toContain('underwriter_org_id = $1');
   });
 });

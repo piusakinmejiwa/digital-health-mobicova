@@ -9,16 +9,7 @@ import { notify } from '../lib/notify';
 import { isPlatformAdmin } from '../middleware/platformAdmin';
 import { ownerCanViewPhi, redactMemberPhi, redactConsultationsPhi } from '../lib/memberProjection';
 import { generateCareSummary, getLatestCareSummary, CareSummaryUnavailable } from '../lib/careSummary';
-import { memberVisibilityClause } from '../lib/orgHierarchy';
-
-// Resolve the calling org's context for member access. Row-level visibility
-// follows the coverage chain (an HMO/insurer sees members on the plans it
-// offers/underwrites, not just members whose org_id is theirs); a company sees
-// its own members exactly as before.
-async function orgActor(orgId: string): Promise<{ orgId: string; orgType: string | null; isPlatform: boolean }> {
-  const r = await query('SELECT type, is_platform FROM organisations WHERE id = $1', [orgId]);
-  return { orgId, orgType: r.rows[0]?.type ?? null, isPlatform: Boolean(r.rows[0]?.is_platform) };
-}
+import { memberVisibilityClause, resolveOrgActor } from '../lib/orgHierarchy';
 
 // Platform admins "viewing as" a tenant (actingAs set) bypass plan limits so
 // support work is never blocked by the tenant's own cap.
@@ -27,7 +18,7 @@ function bypassLimits(req: Request): boolean {
 }
 
 export async function listMembers(req: Request, res: Response): Promise<void> {
-  const actor = await orgActor(req.user!.orgId);
+  const actor = await resolveOrgActor(req.user!.orgId);
   const scope = memberVisibilityClause(actor, 'm', 1);
   // PHI-safe list projection. A members LIST never carries date of birth, phone,
   // email or the raw condition list — that data only belongs in the (role-gated)
@@ -52,7 +43,7 @@ export async function getMember(req: Request, res: Response): Promise<void> {
   const { id } = req.params;
 
   // Coverage-chain visibility: $1 is the member id; the scope clause starts at $2.
-  const actor = await orgActor(orgId);
+  const actor = await resolveOrgActor(orgId);
   const scope = memberVisibilityClause(actor, 'm', 2);
   const result = await query(
     `SELECT * FROM members m WHERE m.id = $1 AND (${scope.sql})`,

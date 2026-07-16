@@ -7,6 +7,7 @@ import {
 } from '../lib/claims';
 import { emitEvent } from '../lib/webhooks';
 import { reviewClaim, reviewClaimSafe, ClaimReviewUnavailable } from '../lib/claimReview';
+import { resolveOrgActor, coverageChainClause } from '../lib/orgHierarchy';
 
 // Shared envelope for claim webhook payloads — kept consistent across create and
 // status-change events.
@@ -43,11 +44,14 @@ const CLAIM_SELECT = `
 // GET /claims?status= — the partner's claims queue, newest first, plus per-status
 // counts for the filter header. Open to all roles (read).
 export async function listClaims(req: Request, res: Response): Promise<void> {
-  const orgId = req.user!.orgId;
   const status = req.query.status ? String(req.query.status) : null;
 
-  const params: unknown[] = [orgId];
-  let where = 'WHERE c.org_id = $1';
+  // Coverage-chain scope: a company sees its own claims (c.org_id); an HMO/insurer
+  // sees claims for members on the plans it offers/underwrites.
+  const actor = await resolveOrgActor(req.user!.orgId);
+  const scope = coverageChainClause(actor, { alias: 'c', memberCol: 'member_id', startIndex: 1 });
+  const params: unknown[] = [...scope.params];
+  let where = `WHERE ${scope.sql}`;
   if (status && isClaimStatus(status)) {
     params.push(status);
     where += ` AND c.status = $${params.length}`;
@@ -55,8 +59,8 @@ export async function listClaims(req: Request, res: Response): Promise<void> {
 
   const result = await query(`${CLAIM_SELECT} ${where} ORDER BY c.created_at DESC`, params as any[]);
   const counts = await query(
-    `SELECT status, COUNT(*)::int AS count FROM claims WHERE org_id = $1 GROUP BY status`,
-    [orgId]
+    `SELECT status, COUNT(*)::int AS count FROM claims c WHERE ${scope.sql} GROUP BY status`,
+    scope.params
   );
 
   res.json({ claims: result.rows, counts: counts.rows, storageEnabled });
@@ -64,10 +68,12 @@ export async function listClaims(req: Request, res: Response): Promise<void> {
 
 // GET /claims/:id — full claim with its attached documents.
 export async function getClaim(req: Request, res: Response): Promise<void> {
-  const orgId = req.user!.orgId;
   const id = String(req.params.id);
 
-  const result = await query(`${CLAIM_SELECT} WHERE c.id = $1 AND c.org_id = $2`, [id, orgId]);
+  // $1 is the claim id; the coverage-chain scope clause starts at $2.
+  const actor = await resolveOrgActor(req.user!.orgId);
+  const scope = coverageChainClause(actor, { alias: 'c', memberCol: 'member_id', startIndex: 2 });
+  const result = await query(`${CLAIM_SELECT} WHERE c.id = $1 AND (${scope.sql})`, [id, ...scope.params]);
   if (result.rows.length === 0) {
     res.status(404).json({ error: 'Claim not found' });
     return;

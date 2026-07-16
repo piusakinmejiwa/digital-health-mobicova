@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { listChildEmployers, createChildEmployer, type ChildEmployer } from '../../api/hierarchy';
+import {
+  listChildEmployers, createChildEmployer, type ChildEmployer,
+  listAssignablePlans, listEmployerAssignments, assignPlan, unassignPlan,
+} from '../../api/hierarchy';
 
 function errMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) return err.response?.data?.error || fallback;
@@ -18,6 +21,7 @@ export default function EmployersPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [provisioned, setProvisioned] = useState<null | (ChildEmployer & { admin_user?: { email: string } })>(null);
+  const [plansFor, setPlansFor] = useState<null | ChildEmployer>(null);
 
   const list = employers ?? [];
 
@@ -55,7 +59,7 @@ export default function EmployersPage() {
       <div className="card">
         <table className="table">
           <thead>
-            <tr><th>Employer</th><th>Join code</th><th>Members</th><th>Users</th><th>Status</th></tr>
+            <tr><th>Employer</th><th>Join code</th><th>Members</th><th>Users</th><th>Status</th><th></th></tr>
           </thead>
           <tbody>
             {list.map((o) => (
@@ -65,6 +69,7 @@ export default function EmployersPage() {
                 <td className="muted small">{o.member_count}</td>
                 <td className="muted small">{o.user_count}</td>
                 <td><span className={`badge ${o.is_active ? 'badge-green' : 'badge-gray'}`}>{o.is_active ? 'active' : 'suspended'}</span></td>
+                <td className="admin-actions"><button className="btn btn-secondary btn-sm" onClick={() => setPlansFor(o)}>Plans</button></td>
               </tr>
             ))}
           </tbody>
@@ -110,6 +115,8 @@ export default function EmployersPage() {
         </div>
       )}
 
+      {plansFor && <PlanAssignmentsModal employer={plansFor} onClose={() => setPlansFor(null)} />}
+
       {provisioned && (
         <div className="drawer-overlay" onClick={() => setProvisioned(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -127,6 +134,83 @@ export default function EmployersPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Manage the plans assigned to one employer — assign a plan the org owns, at the
+// list price or a negotiated group premium, and remove assignments.
+function PlanAssignmentsModal({ employer, onClose }: { employer: ChildEmployer; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: assignments } = useQuery({ queryKey: ['emp-plans', employer.id], queryFn: () => listEmployerAssignments(employer.id) });
+  const { data: plans } = useQuery({ queryKey: ['assignable-plans'], queryFn: listAssignablePlans });
+  const [planId, setPlanId] = useState('');
+  const [premium, setPremium] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const refresh = () => qc.invalidateQueries({ queryKey: ['emp-plans', employer.id] });
+
+  const assigned = assignments ?? [];
+  const available = (plans ?? []).filter((p) => !assigned.some((a) => a.plan_id === p.id));
+
+  const add = async () => {
+    if (!planId) return;
+    setBusy(true); setError('');
+    try {
+      await assignPlan(employer.id, { planId, negotiatedPremium: premium.trim() || null });
+      setPlanId(''); setPremium(''); refresh();
+    } catch (err) { setError(errMessage(err, 'Could not assign the plan.')); }
+    finally { setBusy(false); }
+  };
+  const remove = async (id: string) => {
+    if (!confirm('Remove this plan assignment?')) return;
+    try { await unassignPlan(employer.id, id); refresh(); }
+    catch (err) { alert(errMessage(err, 'Could not remove.')); }
+  };
+
+  return (
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+        <h3>Plans · {employer.name}</h3>
+        <p className="muted small">Assign the plans you offer to this employer. Leave the premium blank to use the plan’s list price, or enter a negotiated group premium.</p>
+        {error && <div className="notice notice-error">{error}</div>}
+
+        <table className="table">
+          <thead><tr><th>Plan</th><th>Kind</th><th>Premium</th><th></th></tr></thead>
+          <tbody>
+            {assigned.map((a) => (
+              <tr key={a.id}>
+                <td><strong>{a.plan_name}</strong></td>
+                <td className="muted small">{a.kind}</td>
+                <td>
+                  {Number(a.effective_premium).toLocaleString()} {a.currency}/mo
+                  {a.negotiated_premium != null && <span className="muted small"> (negotiated)</span>}
+                </td>
+                <td className="admin-actions"><button className="btn btn-danger btn-sm" onClick={() => remove(a.id)}>Remove</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {assigned.length === 0 && <p className="empty-state">No plans assigned yet.</p>}
+
+        <div className="form-grid" style={{ marginTop: 12 }}>
+          <div className="form-group">
+            <label>Add a plan</label>
+            <select value={planId} onChange={(e) => setPlanId(e.target.value)}>
+              <option value="">— choose a plan —</option>
+              {available.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.kind})</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Negotiated premium <span className="muted">— optional</span></label>
+            <input type="number" min={0} value={premium} onChange={(e) => setPremium(e.target.value)} placeholder="Blank = list price" />
+          </div>
+        </div>
+        <div className="modal-actions">
+          <button className="btn btn-secondary" onClick={onClose}>Close</button>
+          <button className="btn btn-primary" onClick={add} disabled={busy || !planId}>{busy ? 'Assigning…' : 'Assign plan'}</button>
+        </div>
+      </div>
     </div>
   );
 }

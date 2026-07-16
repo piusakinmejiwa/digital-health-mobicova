@@ -35,6 +35,7 @@ import TelemedicinePage from './pages/telemedicine/TelemedicinePage';
 import AssistantPage from './pages/assistant/AssistantPage';
 import InsurancePage from './pages/insurance/InsurancePage';
 import ClaimsPage from './pages/claims/ClaimsPage';
+import EmployersPage from './pages/hierarchy/EmployersPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import PartnersPage from './pages/partners/PartnersPage';
 import ChannelsPage from './pages/channels/ChannelsPage';
@@ -170,6 +171,7 @@ export const router = createBrowserRouter([
       { path: 'staff', element: <SupplyStaffPage /> },
       { path: 'activity', element: <ActivityPage /> },
       { path: 'inbox', element: <InboxPage /> },
+      { path: 'employers', element: <EmployersPage /> },
       { path: 'members', element: <MembersListPage /> },
       { path: 'members/new', element: <MemberCreatePage /> },
       { path: 'members/:id', element: <MemberDetailPage /> },

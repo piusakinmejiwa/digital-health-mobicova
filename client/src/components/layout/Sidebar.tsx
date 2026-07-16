@@ -30,6 +30,8 @@ const supplyNavItems = [
   { to: '/staff', label: 'Staff', icon: '⚇' },
 ];
 
+// Shown only to HMO/insurer orgs — the onboarding console for their employers.
+const employersNavItem = { to: '/employers', label: 'Employers', icon: '⚑' };
 // Shown only to org admins — subscription, usage & invoices.
 const billingNavItem = { to: '/settings/billing', label: 'Billing & plan', icon: '₦' };
 // Shown to every signed-in user.
@@ -100,6 +102,11 @@ export default function Sidebar({ collapsed = false, onToggle }: { collapsed?: b
   const whatsNew = useUnseenChangelog();
   const isSupply = user?.orgClass === 'supply';
   const isAdmin = user?.role === 'admin';
+  // HMO / insurer orgs get the Employers onboarding console in their workspace.
+  const isParentTier = user?.partnerType === 'hmo' || user?.partnerType === 'underwriter';
+  const demandNav = isParentTier
+    ? [...navItems.slice(0, 3), employersNavItem, ...navItems.slice(3)]
+    : navItems;
   // Platform admins are MobiCova staff — they operate across all orgs from the
   // Admin Console and have no tenant workspace of their own. EXCEPT while
   // "viewing as" a tenant, where they get that org's normal workspace.
@@ -108,7 +115,7 @@ export default function Sidebar({ collapsed = false, onToggle }: { collapsed?: b
   // Daily workspace — for a platform admin, the Console *is* their workspace.
   const workspace = isPlatform
     ? [adminNavItem, feedbackAdminNavItem]
-    : (isSupply ? supplyNavItems : navItems);
+    : (isSupply ? supplyNavItems : demandNav);
   // Occasional items — tucked into collapsible groups to keep the bar short.
   const settingsItems: NavItem[] = isPlatform
     ? [docsNavItem, securityNavItem, notificationsNavItem]

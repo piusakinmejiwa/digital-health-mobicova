@@ -31,13 +31,20 @@ function pickImage(): Promise<File | null> {
 
 const PLAN_TIERS = ['starter', 'growth', 'scale', 'enterprise'];
 
+// Which org type is the expected administrative parent (employer → HMO → insurer).
+function parentTypeFor(type: string): string | null {
+  if (type === 'company') return 'hmo';
+  if (type === 'hmo') return 'underwriter';
+  return null;
+}
+
 function errMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) return err.response?.data?.error || fallback;
   return fallback;
 }
 
 const emptyOrg = {
-  name: '', type: 'company', planTier: 'starter', country: 'Nigeria',
+  name: '', type: 'company', planTier: 'starter', country: 'Nigeria', parentOrgId: '',
   adminEmail: '', adminFullName: '', adminPassword: '',
 };
 
@@ -97,6 +104,7 @@ export default function OrgsAdmin() {
       name: creating.name, type: creating.type,
       planTier: creating.planTier, country: creating.country,
     };
+    if (parentTypeFor(creating.type) && creating.parentOrgId) payload.parentOrgId = creating.parentOrgId;
     // Only send admin fields when an email is provided (provisioning the first user).
     if (creating.adminEmail.trim()) {
       payload.adminEmail = creating.adminEmail.trim();
@@ -122,6 +130,7 @@ export default function OrgsAdmin() {
         plan_tier: editing.plan_tier, country: editing.country,
         address: editing.address ?? '', city: editing.city ?? '',
         member_limit_override: editing.member_limit_override ?? null,
+        parent_org_id: parentTypeFor(editing.type) ? (editing.parent_org_id ?? null) : null,
       });
       setEditing(null);
       refresh();
@@ -188,7 +197,7 @@ export default function OrgsAdmin() {
               <td><strong>{o.name}</strong><div className="muted small">{o.slug}</div></td>
               <td>
                 <span className={`badge ${orgClassBadge(o.type)}`}>{orgTypeLabel(o.type)}</span>
-                <div className="muted small">{orgClassOf(o.type)}</div>
+                <div className="muted small">{orgClassOf(o.type)}{o.parent_name ? ` · under ${o.parent_name}` : ''}</div>
               </td>
               <td className="muted small">{o.plan_tier}</td>
               <td><code>{o.join_code}</code></td>
@@ -246,7 +255,7 @@ export default function OrgsAdmin() {
               </div>
               <div className="form-group">
                 <label>Organisation type</label>
-                <select value={creating.type} onChange={(e) => setCreating({ ...creating, type: e.target.value })}>
+                <select value={creating.type} onChange={(e) => setCreating({ ...creating, type: e.target.value, parentOrgId: '' })}>
                   {ORG_TYPES.map((t) => <option key={t} value={t}>{orgTypeLabel(t)}</option>)}
                 </select>
               </div>
@@ -256,6 +265,18 @@ export default function OrgsAdmin() {
                   {PLAN_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              {parentTypeFor(creating.type) && (
+                <div className="form-group form-span-2">
+                  <label>Parent {orgTypeLabel(parentTypeFor(creating.type)!)} <span className="muted">— optional</span></label>
+                  <select value={creating.parentOrgId} onChange={(e) => setCreating({ ...creating, parentOrgId: e.target.value })}>
+                    <option value="">— none (standalone) —</option>
+                    {allOrgs.filter((o) => o.type === parentTypeFor(creating.type)).map((o) => (
+                      <option key={o.id} value={o.id}>{o.name}</option>
+                    ))}
+                  </select>
+                  <span className="muted small">Places this {orgTypeLabel(creating.type).toLowerCase()} under its {orgTypeLabel(parentTypeFor(creating.type)!).toLowerCase()} in the hierarchy.</span>
+                </div>
+              )}
               <div className="form-group form-span-2">
                 <label className="admin-section-label">First admin user (optional)</label>
                 <p className="muted small">Leave blank to create the organisation only — you can add users later.</p>
@@ -310,6 +331,17 @@ export default function OrgsAdmin() {
                   {PLAN_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
+              {parentTypeFor(editing.type) && (
+                <div className="form-group form-span-2">
+                  <label>Parent {orgTypeLabel(parentTypeFor(editing.type)!)} <span className="muted">— optional</span></label>
+                  <select value={editing.parent_org_id ?? ''} onChange={(e) => setEditing({ ...editing, parent_org_id: e.target.value || null })}>
+                    <option value="">— none (standalone) —</option>
+                    {allOrgs.filter((o) => o.type === parentTypeFor(editing.type) && o.id !== editing.id).map((o) => (
+                      <option key={o.id} value={o.id}>{o.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="form-group">
                 <label>Member limit override</label>
                 <input

@@ -10,7 +10,8 @@ export interface OrgTypeMeta {
 
 export const ORG_TYPE_META: Record<string, OrgTypeMeta> = {
   company: { label: 'Company / Employer', class: 'demand' },
-  underwriter: { label: 'Underwriter', class: 'demand' },
+  underwriter: { label: 'Insurance company (underwriter)', class: 'demand' },
+  hmo: { label: 'HMO', class: 'demand' },
   telco: { label: 'Telco', class: 'demand' },
   fintech: { label: 'Fintech', class: 'demand' },
   cooperative: { label: 'Cooperative', class: 'demand' },

@@ -11,6 +11,7 @@ import { sendAdminWelcome } from '../lib/onboarding';
 import { recordAudit } from '../lib/audit';
 import { geocode } from '../lib/geo';
 import { getOrgBranding } from '../lib/branding';
+import { wouldCreateCycle } from '../lib/orgHierarchy';
 
 // Platform-admin management of partner organisations (tenants). Behind
 // authenticate + requirePlatformAdmin (see admin.routes.ts).
@@ -18,7 +19,8 @@ import { getOrgBranding } from '../lib/branding';
 export async function adminListOrgs(_req: Request, res: Response): Promise<void> {
   const result = await query(
     `SELECT o.id, o.name, o.slug, o.type, o.country, o.plan_tier,
-            o.join_code, o.is_active, o.created_at,
+            o.join_code, o.is_active, o.created_at, o.parent_org_id,
+            (SELECT p.name FROM organisations p WHERE p.id = o.parent_org_id) AS parent_name,
             (SELECT COUNT(*)::int FROM members m WHERE m.org_id = o.id) AS member_count,
             (SELECT COUNT(*)::int FROM users u WHERE u.org_id = o.id) AS user_count
        FROM organisations o
@@ -32,12 +34,19 @@ export async function adminListOrgs(_req: Request, res: Response): Promise<void>
 export async function adminCreateOrg(req: Request, res: Response): Promise<void> {
   const {
     name, type = 'company', planTier = 'starter', country = 'Nigeria',
-    adminEmail, adminPassword, adminFullName,
+    parentOrgId, adminEmail, adminPassword, adminFullName,
   } = req.body;
 
   if (!name) {
     res.status(400).json({ error: 'Organisation name is required' });
     return;
+  }
+
+  // Optional administrative parent (employer → HMO → insurer). Must exist.
+  const parent = parentOrgId ? String(parentOrgId) : null;
+  if (parent) {
+    const p = await query('SELECT 1 FROM organisations WHERE id = $1', [parent]);
+    if (p.rows.length === 0) { res.status(400).json({ error: 'Parent organisation not found' }); return; }
   }
 
   // If provisioning an admin alongside the org, validate before creating anything.
@@ -61,9 +70,9 @@ export async function adminCreateOrg(req: Request, res: Response): Promise<void>
   const slug = await uniqueSlug(name);
   const joinCode = await generateJoinCode();
   const orgResult = await query(
-    `INSERT INTO organisations (name, slug, type, plan_tier, country, join_code)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [name, slug, type, planTier, country, joinCode]
+    `INSERT INTO organisations (name, slug, type, plan_tier, country, join_code, parent_org_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [name, slug, type, planTier, country, joinCode, parent]
   );
   const org = orgResult.rows[0];
 
@@ -137,11 +146,27 @@ export async function adminUpdateOrg(req: Request, res: Response): Promise<void>
     memberLimitOverride = (v === null || v === '' || Number(v) <= 0) ? null : Math.floor(Number(v));
   }
 
+  // Administrative parent (employer → HMO → insurer). Empty string / null clears it.
+  // Guard against self-parenting and cycles (a descendant becoming the parent).
+  let parentOrgId = cur.parent_org_id;
+  if (b.parent_org_id !== undefined) {
+    const next = b.parent_org_id ? String(b.parent_org_id) : null;
+    if (next) {
+      const exists = await query('SELECT 1 FROM organisations WHERE id = $1', [next]);
+      if (exists.rows.length === 0) { res.status(400).json({ error: 'Parent organisation not found' }); return; }
+      if (await wouldCreateCycle(String(id), next)) {
+        res.status(400).json({ error: 'That parent would create a loop in the hierarchy.' });
+        return;
+      }
+    }
+    parentOrgId = next;
+  }
+
   const result = await query(
     `UPDATE organisations
         SET name = $2, type = $3, plan_tier = $4, country = $5, is_active = $6,
             address = $7, city = $8, latitude = $9, longitude = $10,
-            member_limit_override = $11, updated_at = NOW()
+            member_limit_override = $11, parent_org_id = $12, updated_at = NOW()
       WHERE id = $1 RETURNING *`,
     [
       id,
@@ -151,7 +176,7 @@ export async function adminUpdateOrg(req: Request, res: Response): Promise<void>
       b.country ?? cur.country,
       b.is_active ?? cur.is_active,
       address, city, lat, lng,
-      memberLimitOverride,
+      memberLimitOverride, parentOrgId,
     ]
   );
   const updated = result.rows[0];

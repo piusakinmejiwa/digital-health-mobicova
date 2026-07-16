@@ -126,6 +126,9 @@ export interface Organisation {
   longitude?: number | null;
   // Per-org member seat-cap override (null = use plan tier default).
   member_limit_override?: number | null;
+  // Administrative parent in the org hierarchy (employer → HMO → insurer).
+  parent_org_id?: string | null;
+  parent_name?: string | null;
 }
 
 export interface AdminUser {

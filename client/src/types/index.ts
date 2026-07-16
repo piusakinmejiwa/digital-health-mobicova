@@ -215,6 +215,7 @@ export interface InsurancePlan {
   offered_by_org_id?: string | null;
   underwriter_org_id?: string | null;
   kind?: 'group' | 'individual';
+  hmo_margin_rate?: string;
 }
 
 export interface Enrolment {

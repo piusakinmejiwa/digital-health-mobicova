@@ -87,7 +87,7 @@ export async function adminCreatePlan(req: Request, res: Response): Promise<void
   const {
     name, plan_type, underwriter, monthly_premium,
     currency = 'NGN', cover_amount = 0, description = '', commission_rate = 15, is_active = true,
-    offered_by_org_id = null, underwriter_org_id = null, kind = 'group',
+    offered_by_org_id = null, underwriter_org_id = null, kind = 'group', hmo_margin_rate = 0,
   } = req.body;
   if (!name || !plan_type || !underwriter || monthly_premium == null) {
     res.status(400).json({ error: 'name, plan_type, underwriter and monthly_premium are required' });
@@ -98,10 +98,10 @@ export async function adminCreatePlan(req: Request, res: Response): Promise<void
   const result = await query(
     `INSERT INTO insurance_plans
        (name, plan_type, underwriter, monthly_premium, currency, cover_amount, benefits, description, commission_rate, is_active,
-        offered_by_org_id, underwriter_org_id, kind)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+        offered_by_org_id, underwriter_org_id, kind, hmo_margin_rate)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
     [name, plan_type, underwriter, monthly_premium, currency, cover_amount, benefits, description, commission_rate, is_active,
-     offered_by_org_id || null, underwriter_org_id || null, planKind]
+     offered_by_org_id || null, underwriter_org_id || null, planKind, Number(hmo_margin_rate) || 0]
   );
   await recordAudit(req, { action: 'plan.create', targetType: 'plan', targetId: result.rows[0].id, targetLabel: result.rows[0].name });
   res.status(201).json(result.rows[0]);
@@ -121,7 +121,7 @@ export async function adminUpdatePlan(req: Request, res: Response): Promise<void
     `UPDATE insurance_plans
         SET name = $2, plan_type = $3, underwriter = $4, monthly_premium = $5, currency = $6,
             cover_amount = $7, benefits = $8, description = $9, commission_rate = $10, is_active = $11,
-            offered_by_org_id = $12, underwriter_org_id = $13, kind = $14
+            offered_by_org_id = $12, underwriter_org_id = $13, kind = $14, hmo_margin_rate = $15
       WHERE id = $1 RETURNING *`,
     [
       id,
@@ -138,6 +138,7 @@ export async function adminUpdatePlan(req: Request, res: Response): Promise<void
       b.offered_by_org_id !== undefined ? (b.offered_by_org_id || null) : cur.offered_by_org_id,
       b.underwriter_org_id !== undefined ? (b.underwriter_org_id || null) : cur.underwriter_org_id,
       b.kind === 'individual' || b.kind === 'group' ? b.kind : cur.kind,
+      b.hmo_margin_rate !== undefined ? Number(b.hmo_margin_rate) || 0 : cur.hmo_margin_rate,
     ]
   );
   await recordAudit(req, { action: 'plan.update', targetType: 'plan', targetId: id, targetLabel: result.rows[0].name });

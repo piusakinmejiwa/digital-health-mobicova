@@ -6,10 +6,21 @@ describe('computePremiumSplit', () => {
     const s = computePremiumSplit(2500, 15, 2);
     expect(s).toEqual({
       gross: 2500, commissionRate: 15, commission: 375,
-      platformFeeRate: 2, platformFee: 50, levy: 0, net: 2075,
+      platformFeeRate: 2, platformFee: 50, levy: 0,
+      hmoMarginRate: 0, hmoMargin: 0, net: 2075,
     });
     // The parts reconcile back to gross.
-    expect(s.commission + s.platformFee + s.levy + s.net).toBeCloseTo(s.gross, 2);
+    expect(s.commission + s.platformFee + s.levy + s.hmoMargin + s.net).toBeCloseTo(s.gross, 2);
+  });
+
+  it('takes the HMO margin ahead of the net to the underwriter', () => {
+    // ₦10,000 @ 5% commission, 2% platform fee, ₦0 levy, 10% HMO margin.
+    const s = computePremiumSplit(10000, 5, 2, 0, 10);
+    expect(s.commission).toBe(500);
+    expect(s.platformFee).toBe(200);
+    expect(s.hmoMargin).toBe(1000);
+    expect(s.net).toBe(8300); // 10000 - 500 - 200 - 0 - 1000
+    expect(s.commission + s.platformFee + s.levy + s.hmoMargin + s.net).toBeCloseTo(s.gross, 2);
   });
 
   it('rounds to 2dp and never goes below zero on gross', () => {

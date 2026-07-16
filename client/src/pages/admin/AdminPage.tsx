@@ -691,7 +691,7 @@ function SystemAdmin() {
 const emptyPlan = {
   name: '', plan_type: 'individual', underwriter: '', monthly_premium: '',
   cover_amount: '', currency: 'NGN', commission_rate: '15', description: '', benefits: '',
-  offered_by_org_id: '', underwriter_org_id: '', kind: 'group',
+  offered_by_org_id: '', underwriter_org_id: '', kind: 'group', hmo_margin_rate: '0',
 };
 
 function PlansAdmin() {
@@ -718,7 +718,7 @@ function PlansAdmin() {
       currency: p.currency, commission_rate: String(p.commission_rate),
       description: p.description, benefits: (p.benefits || []).join('\n'),
       offered_by_org_id: p.offered_by_org_id ?? '', underwriter_org_id: p.underwriter_org_id ?? '',
-      kind: p.kind ?? 'group',
+      kind: p.kind ?? 'group', hmo_margin_rate: String(p.hmo_margin_rate ?? '0'),
     });
   };
 
@@ -732,7 +732,7 @@ function PlansAdmin() {
       description: editing.description, benefits: editing.benefits,
       offered_by_org_id: editing.offered_by_org_id || null,
       underwriter_org_id: editing.underwriter_org_id || null,
-      kind: editing.kind,
+      kind: editing.kind, hmo_margin_rate: Number(editing.hmo_margin_rate || 0),
     };
     try {
       if (editing.id) await adminUpdatePlan(editing.id, payload);
@@ -845,6 +845,10 @@ function PlansAdmin() {
               <div className="form-group">
                 <label>Commission rate (%)</label>
                 <input type="number" value={editing.commission_rate} onChange={(e) => setEditing({ ...editing, commission_rate: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>HMO margin (%) <span className="muted">— of premium</span></label>
+                <input type="number" min={0} value={editing.hmo_margin_rate} onChange={(e) => setEditing({ ...editing, hmo_margin_rate: e.target.value })} />
               </div>
               <div className="form-group form-span-2">
                 <label>Description</label>

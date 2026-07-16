@@ -167,7 +167,12 @@ export async function recordPayment(req: Request, res: Response): Promise<void> 
   const gross = Number(req.body?.amount) > 0 ? Number(req.body.amount) : Number(enr.premium_amount || 0);
   const externalTxnRef = String(req.body?.externalTxnRef || '').trim() || null;
   const collectedAt = req.body?.collectedAt ? new Date(req.body.collectedAt) : new Date();
-  const split = computePremiumSplit(gross, p.commissionRate, p.platformFeeRate);
+  // The offering HMO's margin (rate on the plan) comes out ahead of the net to the
+  // underwriter; record which HMO takes it.
+  const planRow = await query('SELECT hmo_margin_rate, offered_by_org_id FROM insurance_plans WHERE id = $1', [enr.plan_id]);
+  const hmoMarginRate = Number(planRow.rows[0]?.hmo_margin_rate || 0);
+  const hmoOrgId = planRow.rows[0]?.offered_by_org_id || null;
+  const split = computePremiumSplit(gross, p.commissionRate, p.platformFeeRate, 0, hmoMarginRate);
 
   let ledgerId: string | null = null;
   if (gross > 0) {
@@ -182,12 +187,14 @@ export async function recordPayment(req: Request, res: Response): Promise<void> 
           `INSERT INTO premium_transactions
              (enrolment_id, partner_id, org_id, plan_id, type, gross_amount,
               commission_rate, commission_amount, platform_fee_rate, platform_fee_amount,
-              levy_amount, net_amount, currency, period, external_txn_ref, collected_at)
-           VALUES ($1,$2,$3,$4,'premium',$5, $6,$7,$8,$9, $10,$11,$12,$13,$14,$15)
+              levy_amount, net_amount, currency, period, external_txn_ref, collected_at,
+              hmo_margin_amount, hmo_org_id)
+           VALUES ($1,$2,$3,$4,'premium',$5, $6,$7,$8,$9, $10,$11,$12,$13,$14,$15, $16,$17)
            RETURNING id`,
           [id, p.id, p.orgId, enr.plan_id, split.gross,
            split.commissionRate, split.commission, split.platformFeeRate, split.platformFee,
-           split.levy, split.net, enr.currency || 'NGN', billingPeriod(collectedAt), externalTxnRef, collectedAt]
+           split.levy, split.net, enr.currency || 'NGN', billingPeriod(collectedAt), externalTxnRef, collectedAt,
+           split.hmoMargin, hmoOrgId]
         );
         ledgerId = ins.rows[0].id;
       } catch (err) {

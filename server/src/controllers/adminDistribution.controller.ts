@@ -105,6 +105,7 @@ export async function distributionPartnerPremiums(req: Request, res: Response): 
             COALESCE(SUM(commission_amount), 0)   AS commission,
             COALESCE(SUM(platform_fee_amount), 0) AS platform_fee,
             COALESCE(SUM(levy_amount), 0)         AS levy,
+            COALESCE(SUM(hmo_margin_amount), 0)   AS hmo_margin,
             COALESCE(SUM(net_amount), 0)          AS net_to_underwriter
        FROM premium_transactions
       WHERE ${where} AND type = 'premium'

@@ -5,7 +5,7 @@ import type { Partner, InsurancePlan } from '../../types';
 import {
   adminListPartners, adminCreatePartner, adminUpdatePartner, adminDeletePartner,
   adminListPlans, adminCreatePlan, adminUpdatePlan, adminDeletePlan,
-  adminAiStatus, adminBuddySafety,
+  adminAiStatus, adminBuddySafety, adminListOrgs,
 } from '../../api/admin';
 import RewardsManager from '../../components/rewards/RewardsManager';
 import { platformRewardsApi } from '../../api/rewards';
@@ -691,11 +691,15 @@ function SystemAdmin() {
 const emptyPlan = {
   name: '', plan_type: 'individual', underwriter: '', monthly_premium: '',
   cover_amount: '', currency: 'NGN', commission_rate: '15', description: '', benefits: '',
+  offered_by_org_id: '', underwriter_org_id: '', kind: 'group',
 };
 
 function PlansAdmin() {
   const qc = useQueryClient();
   const { data: plans } = useQuery({ queryKey: ['admin-plans'], queryFn: adminListPlans });
+  const { data: orgs } = useQuery({ queryKey: ['admin-orgs'], queryFn: adminListOrgs });
+  const hmoOrgs = (orgs ?? []).filter((o) => o.type === 'hmo');
+  const insurerOrgs = (orgs ?? []).filter((o) => o.type === 'underwriter');
   const [editing, setEditing] = useState<null | (typeof emptyPlan & { id?: string })>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -713,6 +717,8 @@ function PlansAdmin() {
       monthly_premium: String(p.monthly_premium), cover_amount: String(p.cover_amount),
       currency: p.currency, commission_rate: String(p.commission_rate),
       description: p.description, benefits: (p.benefits || []).join('\n'),
+      offered_by_org_id: p.offered_by_org_id ?? '', underwriter_org_id: p.underwriter_org_id ?? '',
+      kind: p.kind ?? 'group',
     });
   };
 
@@ -724,6 +730,9 @@ function PlansAdmin() {
       monthly_premium: Number(editing.monthly_premium), cover_amount: Number(editing.cover_amount || 0),
       currency: editing.currency, commission_rate: Number(editing.commission_rate || 0),
       description: editing.description, benefits: editing.benefits,
+      offered_by_org_id: editing.offered_by_org_id || null,
+      underwriter_org_id: editing.underwriter_org_id || null,
+      kind: editing.kind,
     };
     try {
       if (editing.id) await adminUpdatePlan(editing.id, payload);
@@ -797,8 +806,29 @@ function PlansAdmin() {
                 </select>
               </div>
               <div className="form-group">
-                <label>Underwriter</label>
+                <label>Underwriter <span className="muted">— display name</span></label>
                 <input value={editing.underwriter} onChange={(e) => setEditing({ ...editing, underwriter: e.target.value })} placeholder="e.g. Acme Health HMO" />
+              </div>
+              <div className="form-group">
+                <label>Kind</label>
+                <select value={editing.kind} onChange={(e) => setEditing({ ...editing, kind: e.target.value })}>
+                  <option value="group">Group (corporate)</option>
+                  <option value="individual">Individual (retail)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Offered by (HMO) <span className="muted">— coverage owner</span></label>
+                <select value={editing.offered_by_org_id} onChange={(e) => setEditing({ ...editing, offered_by_org_id: e.target.value })}>
+                  <option value="">— none —</option>
+                  {hmoOrgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Underwritten by (insurer) <span className="muted">— risk carrier</span></label>
+                <select value={editing.underwriter_org_id} onChange={(e) => setEditing({ ...editing, underwriter_org_id: e.target.value })}>
+                  <option value="">— none (standalone HMO) —</option>
+                  {insurerOrgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </select>
               </div>
               <div className="form-group">
                 <label>Currency</label>

@@ -210,6 +210,11 @@ export interface InsurancePlan {
   description: string;
   commission_rate: string;
   is_active: boolean;
+  // Org-hierarchy ownership: the HMO that offers the plan and the insurer that
+  // underwrites it; kind = group (corporate) | individual (retail).
+  offered_by_org_id?: string | null;
+  underwriter_org_id?: string | null;
+  kind?: 'group' | 'individual';
 }
 
 export interface Enrolment {

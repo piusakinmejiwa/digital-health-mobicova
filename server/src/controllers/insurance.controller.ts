@@ -5,7 +5,24 @@ import { paystackEnabled, paystackInitialize } from '../config/paystack';
 import { env } from '../config/env';
 import { emitEvent } from '../lib/webhooks';
 
-export async function listPlans(_req: Request, res: Response): Promise<void> {
+export async function listPlans(req: Request, res: Response): Promise<void> {
+  const orgId = req.user!.orgId;
+  // If this org has plans assigned to it (by its HMO/insurer), show exactly those,
+  // priced at the negotiated rate (monthly_premium overridden with the effective
+  // premium so the catalogue reflects what this employer actually pays). Any org
+  // without assignments — retail HMOs/insurers, unlinked tenants — is unchanged.
+  const assigned = await query(
+    `SELECT pl.id, pl.name, pl.plan_type, pl.underwriter, pl.currency, pl.cover_amount,
+            pl.benefits, pl.description, pl.commission_rate, pl.is_active, pl.kind,
+            COALESCE(a.negotiated_premium, pl.monthly_premium) AS monthly_premium
+       FROM plan_assignments a
+       JOIN insurance_plans pl ON pl.id = a.plan_id
+      WHERE a.employer_org_id = $1 AND a.status = 'active' AND pl.is_active = true
+      ORDER BY monthly_premium`,
+    [orgId]
+  );
+  if (assigned.rows.length > 0) { res.json(assigned.rows); return; }
+
   const result = await query(
     `SELECT * FROM insurance_plans WHERE is_active = true ORDER BY monthly_premium`
   );

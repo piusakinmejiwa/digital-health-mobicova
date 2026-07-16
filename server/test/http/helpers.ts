@@ -26,6 +26,7 @@ export interface Fixtures {
   failSelect1?: boolean; // make the readiness probe's "SELECT 1" throw
   claim?: Record<string, unknown> | null;       // existing claim row (status/reference)
   updatedClaim?: Record<string, unknown> | null; // row returned by UPDATE ... RETURNING *
+  children?: unknown[];                           // child employer orgs (hierarchy console)
 }
 
 const wrap = (rows: unknown[]) => ({ rows, rowCount: rows.length });
@@ -41,6 +42,9 @@ export function buildQueryImpl(fx: Fixtures) {
       if (fx.failSelect1) throw new Error('database unavailable');
       return wrap([{ ok: 1 }]);
     }
+    // Hierarchy: child employers — matched early because the query embeds a
+    // `FROM members m WHERE …` subselect that would otherwise hit the members route.
+    if (/parent_org_id = \$1/.test(s)) return wrap(fx.children ?? []);
     // getMember now reads `SELECT * FROM members m WHERE m.id …` (coverage-chain scope).
     if (/SELECT \* FROM members m WHERE/.test(s)) return wrap(fx.member ? [fx.member] : []);
     if (/FROM members WHERE id/.test(s)) return wrap(fx.member ? [fx.member] : []); // write existence checks

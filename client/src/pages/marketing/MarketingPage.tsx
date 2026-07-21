@@ -27,7 +27,7 @@ const AUD: Record<AudKey, { tab: string; h: string; p: string; li: string[]; sho
     p: 'Onboard your corporate clients and their staff, adjudicate claims, and give every member care on any phone — all under your own brand.',
     li: ['Onboard companies & rosters at scale', 'Claims adjudication + AI review', 'White-label member care on any phone'],
     shot: 'Your whole book — companies, members & claims',
-    photo: '/images/employer.jpg',
+    photo: '/images/hmo.jpg',
   },
   telco: {
     tab: 'Telcos',

@@ -96,7 +96,7 @@ export default function DashboardPage() {
         <div className="card">
           <div className="card-pad card-title-row">
             <h3 className="card-title">Recent consultations</h3>
-            <Link to="/telemedicine" className="link-sm">View all</Link>
+            <Link to="/telehealth" className="link-sm">View all</Link>
           </div>
           {recentConsultations.length === 0 ? (
             <p className="empty-state small">No consultations yet.</p>
@@ -142,7 +142,7 @@ export default function DashboardPage() {
       <div className="card">
         <div className="card-pad card-title-row">
           <h3 className="card-title">Recent insurance enrolments</h3>
-          <Link to="/insurance" className="link-sm">View all</Link>
+          <Link to="/cover" className="link-sm">View all</Link>
         </div>
         {recentEnrolments.length === 0 ? (
           <p className="empty-state small">No enrolments yet.</p>

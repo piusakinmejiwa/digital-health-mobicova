@@ -14,13 +14,13 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '◰' },
   { to: '/inbox', label: 'Inbox', icon: '⊞' },
   { to: '/members', label: 'Members', icon: '⚇' },
-  { to: '/telemedicine', label: 'Telemedicine', icon: '✚' },
+  { to: '/telehealth', label: 'Telemedicine', icon: '✚' },
   { to: '/assistant', label: 'AI Health Assistant', icon: '✦' },
-  { to: '/insurance', label: 'Insurance', icon: '◎' },
+  { to: '/cover', label: 'Insurance', icon: '◎' },
   { to: '/claims', label: 'Claims', icon: '▦' },
   { to: '/analytics', label: 'Analytics & reporting', icon: '▤' },
-  { to: '/channels', label: 'WhatsApp & USSD', icon: '☷' },
-  { to: '/partners', label: 'Partner Ecosystem', icon: '⌬' },
+  { to: '/messaging', label: 'WhatsApp & USSD', icon: '☷' },
+  { to: '/ecosystem', label: 'Partner Ecosystem', icon: '⌬' },
 ];
 
 // Supply-side orgs (clinics, pharmacies) get a focused workspace: their routed

@@ -17,13 +17,13 @@ export const COMMANDS: Command[] = [
   { group: 'Navigate', icon: '◰', label: 'Dashboard', href: '/dashboard' },
   { group: 'Navigate', icon: '⊞', label: 'Inbox', href: '/inbox', keywords: 'action centre tasks' },
   { group: 'Navigate', icon: '⚇', label: 'Members', href: '/members' },
-  { group: 'Navigate', icon: '✚', label: 'Telemedicine', href: '/telemedicine' },
+  { group: 'Navigate', icon: '✚', label: 'Telemedicine', href: '/telehealth' },
   { group: 'Navigate', icon: '✦', label: 'AI Health Assistant', href: '/assistant', keywords: 'triage symptom' },
-  { group: 'Navigate', icon: '◎', label: 'Insurance', href: '/insurance', keywords: 'plans enrolment cover' },
+  { group: 'Navigate', icon: '◎', label: 'Insurance', href: '/cover', keywords: 'plans enrolment cover' },
   { group: 'Navigate', icon: '▦', label: 'Claims', href: '/claims' },
   { group: 'Navigate', icon: '▤', label: 'Analytics & reporting', href: '/analytics', keywords: 'report kpi' },
-  { group: 'Navigate', icon: '☷', label: 'WhatsApp & USSD', href: '/channels', keywords: 'intake join code' },
-  { group: 'Navigate', icon: '⌬', label: 'Partner Ecosystem', href: '/partners' },
+  { group: 'Navigate', icon: '☷', label: 'WhatsApp & USSD', href: '/messaging', keywords: 'intake join code' },
+  { group: 'Navigate', icon: '⌬', label: 'Partner Ecosystem', href: '/ecosystem' },
   { group: 'Navigate', icon: '₦', label: 'Billing & plan', href: '/settings/billing', keywords: 'subscription invoice usage upgrade', adminOnly: true },
   { group: 'Navigate', icon: '⛨', label: 'Security', href: '/settings/security', keywords: '2fa two factor mfa' },
   { group: 'Navigate', icon: '⚷', label: 'Single sign-on', href: '/settings/sso', keywords: 'saml sso', adminOnly: true },
@@ -61,7 +61,7 @@ const HELP: Record<string, HelpContent> = {
   members: { title: 'Help · Members', sub: 'Onboarding members', items: [
     { label: 'Add a member', href: '/members/new' },
     { label: 'Bulk-import a CSV', href: '/members' },
-    { label: 'Enrol over WhatsApp & USSD', href: '/channels' },
+    { label: 'Enrol over WhatsApp & USSD', href: '/messaging' },
   ]},
   claims: { title: 'Help · Claims', sub: 'Working the queue', items: [
     { label: 'Log a claim', href: '/claims' },
@@ -71,11 +71,11 @@ const HELP: Record<string, HelpContent> = {
     { label: 'Export a report (CSV)', href: '/analytics' },
   ]},
   insurance: { title: 'Help · Insurance', sub: 'Plans & enrolment', items: [
-    { label: 'Enrol a member', href: '/insurance' },
+    { label: 'Enrol a member', href: '/cover' },
     { label: 'Review claims', href: '/claims' },
   ]},
   channels: { title: 'Help · WhatsApp & USSD', sub: 'Channel intake', items: [
-    { label: 'Try the simulators', href: '/channels' },
+    { label: 'Try the simulators', href: '/messaging' },
     { label: 'Import members instead', href: '/members' },
   ]},
   settings: { title: 'Help · Settings', sub: 'Account & developers', items: [

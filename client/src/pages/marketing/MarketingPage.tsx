@@ -44,10 +44,13 @@ function hideImg(e: React.SyntheticEvent<HTMLImageElement>) {
   e.currentTarget.style.display = 'none';
 }
 
+// Prices are quoted per partner (size + channel mix + modules), so we show tiers
+// and their capabilities and drive a conversation rather than headline figures —
+// matches the /pricing page ("no fixed price list").
 const PRICING = [
-  { name: 'Starter', price: '₦60k', features: ['Up to 2,000 members', 'All 3 services', 'WhatsApp + USSD', 'Email support'], cta: 'Start free trial', cls: 'btn-secondary' },
-  { name: 'Growth', price: '₦180k', features: ['Up to 10,000 members', 'API & webhooks', 'White-label portal', 'Analytics & reports'], cta: 'Start free trial', cls: 'btn-amber', pop: true },
-  { name: 'Scale', price: '₦340k', features: ['Up to 50,000 members', 'Unlimited intake', 'Custom domain', 'Priority support & SLA'], cta: 'Start free trial', cls: 'btn-secondary' },
+  { name: 'Starter', price: 'Let’s talk', features: ['Up to 2,000 members', 'All 3 services', 'WhatsApp + USSD', 'Email support'], cta: 'Start free trial', cls: 'btn-secondary' },
+  { name: 'Growth', price: 'Let’s talk', features: ['Up to 10,000 members', 'API & webhooks', 'White-label portal', 'Analytics & reports'], cta: 'Start free trial', cls: 'btn-amber', pop: true },
+  { name: 'Scale', price: 'Let’s talk', features: ['Up to 50,000 members', 'Unlimited intake', 'Custom domain', 'Priority support & SLA'], cta: 'Start free trial', cls: 'btn-secondary' },
   { name: 'Enterprise', price: 'Custom', features: ['Unlimited members', 'SSO + custom SLA', 'Dedicated CSM', 'On-prem option'], cta: 'Contact sales', cls: 'btn-primary' },
 ];
 
@@ -235,7 +238,7 @@ export default function MarketingPage() {
               <div key={p.name} className={`pcard ${p.pop ? 'pop' : ''}`}>
                 {p.pop && <div className="tagp">Most popular</div>}
                 <div className="pn">{p.name}</div>
-                <div className="pp">{p.price}{p.price !== 'Custom' && <span>/mo</span>}</div>
+                <div className="pp">{p.price}{/\d/.test(p.price) && <span>/mo</span>}</div>
                 <ul>{p.features.map((f) => <li key={f}>{f}</li>)}</ul>
                 <button className={`btn ${p.cls} btn-block`} onClick={() => scrollTo('demo')}>{p.cta}</button>
               </div>

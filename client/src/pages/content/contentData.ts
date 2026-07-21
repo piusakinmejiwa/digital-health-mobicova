@@ -22,7 +22,7 @@ export const CONTENT: Record<string, PageContent> = {
   about: {
     eyebrow: 'Company',
     title: 'About MobiCova',
-    intro: 'MobiCova is digital health infrastructure for Nigeria and Africa — helping insurers, HMOs, employers, clinics and pharmacies connect people to care on any phone, in any language.',
+    intro: 'MobiCova is digital health infrastructure for Nigeria and Africa — helping insurers, HMOs, telcos, clinics and pharmacies connect people to care on any phone, in any language.',
     lead: 'Most digital health tools assume a smartphone, fast data and English. Across Nigeria and much of Africa, that leaves out the majority. MobiCova is built the other way round — for basic phones, low data, and local languages first.',
     sections: [
       { h: 'Our mission', p: 'To make quality healthcare reachable for everyone — especially the millions who are hard to reach with conventional digital health. We do that by meeting people on the phone they already own, through the channel they already use, in the language they actually speak.' },
@@ -34,12 +34,12 @@ export const CONTENT: Record<string, PageContent> = {
         'A free AI Health Buddy that gives clinician-reviewed basic health information',
         'White-label branding, SSO and an API so partners run it as their own',
       ] },
-      { h: 'How we are different', p: 'We lead with reach, not just features. A member can enrol and get help on a feature phone over USSD, ask a health question on WhatsApp in Pidgin, and have it all tie back to their insurer or employer — without ever installing anything.' },
+      { h: 'How we are different', p: 'We lead with reach, not just features. A member can enrol and get help on a feature phone over USSD, ask a health question on WhatsApp in Pidgin, and have it all tie back to their insurer or HMO — without ever installing anything.' },
       { h: 'Built on trust', p: 'Health information is reviewed by a clinician, a deterministic safety layer routes crisis messages to Nigerian helplines, and member data is handled in line with the Nigeria Data Protection Act. Security and certification (SOC 2 / ISO 27001) are on our roadmap as we scale.' },
-      { h: 'Who we serve', p: 'Insurers and HMOs, employers, telcos, clinics, pharmacies and diagnostics providers — and, through them, the members and patients who finally get easier access to care.' },
+      { h: 'Who we serve', p: 'Insurers, HMOs and telcos, plus the clinics, pharmacies and diagnostics providers who deliver care — and, through them, the companies, members and patients who finally get easier access to care.' },
     ],
     faq: [
-      { q: 'Is MobiCova a health insurer?', a: 'No. MobiCova is the technology platform that insurers, HMOs and employers use to enrol members and deliver care. The cover itself comes from your insurer or plan.' },
+      { q: 'Is MobiCova a health insurer?', a: 'No. MobiCova is the technology platform that insurers and HMOs use to enrol members and deliver care. The cover itself comes from your insurer or plan.' },
       { q: 'Where does MobiCova operate?', a: 'We are focused on Nigeria first, building for the wider African market. Availability of specific plans depends on the partner you enrol through.' },
     ],
     ctaText: 'Partner with us', ctaTo: '/contact',
@@ -47,7 +47,7 @@ export const CONTENT: Record<string, PageContent> = {
   partners: {
     eyebrow: 'Partners',
     title: 'Partner with MobiCova',
-    intro: 'A single, multi-tenant platform that insurers, HMOs, employers, telcos, clinics and pharmacies plug into to enrol members and deliver care — branded as their own, live in weeks not months.',
+    intro: 'A single, multi-tenant platform that insurers, HMOs, telcos, clinics and pharmacies plug into to enrol members and deliver care — branded as their own, live in weeks not months.',
     lead: 'Instead of building enrolment, channels, telemedicine and claims from scratch, you launch on infrastructure that already exists and already reaches members on any phone.',
     sections: [
       { h: 'Built for partners', p: 'MobiCova is multi-tenant from the ground up, so every partner gets their own branded, isolated workspace:', bullets: [
@@ -59,7 +59,7 @@ export const CONTENT: Record<string, PageContent> = {
       ] },
       { h: 'Who we work with', p: 'The platform is deliberately insurer-agnostic — it serves the whole ecosystem:', bullets: [
         'Insurers & HMOs — enrol and manage members, process claims',
-        'Employers — offer health benefits to staff on any phone',
+        'Companies & their staff — reached through their insurer or HMO, with care on any phone',
         'Telcos — bundle health access with airtime and data',
         'Clinics & pharmacies — receive referrals and fulfil prescriptions',
         'Diagnostics providers — connect testing into the care journey',
@@ -89,7 +89,7 @@ export const CONTENT: Record<string, PageContent> = {
       { h: 'Where we are hiring', p: 'We are always interested in strong people across:', bullets: [
         'Engineering — full-stack, mobile/USSD/WhatsApp channels, data',
         'Clinical & health content — reviewing and shaping what the platform tells people',
-        'Partnerships & growth — working with insurers, HMOs and employers',
+        'Partnerships & growth — working with insurers and HMOs',
         'Operations & support — keeping members and partners happy',
       ] },
       { h: 'No role listed for you?', p: 'We still want to hear from exceptional people. Tell us what you do and how you would help us reach more people with better care.' },
@@ -106,7 +106,7 @@ export const CONTENT: Record<string, PageContent> = {
     intro: 'Partnership enquiries, demos, press or support — leave your details below and the right person will get back to you.',
     sections: [
       { h: 'Other ways to get help', p: 'For a partnership or demo, use the form above and tell us a little about your organisation. For a basic health question, the free Health Buddy can help straight away. For quick questions about MobiCova itself, ask Eze, our assistant, on any page.' },
-      { h: 'For members', p: 'If you are already enrolled through an insurer or employer, your fastest route for plan or claims questions is usually your member portal or your provider — but we are always happy to point you in the right direction.' },
+      { h: 'For members', p: 'If you are already enrolled through an insurer or HMO, your fastest route for plan or claims questions is usually your member portal or your provider — but we are always happy to point you in the right direction.' },
     ],
     contactForm: true,
   },
@@ -130,7 +130,7 @@ export const CONTENT: Record<string, PageContent> = {
   insurance: {
     eyebrow: 'Platform',
     title: 'Insurance & claims',
-    intro: 'Manage health plans, enrol members and process claims on one platform — purpose-built for insurers, HMOs and employers who need to reach members on any phone.',
+    intro: 'Manage health plans, enrol members and process claims on one platform — purpose-built for insurers and HMOs who need to reach members on any phone.',
     sections: [
       { h: 'Plan management', p: 'Configure plans, premiums, benefits and commissions, and manage your whole membership from a single console — with the flexibility to support individual, family and group cover.' },
       { h: 'Enrolment on any phone', p: 'Bring members on board however they are reachable — a web form for smartphone users, a guided WhatsApp conversation, or a USSD flow on a basic phone. Every member gets a membership ID that works across channels.' },

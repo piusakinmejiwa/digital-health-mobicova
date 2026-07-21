@@ -11,7 +11,7 @@ import './Marketing.css';
 // Self-hosted photos (royalty-free, Pexels License) — files live in public/images/.
 const HERO_PHOTO = '/images/hero.jpg';
 
-type AudKey = 'insurer' | 'employer' | 'telco';
+type AudKey = 'insurer' | 'hmo' | 'telco';
 const AUD: Record<AudKey, { tab: string; h: string; p: string; li: string[]; shot: string; photo: string }> = {
   insurer: {
     tab: 'Insurers',
@@ -21,12 +21,12 @@ const AUD: Record<AudKey, { tab: string; h: string; p: string; li: string[]; sho
     shot: 'Enrolment, premiums & claims — in real time',
     photo: '/images/insurer.jpg',
   },
-  employer: {
-    tab: 'Employers',
-    h: 'Give every employee health cover that actually gets used.',
-    p: 'Onboard your whole roster from a spreadsheet, then let staff book doctors and submit claims from their phone.',
-    li: ['Bulk CSV member import', 'Telemedicine & AI triage for staff', 'Utilisation & engagement analytics'],
-    shot: 'Connected care, from sign-up to the pharmacy counter',
+  hmo: {
+    tab: 'HMOs',
+    h: 'Run your whole book — companies, members and claims — in one place.',
+    p: 'Onboard your corporate clients and their staff, adjudicate claims, and give every member care on any phone — all under your own brand.',
+    li: ['Onboard companies & rosters at scale', 'Claims adjudication + AI review', 'White-label member care on any phone'],
+    shot: 'Your whole book — companies, members & claims',
     photo: '/images/employer.jpg',
   },
   telco: {
@@ -56,7 +56,7 @@ const PRICING = [
 
 // The partner types MobiCova serves — shown as wordmarks (insurer-agnostic; no
 // specific company names, to avoid implying partnerships that aren't in place).
-const TRUST = ['Insurers', 'HMOs', 'Employers', 'Telcos', 'Pharmacies'];
+const TRUST = ['Insurers', 'HMOs', 'Telcos', 'Pharmacies'];
 
 // Footer columns. Each link scrolls to a section or navigates to a route — no dead links.
 const FOOT_COLS: { h: string; items: [string, string][] }[] = [
@@ -136,7 +136,7 @@ export default function MarketingPage() {
             <div className="hero-copy">
               <span className="eyebrow">Health Platform · Distributor · Infrastructure</span>
               <h1>Health cover, telemedicine &amp; AI triage for <em>every African</em>, on any phone.</h1>
-              <p>One platform for insurers, employers and telcos to enrol members and deliver care — over an app, WhatsApp or USSD.</p>
+              <p>One platform for insurers, HMOs and telcos to enrol members and deliver care — over an app, WhatsApp or USSD.</p>
               <div className="cta">
                 <button className="btn btn-amber btn-lg" onClick={() => scrollTo('demo')}>Book a demo →</button>
                 <button className="btn btn-outline btn-lg" onClick={() => scrollTo('services')}>See how it works</button>
@@ -274,7 +274,7 @@ export default function MarketingPage() {
                   <input className="fld" placeholder="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
                   <select className="fld" value={form.partnerType} onChange={(e) => setForm({ ...form, partnerType: e.target.value })}>
                     <option value="">Partner type…</option>
-                    <option>Insurer / underwriter</option><option>Employer / HR</option>
+                    <option>Insurer / underwriter</option><option>HMO</option>
                     <option>Telco / distributor</option><option>Clinic / provider</option>
                   </select>
                   <select className="fld" value={form.memberBand} onChange={(e) => setForm({ ...form, memberBand: e.target.value })}>

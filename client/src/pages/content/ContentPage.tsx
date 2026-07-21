@@ -43,7 +43,7 @@ function ContactForm() {
       </div>
       <div className="ct-row">
         <div><label>Phone</label><input value={f.phone} onChange={(e) => set('phone')(e.target.value)} placeholder="+234…" /></div>
-        <div><label>Organisation</label><input value={f.organisation} onChange={(e) => set('organisation')(e.target.value)} placeholder="Company / HMO / employer" /></div>
+        <div><label>Organisation</label><input value={f.organisation} onChange={(e) => set('organisation')(e.target.value)} placeholder="Insurer / HMO / telco" /></div>
       </div>
       <div className="ct-row">
         <div>
@@ -51,7 +51,6 @@ function ContactForm() {
           <select value={f.enquiryType} onChange={(e) => set('enquiryType')(e.target.value)}>
             <option value="">Select…</option>
             <option value="insurer">Insurer / HMO</option>
-            <option value="employer">Employer</option>
             <option value="telco">Telco</option>
             <option value="clinic">Clinic / Pharmacy</option>
             <option value="developer">Developer / Partner</option>
